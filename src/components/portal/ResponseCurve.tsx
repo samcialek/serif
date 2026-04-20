@@ -60,9 +60,16 @@ const OPTIMUM_LABEL: Record<DoseShape, string> = {
   threshold: 'safe zone — just below the cliff',
 }
 
+// Load actions are rolling aggregates, never directly prescribed. The
+// Protocols tab won't surface them, so the expanded-curve copy is tweaked
+// to describe steering via upstream behaviours rather than pointing at
+// Protocols for a dose target.
+const LOAD_ACTIONS = new Set(['acwr', 'sleep_debt', 'travel_load'])
+
 export function ResponseCurve({ insight }: ResponseCurveProps) {
   const beneficial = OUTCOME_META[insight.outcome]?.beneficial ?? 'neutral'
   const info = shapeFor(insight.action, insight.outcome, insight.scaled_effect, beneficial)
+  const isLoad = LOAD_ACTIONS.has(insight.action)
 
   const optFrac = optimumFrac(info.shape)
   const points = useMemo(() => sampleShape(info.shape), [info.shape])
@@ -88,9 +95,9 @@ export function ResponseCurve({ insight }: ResponseCurveProps) {
             Dose–response
           </p>
           <p className="text-xs text-slate-600 leading-snug">
-            Mechanism-prior shape — the dot marks the structural optimum, not
-            today's operating point. Personal dose targets live in the Protocols
-            tab.
+            {isLoad
+              ? 'Mechanism-prior shape — the dot marks the structural optimum. Loads aren\'t prescribed directly; steer them via the behavioural actions above.'
+              : 'Mechanism-prior shape — the dot marks the structural optimum, not today\'s operating point. Personal dose targets live in the Protocols tab.'}
           </p>
         </div>
         <span className="text-[10px] uppercase tracking-wider text-slate-500 flex-shrink-0">
