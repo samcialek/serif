@@ -81,6 +81,29 @@ const SHAPE_OVERRIDE: Record<string, Record<string, DoseShape>> = {
   sleep_duration: {
     cortisol: 'inverted_u',
   },
+
+  // Load actions — rolling aggregates surfaced in the Context drivers
+  // section. Shapes mark them as "state" knobs rather than pursuit knobs,
+  // so the dose-shift label reads as a direction to avoid.
+  //
+  // ACWR has a genuine sweet spot around 1.0: detraining below 0.8, injury
+  // risk above 1.3. Inverted-U on the outcomes with U-shaped physiology;
+  // plateau_down on inflammation markers (higher ACWR monotonically worse).
+  acwr: {
+    hrv_daily: 'inverted_u',
+    resting_hr: 'inverted_u',
+    cortisol: 'inverted_u',
+    testosterone: 'inverted_u',
+    hscrp: 'plateau_down',
+    insulin: 'plateau_down',
+  },
+
+  // Sleep debt: more accumulated debt is worse for everything. Plateau_down
+  // tells the UI to render the dose label with the reduce-direction flipped.
+  sleep_debt: { '*': 'plateau_down' },
+
+  // Travel load: jet-lag / timezone drift is uniformly disruptive.
+  travel_load: { '*': 'plateau_down' },
 }
 
 const PLATEAU_UP: ShapeInfo = {
