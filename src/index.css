@@ -1,0 +1,381 @@
+/* Import fonts first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ═══════════════════════════════════════════════════════════════════════
+     SERIF CLINICAL PRECISION DESIGN SYSTEM
+     Maximum whitespace • Subtle borders • Serif color accents • Swiss typography
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* Serif Brand Colors */
+  --serif-cyan: #89CCF0;
+  --serif-cyan-light: #b8e4f7;
+  --serif-cyan-dark: #5ba8d4;
+  --serif-blue: #96b9d0;
+  --serif-blue-light: #c4d8e6;
+  --serif-blue-dark: #6a95b3;
+  --serif-pink: #f8c8dc;
+  --serif-pink-light: #fce4ee;
+  --serif-lavender: #b8aadd;
+  --serif-lavender-light: #d9d0ed;
+
+  /* Primary brand colors - Serif cyan scale */
+  --color-primary-50: #eef9fd;
+  --color-primary-100: #d4eff9;
+  --color-primary-200: #b8e4f7;
+  --color-primary-300: #89CCF0;
+  --color-primary-400: #5ba8d4;
+  --color-primary-500: #3d8fbd;
+  --color-primary-600: #2d7399;
+  --color-primary-700: #255d7a;
+  --color-primary-800: #1e4a61;
+  --color-primary-900: #183c4f;
+
+  /* Insight category colors - Serif palette */
+  --color-insight-sleep: #b8aadd;
+  --color-insight-metabolic: #e99bbe;
+  --color-insight-cardio: #f8c8dc;
+  --color-insight-recovery: #89CCF0;
+  --color-insight-mood: #96b9d0;
+  --color-insight-nutrition: #b8e4f7;
+  --color-insight-cognitive: #9182c4;
+  --color-insight-activity: #5ba8d4;
+  --color-insight-stress: #d66e9a;
+
+  /* COMPLE Variable Type colors - Serif aligned */
+  --color-outcome: #89CCF0;
+  --color-load: #f8c8dc;
+  --color-marker: #b8aadd;
+
+  /* Status colors - softer Serif versions */
+  --color-status-optimal: #89CCF0;
+  --color-status-attention: #f8c8dc;
+  --color-status-risk: #e99bbe;
+  --color-status-neutral: #96b9d0;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 64px;
+
+  /* Clinical Precision: Subtle 1px borders */
+  --border-width: 1px;
+  --border-width-bold: 1px;
+  --border-color: #e2e8f0;
+  --border-color-light: #f1f5f9;
+  --border-color-accent: #96b9d0;
+
+  /* Clinical Precision: Soft rounded corners */
+  --radius-none: 0px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Clinical Precision: Subtle shadows */
+  --shadow-sm: 0 1px 2px rgba(150, 185, 208, 0.05);
+  --shadow-md: 0 4px 12px rgba(150, 185, 208, 0.08);
+  --shadow-lg: 0 8px 24px rgba(150, 185, 208, 0.12);
+  --shadow-card: 0 2px 8px rgba(150, 185, 208, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(137, 204, 240, 0.15);
+
+  /* Transitions - smooth and refined */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #F9FAFB;
+  color: #111827;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     SERIF CLINICAL PRECISION: Category backgrounds
+     ═══════════════════════════════════════════════════════════════════════ */
+  .bg-solid-sleep {
+    background: var(--color-insight-sleep);
+  }
+
+  .bg-solid-metabolic {
+    background: var(--color-insight-metabolic);
+  }
+
+  .bg-solid-cardio {
+    background: var(--color-insight-cardio);
+  }
+
+  .bg-solid-recovery {
+    background: var(--color-insight-recovery);
+  }
+
+  .bg-solid-mood {
+    background: var(--color-insight-mood);
+  }
+
+  .bg-solid-nutrition {
+    background: var(--color-insight-nutrition);
+  }
+
+  .bg-solid-cognitive {
+    background: var(--color-insight-cognitive);
+  }
+
+  .bg-solid-activity {
+    background: var(--color-insight-activity);
+  }
+
+  .bg-solid-stress {
+    background: var(--color-insight-stress);
+  }
+
+  /* Soft gradient backgrounds - Serif style */
+  .bg-gradient-sleep { background: linear-gradient(135deg, #d9d0ed 0%, #b8aadd 100%); }
+  .bg-gradient-metabolic { background: linear-gradient(135deg, #fce4ee 0%, #e99bbe 100%); }
+  .bg-gradient-cardio { background: linear-gradient(135deg, #fce4ee 0%, #f8c8dc 100%); }
+  .bg-gradient-recovery { background: linear-gradient(135deg, #d4eff9 0%, #89CCF0 100%); }
+  .bg-gradient-mood { background: linear-gradient(135deg, #c4d8e6 0%, #96b9d0 100%); }
+  .bg-gradient-nutrition { background: linear-gradient(135deg, #d4eff9 0%, #b8e4f7 100%); }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     SERIF CLINICAL PRECISION: Core styling utilities
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* Subtle border utilities */
+  .border-clinical {
+    border: 1px solid var(--border-color);
+  }
+
+  .border-clinical-accent {
+    border: 1px solid var(--serif-cyan);
+  }
+
+  .border-clinical-muted {
+    border: 1px solid var(--serif-blue-light);
+  }
+
+  /* Accent stripe - left border highlight */
+  .accent-stripe-cyan {
+    border-left: 3px solid var(--serif-cyan);
+  }
+
+  .accent-stripe-pink {
+    border-left: 3px solid var(--serif-pink);
+  }
+
+  .accent-stripe-lavender {
+    border-left: 3px solid var(--serif-lavender);
+  }
+
+  /* Typography utilities - Swiss precision */
+  .text-clinical-heading {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #1e293b;
+  }
+
+  .text-clinical-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+  }
+
+  .text-clinical-metric {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #0f172a;
+  }
+
+  .text-clinical-metric-sm {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #0f172a;
+  }
+
+  /* Progress bars - soft and rounded */
+  .progress-clinical {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-clinical-fill {
+    height: 100%;
+    background: var(--serif-cyan);
+    border-radius: 3px;
+  }
+
+  .progress-clinical-fill-pink {
+    background: var(--serif-pink);
+  }
+
+  .progress-clinical-fill-lavender {
+    background: var(--serif-lavender);
+  }
+
+  /* Divider utilities - subtle */
+  .divider-clinical {
+    height: 1px;
+    background: var(--border-color);
+    border: none;
+  }
+
+  .divider-clinical-light {
+    height: 1px;
+    background: var(--border-color-light);
+    border: none;
+  }
+
+  /* Card styling */
+  .card-clinical {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+  }
+
+  .card-clinical:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--serif-blue-light);
+  }
+
+  /* Glass effect - Clinical style */
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  /* Serif brand glow effects */
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(137, 204, 240, 0.3);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 20px rgba(248, 200, 220, 0.3);
+  }
+
+  .glow-lavender {
+    box-shadow: 0 0 20px rgba(184, 170, 221, 0.3);
+  }
+
+  /* Pill/badge styling */
+  .pill-clinical {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid var(--border-color);
+  }
+
+  .pill-clinical-cyan {
+    background: #eef9fd;
+    color: #2d7399;
+    border-color: var(--serif-cyan-light);
+  }
+
+  .pill-clinical-pink {
+    background: #fef5f8;
+    color: #a03963;
+    border-color: var(--serif-pink-light);
+  }
+
+  .pill-clinical-lavender {
+    background: #f5f3fa;
+    color: #5c4d8a;
+    border-color: var(--serif-lavender-light);
+  }
+}
+
+/* Animation classes */
+@layer utilities {
+  .animate-in {
+    animation: animateIn 0.3s ease-out forwards;
+  }
+
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+}

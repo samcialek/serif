@@ -1,0 +1,725 @@
+import type { Persona, Insight, DailyMetrics, LabResult, Protocol, DailyPlan } from '@/types'
+
+export const marcusPersona: Persona = {
+  id: 'marcus',
+  name: 'Marcus J.',
+  avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
+  age: 47,
+  archetype: 'The Recovery Specialist',
+  narrative: 'Former athlete managing inflammation through optimized recovery protocols',
+  daysOfData: 60,
+  devices: ['oura', 'fitbit', 'mito-app', 'bloodwork', 'weather'],
+  deviceConnections: [
+    { deviceId: 'oura', isActive: true, firstConnected: '2024-09-01', lastRefreshed: '2025-01-11T04:30:00Z' },
+    { deviceId: 'fitbit', isActive: true, firstConnected: '2024-07-15', lastRefreshed: '2025-01-11T04:30:00Z' },
+    { deviceId: 'mito-app', isActive: true, firstConnected: '2024-09-01', lastRefreshed: '2025-01-11T04:30:00Z' },
+    { deviceId: 'bloodwork', isActive: true, firstConnected: '2024-09-15', lastRefreshed: '2025-01-11T04:30:00Z' },
+    { deviceId: 'weather', isActive: true, firstConnected: '2024-09-01', lastRefreshed: '2025-01-11T04:30:00Z' },
+  ],
+  hasBloodwork: true,
+  labDraws: 2,
+  thresholds: {
+    caffeineCutoff: '12:00',      // Very early - sensitive to caffeine
+    workoutEndTime: '17:00',      // Early cutoff for recovery
+    bedroomTempCeiling: 18,       // Very cool sleeper
+    eatingWindowHours: 12,
+    minSleepHours: 8,             // Needs more sleep
+    maxAlcoholUnits: 0,           // Zero alcohol for inflammation
+  },
+  currentMetrics: {
+    sleepScore: 76,
+    deepSleepMin: 62,
+    remSleepMin: 78,
+    sleepLatencyMin: 8,
+    hrv: 58,
+    restingHr: 52,
+    fastingGlucose: 88,
+    weight: 195,
+    trainingLoad: 'high',
+  },
+  loads: [
+    {
+      id: 'training-load',
+      label: 'Training Load',
+      kind: 'load',
+      value: 82,
+      trend: 'rising',
+      trendPositive: false,
+      status: 'high',
+      unit: 'TRIMP',
+      detail: 'Accumulated strain spiking — 3 consecutive high-intensity sessions without deload',
+    },
+    {
+      id: 'recovery-deficit',
+      label: 'Recovery Deficit',
+      kind: 'load',
+      value: 68,
+      trend: 'rising',
+      trendPositive: false,
+      status: 'moderate',
+      unit: 'hrs',
+      detail: 'HRV takes 48+ hours to normalize; only 36 hrs between sessions',
+    },
+    {
+      id: 'sleep-debt',
+      label: 'Sleep Debt',
+      kind: 'load',
+      value: 55,
+      trend: 'rising',
+      trendPositive: false,
+      status: 'moderate',
+      unit: 'hrs',
+      detail: '~4 hrs accumulated over 14 days — caffeine after noon disrupting deep sleep',
+    },
+    {
+      id: 'joint-load',
+      label: 'Joint Stress',
+      kind: 'load',
+      value: 70,
+      trend: 'stable',
+      status: 'high',
+      unit: 'score',
+      detail: 'Knee and shoulder load elevated from increased lifting volume',
+    },
+    {
+      id: 'alcohol-load',
+      label: 'Alcohol Load',
+      kind: 'load',
+      value: 15,
+      trend: 'stable',
+      status: 'low',
+      unit: 'units',
+      detail: 'Zero alcohol maintained for 60 days — key anti-inflammatory intervention',
+    },
+    {
+      id: 'hscrp',
+      label: 'hsCRP',
+      kind: 'marker',
+      value: 72,
+      trend: 'falling',
+      trendPositive: true,
+      status: 'high',
+      unit: 'mg/L',
+      detail: 'hsCRP 3.2 mg/L — down from 5.1 but still elevated; systemic inflammation persists',
+    },
+    {
+      id: 'cortisol-ratio',
+      label: 'Cortisol:DHEA',
+      kind: 'marker',
+      value: 65,
+      trend: 'rising',
+      trendPositive: false,
+      status: 'moderate',
+      unit: 'ratio',
+      detail: 'Ratio 0.38 — trending toward catabolic state; recovery days help reset',
+    },
+    {
+      id: 'omega3-index',
+      label: 'Omega-3 Index',
+      kind: 'marker',
+      value: 48,
+      trend: 'rising',
+      trendPositive: true,
+      status: 'moderate',
+      unit: '%',
+      detail: 'Omega-3 index 5.8% — improved from 4.2% but target is >8% for anti-inflammatory effect',
+    },
+    {
+      id: 'testosterone',
+      label: 'Testosterone',
+      kind: 'marker',
+      value: 58,
+      trend: 'falling',
+      trendPositive: false,
+      status: 'moderate',
+      unit: 'ng/dL',
+      detail: 'Total T 520 ng/dL — age-expected but declining; overtraining may be suppressing',
+    },
+    {
+      id: 'ferritin',
+      label: 'Ferritin',
+      kind: 'marker',
+      value: 65,
+      trend: 'stable',
+      status: 'moderate',
+      unit: 'ng/mL',
+      detail: 'Ferritin 85 ng/mL — adequate but inflammation can falsely elevate; iron panel needed',
+    },
+    {
+      id: 'uric-acid',
+      label: 'Uric Acid',
+      kind: 'marker',
+      value: 70,
+      trend: 'rising',
+      trendPositive: false,
+      status: 'high',
+      unit: 'mg/dL',
+      detail: 'Uric acid 7.4 mg/dL — elevated; joint pain may be gout-related, not purely mechanical',
+    },
+    {
+      id: 'vitamin-d',
+      label: 'Vitamin D',
+      kind: 'marker',
+      value: 40,
+      trend: 'stable',
+      status: 'moderate',
+      unit: 'ng/mL',
+      detail: '25(OH)D at 32 ng/mL — suboptimal for recovery and inflammation management',
+    },
+  ],
+  tags: ['recovery-focused', 'inflammation-management', 'sleep-optimizer'],
+}
+
+export const marcusInsights: Insight[] = [
+  {
+    id: 'marcus-insight-001',
+    personaId: 'marcus',
+    category: 'recovery',
+    variableType: 'outcome',  // HRV recovery is a daily outcome
+    title: 'TRAINING LOAD → HRV RECOVERY',
+    headline: 'Your HRV needs 48 hours to recover from high-strain days',
+    recommendation: 'Space high-intensity workouts 48+ hours apart',
+    explanation: 'Back-to-back intense sessions suppress your HRV for 72+ hours',
+    cause: {
+      behavior: 'training_spacing',
+      threshold: 48,
+      unit: 'hours',
+      direction: 'above',
+    },
+    outcome: {
+      metric: 'hrv_recovery',
+      effect: 'Full HRV recovery in 48 hours vs 72+ when stacked',
+      direction: 'positive',
+    },
+    certainty: 0.91,
+    evidence: {
+      personalDays: 58,
+      personalWeight: 0.91,
+      populationWeight: 0.09,
+      stability: 0.87,
+    },
+    dataSources: ['whoop', 'oura'],
+    comparison: {
+      before: { value: 44, label: 'Back-to-back high strain' },
+      after: { value: 62, label: '48hr spacing' },
+    },
+    whyNow: 'You had 3 high-strain days in a row last week—your HRV is still recovering.',
+    holdoutPreview: {
+      metric: 'hrv',
+      expectedChange: 8,
+      unit: 'ms',
+      horizon: '7 days',
+    },
+    showWork: 'WHOOP data shows your strain score exceeded 15 on 18 days. When followed by another high-strain day within 24 hours (8 occurrences), your HRV dropped to 44ms and took 72+ hours to recover. With 48+ hour spacing (10 occurrences), HRV stayed at 62ms with full recovery. Your recovery rate is 15% slower than typical for your age.',
+  },
+  {
+    id: 'marcus-insight-002',
+    personaId: 'marcus',
+    category: 'recovery',
+    variableType: 'marker',  // hsCRP is a slow-changing biomarker
+    title: 'ALCOHOL → INFLAMMATION (hsCRP)',
+    headline: 'Even moderate alcohol is elevating your inflammation markers',
+    recommendation: 'Consider eliminating alcohol entirely',
+    explanation: 'Any alcohol consumption raises your hsCRP by 40% for 48 hours',
+    cause: {
+      behavior: 'alcohol_consumption',
+      threshold: 0,
+      unit: 'drinks',
+      direction: 'below',
+    },
+    outcome: {
+      metric: 'hsCrp',
+      effect: '+40% inflammation for 48 hours after drinking',
+      direction: 'negative',
+    },
+    certainty: 0.87,
+    evidence: {
+      personalDays: 60,
+      personalWeight: 0.72,
+      populationWeight: 0.28,
+      stability: 0.80,
+    },
+    dataSources: ['oura', 'apple-watch'],
+    comparison: {
+      before: { value: 2.8, label: 'After alcohol' },
+      after: { value: 1.6, label: 'No alcohol' },
+    },
+    whyNow: 'Your hsCRP dropped 43% when you did a 30-day alcohol-free experiment.',
+    showWork: 'During your alcohol-free period, hsCRP dropped from 2.8 mg/L to 1.6 mg/L. When you reintroduced occasional drinks, we observed HRV dropping 15% and resting HR increasing 8% for 48 hours post-consumption. Your inflammatory response to alcohol is above average, possibly due to your history of joint issues.',
+  },
+  {
+    id: 'marcus-insight-003',
+    personaId: 'marcus',
+    category: 'sleep',
+    variableType: 'outcome',  // Deep sleep is a daily outcome
+    title: 'CAFFEINE TIMING → DEEP SLEEP',
+    headline: 'Your caffeine sensitivity requires a noon cutoff',
+    recommendation: 'No caffeine after 12:00 PM',
+    explanation: 'Caffeine after noon cuts your deep sleep by 25 minutes',
+    cause: {
+      behavior: 'caffeine_cutoff',
+      threshold: '12:00',
+      unit: 'time',
+      direction: 'before',
+    },
+    outcome: {
+      metric: 'deep_sleep',
+      effect: '-25 min when caffeine after noon',
+      direction: 'negative',
+    },
+    certainty: 0.83,
+    evidence: {
+      personalDays: 55,
+      personalWeight: 0.83,
+      populationWeight: 0.17,
+      stability: 0.79,
+    },
+    dataSources: ['oura'],
+    comparison: {
+      before: { value: 42, label: 'Afternoon caffeine' },
+      after: { value: 67, label: 'Morning only caffeine' },
+    },
+    whyNow: 'Your deep sleep has been under 50 minutes on days with afternoon caffeine.',
+    holdoutPreview: {
+      metric: 'deep_sleep',
+      expectedChange: 18,
+      unit: 'minutes',
+      horizon: '5 days',
+    },
+    showWork: 'Your caffeine threshold (noon) is 2-4 hours earlier than population average. On 32 days with no caffeine after noon, deep sleep averaged 67 minutes. On 23 days with afternoon caffeine, it dropped to 42 minutes. Genetic factors may contribute to your slower caffeine metabolism—consider CYP1A2 testing.',
+  },
+  {
+    id: 'marcus-insight-004',
+    personaId: 'marcus',
+    category: 'cardio',
+    variableType: 'outcome',  // Recovery score is a daily outcome
+    title: 'COLD EXPOSURE → RECOVERY SCORE',
+    headline: 'Cold showers are boosting your recovery scores',
+    recommendation: 'Continue 2-min cold exposure post-workout',
+    explanation: 'Cold exposure improves your next-day recovery by 12%',
+    cause: {
+      behavior: 'cold_exposure',
+      threshold: 2,
+      unit: 'minutes',
+      direction: 'above',
+    },
+    outcome: {
+      metric: 'recovery_score',
+      effect: '+12% recovery score next day',
+      direction: 'positive',
+    },
+    certainty: 0.74,
+    evidence: {
+      personalDays: 42,
+      personalWeight: 0.74,
+      populationWeight: 0.26,
+      stability: 0.68,
+    },
+    dataSources: ['whoop'],
+    comparison: {
+      before: { value: 58, label: 'No cold exposure' },
+      after: { value: 70, label: 'With cold exposure' },
+    },
+    whyNow: 'You\'ve been consistent with cold exposure for 6 weeks—the pattern is clear.',
+    showWork: 'On 28 days with documented cold exposure (2+ minutes), your next-day WHOOP recovery averaged 70%. On 14 days without, it averaged 58%. The effect is most pronounced after high-strain workouts, suggesting cold exposure helps manage exercise-induced inflammation.',
+  },
+  {
+    id: 'marcus-insight-005',
+    personaId: 'marcus',
+    category: 'sleep',
+    variableType: 'outcome',  // Sleep efficiency is a daily outcome
+    title: 'BEDROOM TEMP → SLEEP EFFICIENCY',
+    headline: 'You sleep best at 17°C—cooler than most',
+    recommendation: 'Set bedroom to 17°C (63°F)',
+    explanation: 'Each degree above 18°C costs you 3% sleep efficiency',
+    cause: {
+      behavior: 'bedroom_temp',
+      threshold: 18,
+      unit: 'celsius',
+      direction: 'below',
+    },
+    outcome: {
+      metric: 'sleep_efficiency',
+      effect: '-3% per degree above threshold',
+      direction: 'negative',
+    },
+    certainty: 0.81,
+    evidence: {
+      personalDays: 52,
+      personalWeight: 0.81,
+      populationWeight: 0.19,
+      stability: 0.77,
+    },
+    dataSources: ['oura', 'eight-sleep'],
+    comparison: {
+      before: { value: 82, label: 'At 21°C' },
+      after: { value: 91, label: 'At 17°C' },
+    },
+    whyNow: 'Winter heating is pushing your bedroom above optimal.',
+    holdoutPreview: {
+      metric: 'sleep_efficiency',
+      expectedChange: 4,
+      unit: '%',
+      horizon: '3 days',
+    },
+    showWork: 'Your optimal temperature threshold (17-18°C) is 2-3 degrees cooler than population average. This may be related to your higher muscle mass and metabolic rate. On nights at 17°C, your sleep efficiency averaged 91%. At 21°C, it dropped to 82%.',
+  },
+]
+
+function generateMarcusMetrics(): DailyMetrics[] {
+  const metrics: DailyMetrics[] = []
+  const startDate = new Date('2024-10-15')
+
+  for (let i = 0; i < 60; i++) {
+    const date = new Date(startDate)
+    date.setDate(date.getDate() + i)
+    const dateStr = date.toISOString().split('T')[0]
+
+    // Recovery-focused narrative: high training load with variable recovery
+    const isHighStrainDay = i % 3 === 0  // Every 3rd day is high strain
+    const isRecoveryDay = i % 3 === 2     // Every 3rd day after is recovery
+
+    const baseHrv = isRecoveryDay ? 62 : isHighStrainDay ? 48 : 55
+    const baseSleepScore = isRecoveryDay ? 82 : isHighStrainDay ? 70 : 76
+
+    const metric: DailyMetrics = {
+      date: dateStr,
+      sleepScore: Math.round(baseSleepScore + Math.random() * 10 - 5),
+      sleepDuration: Math.round(450 + Math.random() * 60),
+      deepSleep: Math.round(55 + Math.random() * 20),
+      remSleep: Math.round(70 + Math.random() * 20),
+      lightSleep: Math.round(240 + Math.random() * 40),
+      sleepLatency: Math.round(6 + Math.random() * 6),
+      sleepEfficiency: 0.88 + Math.random() * 0.06,
+      bedtime: `21:${Math.floor(30 + Math.random() * 30).toString().padStart(2, '0')}`,
+      wakeTime: `05:${Math.floor(30 + Math.random() * 30).toString().padStart(2, '0')}`,
+      hrv: Math.round(baseHrv + Math.random() * 12),
+      restingHr: Math.round(50 + Math.random() * 6),
+      respiratoryRate: 12.5 + Math.random() * 1,
+      bodyTemp: -0.3 + Math.random() * 0.4,
+      steps: Math.round(6000 + Math.random() * 4000),
+      activeCalories: isHighStrainDay ? Math.round(600 + Math.random() * 200) : Math.round(300 + Math.random() * 150),
+      moderateMinutes: Math.round(25 + Math.random() * 25),
+      vigorousMinutes: isHighStrainDay ? Math.round(40 + Math.random() * 20) : Math.round(10 + Math.random() * 15),
+      zone2Minutes: Math.round(20 + Math.random() * 30),
+      trainingLoad: isHighStrainDay ? Math.round(85 + Math.random() * 15) : Math.round(40 + Math.random() * 30),
+      caffeineCutoff: `${10 + Math.floor(Math.random() * 3)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+      alcoholUnits: 0,  // Marcus doesn't drink
+      eatingWindowStart: '07:00',
+      eatingWindowEnd: '19:00',
+      bedroomTemp: 17 + Math.random() * 2,
+      workoutTime: isHighStrainDay ? `${6 + Math.floor(Math.random() * 2)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}` : null,
+      workoutType: isHighStrainDay ? ['strength', 'hiit', 'crossfit'][Math.floor(Math.random() * 3)] : (isRecoveryDay ? 'yoga' : null),
+      mood: Math.round(5 + Math.random() * 1.5),
+      energy: isRecoveryDay ? Math.round(6 + Math.random()) : Math.round(5 + Math.random()),
+      focus: Math.round(5 + Math.random() * 1.5),
+      stress: Math.round(3 + Math.random() * 1.5),
+      events: isHighStrainDay ? ['high_strain'] : undefined,
+    }
+
+    metrics.push(metric)
+  }
+
+  return metrics
+}
+
+export const marcusMetrics: DailyMetrics[] = generateMarcusMetrics()
+
+export const marcusLabs: LabResult[] = [
+  {
+    date: '2024-10-01',
+    fastingGlucose: 92,
+    hba1c: 5.1,
+    totalCholesterol: 175,
+    ldl: 95,
+    hdl: 62,
+    triglycerides: 88,
+    hsCrp: 2.8,
+    homocysteine: 9.2,
+    vitaminD: 55,
+    testosterone: 580,
+    cortisol: 18,
+  },
+  {
+    date: '2024-12-01',
+    fastingGlucose: 88,
+    hba1c: 5.0,
+    totalCholesterol: 168,
+    ldl: 88,
+    hdl: 65,
+    triglycerides: 78,
+    hsCrp: 1.6,
+    homocysteine: 8.1,
+    vitaminD: 62,
+    testosterone: 615,
+    cortisol: 14,
+  },
+]
+
+export const marcusProtocols: Protocol[] = [
+  {
+    id: 'marcus-protocol-recovery',
+    personaId: 'marcus',
+    name: 'HRV Recovery Protocol',
+    description: 'Optimize training spacing and recovery for maximum HRV',
+    category: 'recovery',
+    status: 'active',
+    outcome: 'hrv',
+    baseline: {
+      value: 48,
+      unit: 'ms',
+    },
+    actions: [
+      {
+        id: 'action-training-spacing',
+        label: '48+ hours between HIIT',
+        category: 'recovery',
+        isActive: true,
+        impact: 14,
+        actionType: 'duration',
+        linkedInsightId: 'marcus-insight-001',
+      },
+      {
+        id: 'action-cold-exposure',
+        label: '2-min cold shower post-workout',
+        category: 'recovery',
+        isActive: true,
+        impact: 6,
+        actionType: 'duration',
+        linkedInsightId: 'marcus-insight-004',
+      },
+      {
+        id: 'action-no-alcohol',
+        label: 'Zero alcohol',
+        category: 'recovery',
+        isActive: true,
+        impact: 8,
+        actionType: 'target',
+        linkedInsightId: 'marcus-insight-002',
+      },
+      {
+        id: 'action-workout-end',
+        label: 'Workouts done by 5:00 PM',
+        category: 'recovery',
+        isActive: true,
+        impact: 4,
+        actionType: 'cutoff',
+        time: '5:00 PM',
+      },
+    ],
+    states: [
+      { id: 'state-high-strain', label: 'High strain yesterday', isActive: true },
+      { id: 'state-competition', label: 'Competition week', isActive: false },
+    ],
+    triggers: [
+      {
+        if: ['state-high-strain'],
+        then: ['action-cold-exposure', 'action-training-spacing'],
+        reason: 'Post-high-strain recovery requires cold exposure and spacing',
+      },
+    ],
+    simulator: {
+      deltas: {
+        'action-training-spacing': 14,
+        'action-cold-exposure': 6,
+        'action-no-alcohol': 8,
+        'action-workout-end': 4,
+      },
+    },
+    evidenceLevel: 91,
+    difficulty: 3,
+  },
+  {
+    id: 'marcus-protocol-deep-sleep',
+    personaId: 'marcus',
+    name: 'Deep Sleep Protocol',
+    description: 'Maximize deep sleep for recovery through caffeine timing and temperature',
+    category: 'sleep',
+    status: 'active',
+    outcome: 'deep_sleep',
+    baseline: {
+      value: 42,
+      unit: 'minutes',
+    },
+    actions: [
+      {
+        id: 'action-caffeine-noon',
+        label: 'No caffeine after 12:00 PM',
+        category: 'sleep',
+        isActive: true,
+        impact: 25,
+        actionType: 'cutoff',
+        time: '12:00 PM',
+        linkedInsightId: 'marcus-insight-003',
+      },
+      {
+        id: 'action-bedroom-17c',
+        label: 'Set bedroom to 17°C',
+        category: 'sleep',
+        isActive: true,
+        impact: 9,
+        actionType: 'target',
+        linkedInsightId: 'marcus-insight-005',
+      },
+      {
+        id: 'action-sleep-8hrs',
+        label: 'In bed 8+ hours',
+        category: 'sleep',
+        isActive: true,
+        impact: 8,
+        actionType: 'target',
+      },
+      {
+        id: 'action-bedtime',
+        label: 'In bed by 9:30 PM',
+        category: 'sleep',
+        isActive: true,
+        impact: 5,
+        actionType: 'cutoff',
+        time: '9:30 PM',
+      },
+    ],
+    states: [
+      { id: 'state-travel', label: 'Travel day', isActive: false },
+    ],
+    triggers: [
+      {
+        if: ['state-travel'],
+        then: ['action-caffeine-noon', 'action-sleep-8hrs'],
+        reason: 'Maintain caffeine cutoff even when traveling',
+      },
+    ],
+    simulator: {
+      deltas: {
+        'action-caffeine-noon': 25,
+        'action-bedroom-17c': 9,
+        'action-sleep-8hrs': 8,
+        'action-bedtime': 5,
+      },
+    },
+    evidenceLevel: 83,
+    difficulty: 2,
+  },
+  {
+    id: 'marcus-protocol-inflammation',
+    personaId: 'marcus',
+    name: 'Inflammation Control Protocol',
+    description: 'Reduce hsCRP through lifestyle interventions',
+    category: 'recovery',
+    status: 'active',
+    outcome: 'hscrp',
+    baseline: {
+      value: 2.8,
+      unit: 'mg/L',
+    },
+    actions: [
+      {
+        id: 'action-zero-alcohol',
+        label: 'Alcohol-free',
+        category: 'recovery',
+        isActive: true,
+        impact: -1.2,
+        actionType: 'target',
+        linkedInsightId: 'marcus-insight-002',
+      },
+      {
+        id: 'action-cold-therapy',
+        label: 'Daily cold exposure',
+        category: 'recovery',
+        isActive: true,
+        impact: -0.3,
+        actionType: 'duration',
+        linkedInsightId: 'marcus-insight-004',
+      },
+      {
+        id: 'action-recovery-days',
+        label: '2 recovery days per week',
+        category: 'recovery',
+        isActive: true,
+        impact: -0.2,
+        actionType: 'duration',
+        linkedInsightId: 'marcus-insight-001',
+      },
+      {
+        id: 'action-sleep-quality',
+        label: 'Deep sleep 60+ min',
+        category: 'sleep',
+        isActive: false,
+        impact: -0.15,
+        actionType: 'target',
+        linkedInsightId: 'marcus-insight-003',
+      },
+    ],
+    states: [],
+    triggers: [],
+    simulator: {
+      deltas: {
+        'action-zero-alcohol': -1.2,
+        'action-cold-therapy': -0.3,
+        'action-recovery-days': -0.2,
+        'action-sleep-quality': -0.15,
+      },
+    },
+    evidenceLevel: 87,
+    difficulty: 3,
+  },
+]
+
+export const marcusDailyPlan: DailyPlan = {
+  personaId: 'marcus',
+  date: new Date().toISOString().split('T')[0],
+  greeting: 'Good morning, Marcus. Yesterday was a high-strain day—today\'s focus is recovery.',
+  priorities: {
+    high: [
+      {
+        id: 'plan-001',
+        text: 'No high-intensity workout today',
+        explanation: 'Your HRV needs 48 hours to fully recover from yesterday\'s strain',
+        evidenceWeight: '91% your data, 9% population',
+        status: 'pending',
+      },
+      {
+        id: 'plan-002',
+        text: 'Last caffeine by noon',
+        explanation: 'Your deep sleep depends on an early caffeine cutoff',
+        evidenceWeight: '83% your data, 17% population',
+        status: 'pending',
+      },
+    ],
+    moderate: [
+      {
+        id: 'plan-003',
+        text: 'Light mobility or yoga',
+        explanation: 'Active recovery promotes blood flow without adding strain',
+        evidenceWeight: '74% your data, 26% population',
+        status: 'pending',
+      },
+      {
+        id: 'plan-004',
+        text: 'Cold shower post-activity',
+        explanation: 'Cold exposure boosts your recovery score by 12%',
+        evidenceWeight: '74% your data, 26% population',
+        status: 'pending',
+      },
+    ],
+    maintain: [
+      {
+        id: 'plan-005',
+        text: 'Set bedroom to 17°C tonight',
+        explanation: 'You sleep best at cooler temps than most people',
+        evidenceWeight: '81% your data, 19% population',
+        status: 'pending',
+      },
+    ],
+  },
+  eveningCheckIn: {
+    completed: [],
+    pending: [],
+    prediction: {
+      sleepScore: 80,
+      deepSleep: 65,
+      sleepLatency: 6,
+      confidence: 0.81,
+    },
+  },
+}

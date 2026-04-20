@@ -1,0 +1,3151 @@
+{
+  "pid": 308,
+  "cohort": "cohort_a",
+  "age": 46,
+  "is_female": true,
+  "effects_bayesian": [
+    {
+      "action": "active_energy",
+      "outcome": "deep_sleep",
+      "pathway": "wearable",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 3,
+      "horizon_display": "3 days",
+      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "nominal_step": 100.0,
+      "dose_multiplier": 0.5170247329384988,
+      "dose_multiplier_raw": 0.5170247329384988,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5170247329384988,
+      "unbounded_scaled_effect": 0.3616218348350457,
+      "scaled_effect": 0.3616218348350457,
+      "posterior": {
+        "mean": 0.6994285027328884,
+        "variance": 0.07535009093031049,
+        "sd": 0.27449971025542175,
+        "contraction": 0.01702473293849882,
+        "prior_mean": 0.6921665440115441,
+        "prior_variance": 0.07665512394382158,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 2.5480118069416933
+      },
+      "cohort_prior": {
+        "mean": 0.6984414526484751,
+        "variance": 0.07805127404443395,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 0.007519131899897617,
+        "se": 0.006934242110494151,
+        "n": 62,
+        "at_nominal_step": 0.7519131899897616,
+        "se_at_step": 0.6934242110494151,
+        "residual_sd": 2.1344231177903588,
+        "sigma_data_used": 12.0,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.01702473293849882,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.09070920031674268,
+        "range_fraction": 0.45969494552971457,
+        "mode_fraction": 0.05,
+        "n_distinct": 61
+      }
+    },
+    {
+      "action": "bedtime",
+      "outcome": "deep_sleep",
+      "pathway": "wearable",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 3,
+      "horizon_display": "3 days",
+      "supporting_data_description": "Personal response emerging from daily data",
+      "nominal_step": -0.5,
+      "dose_multiplier": 0.7838402023730849,
+      "dose_multiplier_raw": 0.7838402023730849,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.7838402023730849,
+      "unbounded_scaled_effect": 0.36331601563300087,
+      "scaled_effect": 0.36331601563300087,
+      "posterior": {
+        "mean": 0.46350775902161895,
+        "variance": 0.6765389111931366,
+        "sd": 0.8225198545890163,
+        "contraction": 0.28384020237308494,
+        "prior_mean": 0.6072164646464647,
+        "prior_variance": 0.9446759137205589,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.5635216662985201
+      },
+      "cohort_prior": {
+        "mean": 0.6056498876404495,
+        "variance": 0.9560138510611396,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": -0.23440363760669103,
+        "se": 0.7946521381494064,
+        "n": 62,
+        "at_nominal_step": 0.11720181880334551,
+        "se_at_step": 0.3973260690747032,
+        "residual_sd": 2.0811916538632786,
+        "sigma_data_used": 12.0,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.36899226308501043,
+        "tier": "possible",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.01895932821077244,
+        "range_fraction": 0.06834936288629588,
+        "mode_fraction": 0.16,
+        "n_distinct": 15
+      }
+    },
+    {
+      "action": "bedtime",
+      "outcome": "sleep_quality",
+      "pathway": "wearable",
+      "evidence_tier": "personal_established",
+      "horizon_days": 2,
+      "horizon_display": "2 days",
+      "supporting_data_description": "Personalized to your data",
+      "nominal_step": -0.5,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 1.0292115345314148,
+      "direction_conflict": true,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.004773981060366875,
+      "scaled_effect": -0.004773981060366875,
+      "posterior": {
+        "mean": -0.00954796212073375,
+        "variance": 0.41754285191476515,
+        "sd": 0.6461755581223768,
+        "contraction": 0.5292115345314148,
+        "prior_mean": 0.4607862962962966,
+        "prior_variance": 0.8869011935098631,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.01477611153921965
+      },
+      "cohort_prior": {
+        "mean": 0.46373086142322145,
+        "variance": 0.8849888909576128,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 0.8635293475210725,
+        "se": 0.3918010825727425,
+        "n": 62,
+        "at_nominal_step": -0.43176467376053623,
+        "se_at_step": 0.19590054128637124,
+        "residual_sd": 1.0261259032460806,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.3439874974454196,
+        "tier": "possible",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.01895932821077244,
+        "range_fraction": 0.06834936288629588,
+        "mode_fraction": 0.16,
+        "n_distinct": 15
+      }
+    },
+    {
+      "action": "dietary_energy",
+      "outcome": "body_mass_kg",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": -200.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.18693321595811696,
+      "scaled_effect": -0.18693321595811696,
+      "posterior": {
+        "mean": -0.3738664319162339,
+        "variance": 0.022364125866028806,
+        "sd": 0.1495464003780392,
+        "contraction": 0.0,
+        "prior_mean": -0.37301288614469097,
+        "prior_variance": 0.02226217811679875,
+        "source": "pop+cohort",
+        "lam_js": 0.8717948717948718,
+        "n_cohort": 510,
+        "z_like": -2.50000288185563
+      },
+      "cohort_prior": {
+        "mean": -0.37399195335322555,
+        "variance": 0.0223791969876738,
+        "n": 510
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.09651450853113575,
+        "range_fraction": 0.40451226431081866,
+        "mode_fraction": 0.16,
+        "n_distinct": 53
+      }
+    },
+    {
+      "action": "dietary_protein",
+      "outcome": "body_fat_pct",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 20.0,
+      "dose_multiplier": 0.5103340187869624,
+      "dose_multiplier_raw": 0.5103340187869624,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5103340187869624,
+      "unbounded_scaled_effect": -0.04415006479231826,
+      "scaled_effect": -0.04415006479231826,
+      "posterior": {
+        "mean": -0.08651209436764706,
+        "variance": 0.0011516544900372894,
+        "sd": 0.03393603527280831,
+        "contraction": 0.010334018786962385,
+        "prior_mean": -0.08528188482985069,
+        "prior_variance": 0.0011636799808211068,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8741610738255033,
+        "n_cohort": 521,
+        "z_like": -2.5492693436986733
+      },
+      "cohort_prior": {
+        "mean": -0.08480057540228886,
+        "variance": 0.0011505820141694848,
+        "n": 521
+      },
+      "user_obs": {
+        "slope": -0.17423312883435585,
+        "se": 0.07558282208588957,
+        "n": 1,
+        "at_nominal_step": -3.484662576687117,
+        "se_at_step": 1.54,
+        "residual_sd": 1.54,
+        "sigma_data_used": 1.54,
+        "pathway": "biomarker",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.010334018786962385,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11820894527985079,
+        "range_fraction": 0.5036197670758578,
+        "mode_fraction": 0.07,
+        "n_distinct": 36
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "ferritin",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 56,
+      "horizon_display": "8 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 1.1409130429919474,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 5.663302497025107,
+      "scaled_effect": 1.5901294899980498,
+      "posterior": {
+        "mean": 11.326604994050214,
+        "variance": 13.14290202499915,
+        "sd": 3.625314058809133,
+        "contraction": 0.6409130429919474,
+        "prior_mean": -4.601738054652236,
+        "prior_variance": 36.60088947397892,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 3.1243100074399766
+      },
+      "cohort_prior": {
+        "mean": -4.47258979526213,
+        "variance": 35.90898328426791,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 20.423210583684206,
+        "se": 8.54460093896714,
+        "n": 1,
+        "at_nominal_step": 20.423210583684206,
+        "se_at_step": 4.55,
+        "residual_sd": 4.55,
+        "sigma_data_used": 4.55,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.0899770699800362,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "hemoglobin",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 1.2908644720991342,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.42647361358830926,
+      "scaled_effect": 0.1197443135041842,
+      "posterior": {
+        "mean": 0.8529472271766185,
+        "variance": 0.12587990112777195,
+        "sd": 0.35479557653354693,
+        "contraction": 0.7908644720991342,
+        "prior_mean": -0.062285317757529574,
+        "prior_variance": 0.6019058664553708,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 2.404052597019822
+      },
+      "cohort_prior": {
+        "mean": -0.054335902761728665,
+        "variance": 0.6202082626267991,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 1.0853223836225268,
+        "se": 0.7466666666666669,
+        "n": 1,
+        "at_nominal_step": 1.0853223836225268,
+        "se_at_step": 0.39759999999999995,
+        "residual_sd": 0.39759999999999995,
+        "sigma_data_used": 0.39759999999999995,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.11102858449969515,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "hrv_daily",
+      "pathway": "wearable",
+      "evidence_tier": "personal_established",
+      "horizon_days": 4,
+      "horizon_display": "4 days",
+      "supporting_data_description": "Personalized to your data",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 1.1339345308487236,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.06881549559962331,
+      "scaled_effect": -0.019321861931138683,
+      "posterior": {
+        "mean": -0.13763099119924663,
+        "variance": 0.110383974736288,
+        "sd": 0.332240838453505,
+        "contraction": 0.6339345308487235,
+        "prior_mean": 0.14166006734006745,
+        "prior_variance": 0.3015416203888705,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.41425067381807495
+      },
+      "cohort_prior": {
+        "mean": 0.13417902621722846,
+        "variance": 0.24427088794406634,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": -0.35307226127715113,
+        "se": 0.19663274690599095,
+        "n": 62,
+        "at_nominal_step": -0.35307226127715113,
+        "se_at_step": 0.19663274690599095,
+        "residual_sd": 1.3012112537785887,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.08899736441415138,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "iron_total",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 56,
+      "horizon_display": "8 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.6517744869348364,
+      "direction_conflict": false,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.6517744869348364,
+      "unbounded_scaled_effect": -3.4839808478444643,
+      "scaled_effect": -0.7504316446003422,
+      "posterior": {
+        "mean": -5.345377761300417,
+        "variance": 8.711576925257079,
+        "sd": 2.9515380609534887,
+        "contraction": 0.15177448693483642,
+        "prior_mean": -3.2056109258428815,
+        "prior_variance": 10.27035474773302,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -1.8110482233028036
+      },
+      "cohort_prior": {
+        "mean": -3.1316330778550707,
+        "variance": 10.27933064016686,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": -17.60457462018334,
+        "se": 14.197183098591553,
+        "n": 1,
+        "at_nominal_step": -17.60457462018334,
+        "se_at_step": 7.559999999999999,
+        "residual_sd": 7.559999999999999,
+        "sigma_data_used": 7.559999999999999,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.03269144774700757,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "magnesium_rbc",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.6881887105591835,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.03648417008349723,
+      "scaled_effect": 0.010243944200110837,
+      "posterior": {
+        "mean": 0.07296834016699447,
+        "variance": 0.021845910179043217,
+        "sd": 0.14780362031778252,
+        "contraction": 0.18818871055918351,
+        "prior_mean": -0.10677593192605543,
+        "prior_variance": 0.026910084231633307,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.49368439020715593
+      },
+      "cohort_prior": {
+        "mean": -0.10362356033007668,
+        "variance": 0.02654262394398278,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 0.888396633672001,
+        "se": 0.6572769953051646,
+        "n": 1,
+        "at_nominal_step": 0.888396633672001,
+        "se_at_step": 0.35,
+        "residual_sd": 0.35,
+        "sigma_data_used": 0.35,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.026419603976836493,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "mcv",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.664091236742956,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.15803184537075038,
+      "scaled_effect": 0.044371830361320704,
+      "posterior": {
+        "mean": 0.31606369074150076,
+        "variance": 1.0044438027343827,
+        "sd": 1.002219438413755,
+        "contraction": 0.164091236742956,
+        "prior_mean": -0.2708550162570081,
+        "prior_variance": 1.2016189408287299,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.31536376029759006
+      },
+      "cohort_prior": {
+        "mean": -0.2569009217481495,
+        "variance": 1.2038365032872154,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 3.2150156331167157,
+        "se": 4.627230046948359,
+        "n": 1,
+        "at_nominal_step": 3.2150156331167157,
+        "se_at_step": 2.464,
+        "residual_sd": 2.464,
+        "sigma_data_used": 2.464,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.02303658640274722,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "rbc",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.7849506429344275,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.026925757414939848,
+      "scaled_effect": 0.007560154331950335,
+      "posterior": {
+        "mean": 0.053851514829879696,
+        "variance": 0.005669068681216864,
+        "sd": 0.07529321802936081,
+        "contraction": 0.2849506429344275,
+        "prior_mean": -0.07906353650334133,
+        "prior_variance": 0.007928220094458446,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.7152239768644254
+      },
+      "cohort_prior": {
+        "mean": -0.07835706132621784,
+        "variance": 0.00831121729980283,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 0.3430894932286523,
+        "se": 0.2523943661971832,
+        "n": 1,
+        "at_nominal_step": 0.3430894932286523,
+        "se_at_step": 0.1344,
+        "residual_sd": 0.1344,
+        "sigma_data_used": 0.1344,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.040003904149738805,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "rdw",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 56,
+      "horizon_display": "8 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.5048140336083436,
+      "direction_conflict": false,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5048140336083436,
+      "unbounded_scaled_effect": -0.019587729105527894,
+      "scaled_effect": -0.0054473515827713715,
+      "posterior": {
+        "mean": -0.03880187118713283,
+        "variance": 0.00030998337048178225,
+        "sd": 0.01760634460874211,
+        "contraction": 0.004814033608343649,
+        "prior_mean": -0.0385029402096721,
+        "prior_variance": 0.00031148285943552787,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -2.2038573053867454
+      },
+      "cohort_prior": {
+        "mean": -0.038113363872563755,
+        "variance": 0.0003101414557890082,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": -0.654169294373204,
+        "se": 1.0253521126760567,
+        "n": 1,
+        "at_nominal_step": -0.654169294373204,
+        "se_at_step": 0.5459999999999999,
+        "residual_sd": 0.5459999999999999,
+        "sigma_data_used": 0.5459999999999999,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.0013387837586810764,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "vo2_peak",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 56,
+      "horizon_display": "8 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.9107554964300731,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.49786834237247884,
+      "scaled_effect": 0.1397903667972505,
+      "posterior": {
+        "mean": 0.9957366847449577,
+        "variance": 1.361901024403093,
+        "sd": 1.1670051518322844,
+        "contraction": 0.41075549643007314,
+        "prior_mean": -0.947046398390462,
+        "prior_variance": 2.311266403253727,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.8532410359813558
+      },
+      "cohort_prior": {
+        "mean": -0.9366830281938062,
+        "variance": 2.43828812871715,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 3.480184135113733,
+        "se": 3.3126760563380295,
+        "n": 1,
+        "at_nominal_step": 3.480184135113733,
+        "se_at_step": 1.7639999999999998,
+        "residual_sd": 1.7639999999999998,
+        "sigma_data_used": 1.7639999999999998,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.05766550774882195,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "running_volume",
+      "outcome": "zinc",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 56,
+      "horizon_display": "8 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 30.0,
+      "dose_multiplier": 0.14038888888888892,
+      "dose_multiplier_raw": 0.8422780958725182,
+      "direction_conflict": true,
+      "dose_bounded": true,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.009347067470090406,
+      "scaled_effect": 0.0026244488329909403,
+      "posterior": {
+        "mean": 0.018694134940180813,
+        "variance": 17.49675495730243,
+        "sd": 4.182912257901476,
+        "contraction": 0.34227809587251823,
+        "prior_mean": -3.064225854781767,
+        "prior_variance": 26.602056047552814,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.004469167361774752
+      },
+      "cohort_prior": {
+        "mean": -2.997975571958534,
+        "variance": 26.645153095242193,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 5.807188506255702,
+        "se": 13.408450704225356,
+        "n": 1,
+        "at_nominal_step": 5.807188506255702,
+        "se_at_step": 7.139999999999999,
+        "residual_sd": 7.139999999999999,
+        "sigma_data_used": 7.139999999999999,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.04805204157054743,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11552967256580804,
+        "range_fraction": 0.4392386530014643,
+        "mode_fraction": 0.14,
+        "n_distinct": 33
+      }
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "cortisol",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 28,
+      "horizon_display": "4 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 0.5,
+      "dose_multiplier": 0.5490871431529005,
+      "dose_multiplier_raw": 0.5490871431529005,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5490871431529005,
+      "unbounded_scaled_effect": -0.05334566203524762,
+      "scaled_effect": -0.05334566203524762,
+      "posterior": {
+        "mean": -0.09715336208553843,
+        "variance": 0.03198155262467681,
+        "sd": 0.17883386878518512,
+        "contraction": 0.049087143152900525,
+        "prior_mean": -0.1785836259000694,
+        "prior_variance": 0.03363247472614542,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.5432604167515878
+      },
+      "cohort_prior": {
+        "mean": -0.17584865819215104,
+        "variance": 0.03217552438266664,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 13.596935598100053,
+        "se": 5.209302325581371,
+        "n": 1,
+        "at_nominal_step": 6.798467799050027,
+        "se_at_step": 1.6800000000000002,
+        "residual_sd": 1.6800000000000002,
+        "sigma_data_used": 1.6800000000000002,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.06381328609877068,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "marginal",
+      "positivity": {
+        "n": 100,
+        "cv": 0.047356081690356974,
+        "range_fraction": 0.21168501270110074,
+        "mode_fraction": 0.16,
+        "n_distinct": 16
+      }
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "glucose",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 28,
+      "horizon_display": "4 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 0.5,
+      "dose_multiplier": 0.5469056879516523,
+      "dose_multiplier_raw": 0.5469056879516523,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5469056879516523,
+      "unbounded_scaled_effect": -0.12473409473156358,
+      "scaled_effect": -0.12473409473156358,
+      "posterior": {
+        "mean": -0.22807240348648625,
+        "variance": 0.13531901142407435,
+        "sd": 0.3678573248204721,
+        "contraction": 0.046905687951652286,
+        "prior_mean": -0.3065284159824579,
+        "prior_variance": 0.14197861608601228,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.6200023435656581
+      },
+      "cohort_prior": {
+        "mean": -0.3009090895686206,
+        "variance": 0.1358281381578343,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 15.622459887799852,
+        "se": 11.98139534883715,
+        "n": 1,
+        "at_nominal_step": 7.811229943899926,
+        "se_at_step": 3.8639999999999994,
+        "residual_sd": 3.8639999999999994,
+        "sigma_data_used": 3.8639999999999994,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.06097739433714797,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "marginal",
+      "positivity": {
+        "n": 100,
+        "cv": 0.047356081690356974,
+        "range_fraction": 0.21168501270110074,
+        "mode_fraction": 0.16,
+        "n_distinct": 16
+      }
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "hrv_daily",
+      "pathway": "wearable",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 4,
+      "horizon_display": "4 days",
+      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "nominal_step": 0.5,
+      "dose_multiplier": 0.5250963692476319,
+      "dose_multiplier_raw": 0.5250963692476319,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5250963692476319,
+      "unbounded_scaled_effect": 0.07526985427971729,
+      "scaled_effect": 0.07526985427971729,
+      "posterior": {
+        "mean": 0.14334483856280586,
+        "variance": 0.002860109856693959,
+        "sd": 0.05347999492047432,
+        "contraction": 0.025096369247631922,
+        "prior_mean": 0.13540993265993234,
+        "prior_variance": 0.0029337359780747863,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 2.68034502950051
+      },
+      "cohort_prior": {
+        "mean": 0.13457651150347733,
+        "variance": 0.002897733991751291,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 1.466635681061907,
+        "se": 0.588107644809805,
+        "n": 62,
+        "at_nominal_step": 0.7333178405309535,
+        "se_at_step": 0.2940538224049025,
+        "residual_sd": 1.3012112537785891,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.0326252800219215,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "marginal",
+      "positivity": {
+        "n": 100,
+        "cv": 0.047356081690356974,
+        "range_fraction": 0.21168501270110074,
+        "mode_fraction": 0.16,
+        "n_distinct": 16
+      }
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "testosterone",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 0.5,
+      "dose_multiplier": 0.5403846139493537,
+      "dose_multiplier_raw": 0.5403846139493537,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5403846139493537,
+      "unbounded_scaled_effect": 1.4776417434465499,
+      "scaled_effect": 1.4776417434465499,
+      "posterior": {
+        "mean": 2.734426009370131,
+        "variance": 7.1603377979953935,
+        "sd": 2.67588075182647,
+        "contraction": 0.040384613949353665,
+        "prior_mean": 2.6599922941254697,
+        "prior_variance": 7.461674648073522,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 1.0218788739011258
+      },
+      "cohort_prior": {
+        "mean": 2.619255115724714,
+        "variance": 7.138436779615783,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 101.73643410852665,
+        "se": 173.64341085271235,
+        "n": 1,
+        "at_nominal_step": 50.868217054263326,
+        "se_at_step": 56.0,
+        "residual_sd": 56.0,
+        "sigma_data_used": 56.0,
+        "pathway": "biomarker",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.052499998134159766,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "marginal",
+      "positivity": {
+        "n": 100,
+        "cv": 0.047356081690356974,
+        "range_fraction": 0.21168501270110074,
+        "mode_fraction": 0.16,
+        "n_distinct": 16
+      }
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "wbc",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 28,
+      "horizon_display": "4 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 0.5,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.011461060512830683,
+      "scaled_effect": 0.011461060512830683,
+      "posterior": {
+        "mean": 0.022922121025661366,
+        "variance": 8.516545446839708e-05,
+        "sd": 0.00922851312338001,
+        "contraction": 0.0,
+        "prior_mean": 0.023018780420524448,
+        "prior_variance": 8.477828032773114e-05,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 2.4838368564042277
+      },
+      "cohort_prior": {
+        "mean": 0.023087154613222412,
+        "variance": 8.528267330157393e-05,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": -0.4411436831110682,
+        "se": 1.1286821705426302,
+        "n": 1,
+        "at_nominal_step": -0.2205718415555341,
+        "se_at_step": 0.364,
+        "residual_sd": 0.364,
+        "sigma_data_used": 0.364,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": true,
+        "regimes_addressed": [
+          "sleep_deprivation_state"
+        ]
+      },
+      "positivity_flag": "marginal",
+      "positivity": {
+        "n": 100,
+        "cv": 0.047356081690356974,
+        "range_fraction": 0.21168501270110074,
+        "mode_fraction": 0.16,
+        "n_distinct": 16
+      }
+    },
+    {
+      "action": "steps",
+      "outcome": "body_mass_kg",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 2000.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.8139724365333555,
+      "direction_conflict": true,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 1.003932119084531,
+      "scaled_effect": 1.003932119084531,
+      "posterior": {
+        "mean": 2.007864238169062,
+        "variance": 0.34120301954561416,
+        "sd": 0.5841258593365082,
+        "contraction": 0.3139724365333555,
+        "prior_mean": -1.7630947773531664,
+        "prior_variance": 0.49736051102880197,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8613678373382625,
+        "n_cohort": 466,
+        "z_like": 3.437382896298646
+      },
+      "cohort_prior": {
+        "mean": -1.7564326235692405,
+        "variance": 0.49360888978213213,
+        "n": 466
+      },
+      "user_obs": {
+        "slope": 0.0052044385559082045,
+        "se": 0.0023978077186572293,
+        "n": 1,
+        "at_nominal_step": 10.408877111816409,
+        "se_at_step": 1.0499999999999998,
+        "residual_sd": 1.0499999999999998,
+        "sigma_data_used": 1.0499999999999998,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.15698621826667775,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.11365498213306399,
+        "range_fraction": 0.49568450898915634,
+        "mode_fraction": 0.05,
+        "n_distinct": 61
+      }
+    },
+    {
+      "action": "training_load",
+      "outcome": "hrv_daily",
+      "pathway": "wearable",
+      "evidence_tier": "personal_established",
+      "horizon_days": 4,
+      "horizon_display": "4 days",
+      "supporting_data_description": "Personalized to your data",
+      "nominal_step": 100.0,
+      "dose_multiplier": 1.45391887156191,
+      "dose_multiplier_raw": 1.45391887156191,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 1.45391887156191,
+      "unbounded_scaled_effect": -0.2827332647792186,
+      "scaled_effect": -0.2827332647792186,
+      "posterior": {
+        "mean": -0.19446288944271362,
+        "variance": 0.18849273201149463,
+        "sd": 0.4341574967814038,
+        "contraction": 0.95391887156191,
+        "prior_mean": -5.056217651515151,
+        "prior_variance": 4.090453910318943,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.4479086296663092
+      },
+      "cohort_prior": {
+        "mean": -5.061554325842696,
+        "variance": 4.099093150953106,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 0.00040165422122634235,
+        "se": 0.014500586149606103,
+        "n": 62,
+        "at_nominal_step": 0.040165422122634235,
+        "se_at_step": 1.4500586149606103,
+        "residual_sd": 1.3012112537785887,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.95391887156191,
+        "tier": "recommended",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_load",
+      "outcome": "resting_hr",
+      "pathway": "wearable",
+      "evidence_tier": "personal_established",
+      "horizon_days": 4,
+      "horizon_display": "4 days",
+      "supporting_data_description": "Personalized to your data",
+      "nominal_step": 100.0,
+      "dose_multiplier": 1.4214761874837119,
+      "dose_multiplier_raw": 1.4214761874837119,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 1.4214761874837119,
+      "unbounded_scaled_effect": 1.2833263504843153,
+      "scaled_effect": 1.2833263504843153,
+      "posterior": {
+        "mean": 0.9028124155607921,
+        "variance": 0.021404722564209666,
+        "sd": 0.14630352888501927,
+        "contraction": 0.921476187483712,
+        "prior_mean": 1.305251261157877,
+        "prior_variance": 0.2725889367606766,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 6.170817767972755
+      },
+      "cohort_prior": {
+        "mean": 1.306352479669686,
+        "variance": 0.273049088182262,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 0.008684913289579134,
+        "se": 0.00879596725638589,
+        "n": 62,
+        "at_nominal_step": 0.8684913289579134,
+        "se_at_step": 0.879596725638589,
+        "residual_sd": 0.7893068227582101,
+        "sigma_data_used": 1.2,
+        "pathway": "wearable",
+        "confounders_adjusted": []
+      },
+      "gate": {
+        "score": 0.921476187483712,
+        "tier": "recommended",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "alt",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.19912326270870612,
+      "scaled_effect": 0.19912326270870612,
+      "posterior": {
+        "mean": 0.39824652541741223,
+        "variance": 0.09436009021899613,
+        "sd": 0.3071808754121847,
+        "contraction": 0.0,
+        "prior_mean": 0.39981687695627266,
+        "prior_variance": 0.09435380282549877,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 1.2964561185100891
+      },
+      "cohort_prior": {
+        "mean": 0.39802597042599924,
+        "variance": 0.09436097334698977,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "ast",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.5589093905651761,
+      "scaled_effect": 0.5589093905651761,
+      "posterior": {
+        "mean": 1.1178187811303522,
+        "variance": 0.19992285748832012,
+        "sd": 0.4471273392315886,
+        "contraction": 0.0,
+        "prior_mean": 1.1166533344738776,
+        "prior_variance": 0.19950634710266077,
+        "source": "pop+cohort",
+        "lam_js": 0.8081841432225064,
+        "n_cohort": 316,
+        "z_like": 2.500000968519128
+      },
+      "cohort_prior": {
+        "mean": 1.1180953903051483,
+        "variance": 0.2000219682914595,
+        "n": 316
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "body_fat_pct",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5011918720975433,
+      "dose_multiplier_raw": 0.5011918720975433,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5011918720975433,
+      "unbounded_scaled_effect": -0.06227828570278124,
+      "scaled_effect": -0.06227828570278124,
+      "posterior": {
+        "mean": -0.1242603664782905,
+        "variance": 0.002470501546950552,
+        "sd": 0.0497041401389316,
+        "contraction": 0.001191872097543345,
+        "prior_mean": -0.12433446783003811,
+        "prior_variance": 0.0024734495824926053,
+        "source": "pop+cohort",
+        "lam_js": 0.804177545691906,
+        "n_cohort": 308,
+        "z_like": -2.5000003245395948
+      },
+      "cohort_prior": {
+        "mean": -0.12424232231796234,
+        "variance": 0.0024697847447936712,
+        "n": 308
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.001191872097543345,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "cortisol",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 28,
+      "horizon_display": "4 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.2750706507970867,
+      "scaled_effect": 0.2750706507970867,
+      "posterior": {
+        "mean": 0.5501413015941734,
+        "variance": 1.0439619747385789,
+        "sd": 1.0217445741175135,
+        "contraction": 0.0,
+        "prior_mean": 0.5553542162310422,
+        "prior_variance": 1.0396935749682261,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.5384332988206308
+      },
+      "cohort_prior": {
+        "mean": 0.549409150662029,
+        "variance": 1.0445642775684214,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "dhea_s",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.4834058845140685,
+      "scaled_effect": -0.4834058845140685,
+      "posterior": {
+        "mean": -0.966811769028137,
+        "variance": 10.03672534890266,
+        "sd": 3.168079126048253,
+        "contraction": 0.0,
+        "prior_mean": -0.9830074320040479,
+        "prior_variance": 10.036056582673764,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.30517286045001757
+      },
+      "cohort_prior": {
+        "mean": -0.9645370972618574,
+        "variance": 10.036819283881947,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "estradiol",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.27749738430660026,
+      "scaled_effect": -0.27749738430660026,
+      "posterior": {
+        "mean": -0.5549947686132005,
+        "variance": 0.04928303272482792,
+        "sd": 0.22199782144162566,
+        "contraction": 0.0,
+        "prior_mean": -0.5544161267006115,
+        "prior_variance": 0.049180358647313356,
+        "source": "pop+cohort",
+        "lam_js": 0.8081841432225064,
+        "n_cohort": 316,
+        "z_like": -2.5000009685191276
+      },
+      "cohort_prior": {
+        "mean": -0.5551321045101758,
+        "variance": 0.049307464553263486,
+        "n": 316
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "glucose",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 28,
+      "horizon_display": "4 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.6444066250097585,
+      "dose_multiplier_raw": 0.6444066250097585,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.6444066250097585,
+      "unbounded_scaled_effect": 0.32932288226265133,
+      "scaled_effect": 0.32932288226265133,
+      "posterior": {
+        "mean": 0.5110482566154007,
+        "variance": 0.08511932798123126,
+        "sd": 0.291752168768685,
+        "contraction": 0.14440662500975854,
+        "prior_mean": 0.5022922836238953,
+        "prior_variance": 0.09948572589426852,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 1.751651954370163
+      },
+      "cohort_prior": {
+        "mean": 0.5122780281029716,
+        "variance": 0.08342727032100196,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.14440662500975854,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "hdl",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 70,
+      "horizon_display": "10 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.0005237547258482128,
+      "scaled_effect": 0.0005237547258482128,
+      "posterior": {
+        "mean": 0.0010475094516964256,
+        "variance": 5.330024153945502e-06,
+        "sd": 0.002308684507234694,
+        "contraction": 0.0,
+        "prior_mean": 0.0009970098167435151,
+        "prior_variance": 4.785327682448065e-06,
+        "source": "pop+cohort",
+        "lam_js": 0.8081841432225064,
+        "n_cohort": 316,
+        "z_like": 0.45372568162252536
+      },
+      "cohort_prior": {
+        "mean": 0.0010594951245491734,
+        "variance": 5.478016899875439e-06,
+        "n": 316
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "homocysteine",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 56,
+      "horizon_display": "8 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.06754987383346725,
+      "scaled_effect": -0.06754987383346725,
+      "posterior": {
+        "mean": -0.1350997476669345,
+        "variance": 0.0029203084284470044,
+        "sd": 0.05403987813131155,
+        "contraction": 0.0,
+        "prior_mean": -0.1349588916070195,
+        "prior_variance": 0.0029142243878072377,
+        "source": "pop+cohort",
+        "lam_js": 0.8081841432225064,
+        "n_cohort": 316,
+        "z_like": -2.5000009685191276
+      },
+      "cohort_prior": {
+        "mean": -0.13513317869381306,
+        "variance": 0.0029217561574230422,
+        "n": 316
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "hscrp",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.0008783338906690183,
+      "scaled_effect": -0.0008783338906690183,
+      "posterior": {
+        "mean": -0.0017566677813380365,
+        "variance": 2.8725665599738005e-06,
+        "sd": 0.0016948647615588096,
+        "contraction": 0.0,
+        "prior_mean": -0.00172270604728745,
+        "prior_variance": 2.8600958885201746e-06,
+        "source": "pop+cohort",
+        "lam_js": 0.8081841432225064,
+        "n_cohort": 316,
+        "z_like": -1.0364648679829682
+      },
+      "cohort_prior": {
+        "mean": -0.0017647283194829543,
+        "variance": 2.875542356235247e-06,
+        "n": 316
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "insulin",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 28,
+      "horizon_display": "4 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5000137729390054,
+      "dose_multiplier_raw": 0.5000137729390054,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5000137729390054,
+      "unbounded_scaled_effect": -0.07246314021113451,
+      "scaled_effect": -0.07246314021113451,
+      "posterior": {
+        "mean": -0.1449222884105914,
+        "variance": 0.003360395148438874,
+        "sd": 0.05796891536365739,
+        "contraction": 1.3772939005396445e-05,
+        "prior_mean": -0.14492328642237207,
+        "prior_variance": 0.0033604414315937426,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -2.500000000024978
+      },
+      "cohort_prior": {
+        "mean": -0.14492214824039748,
+        "variance": 0.0033603886480978794,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 1.3772939005396445e-05,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "platelets",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.8979343643088559,
+      "scaled_effect": 0.8979343643088559,
+      "posterior": {
+        "mean": 1.7958687286177117,
+        "variance": 2.4263274158657016,
+        "sd": 1.5576672994788399,
+        "contraction": 0.0,
+        "prior_mean": 1.8038317414110279,
+        "prior_variance": 2.426165745023913,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 1.152921891098676
+      },
+      "cohort_prior": {
+        "mean": 1.7947503279444932,
+        "variance": 2.426350124170216,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "shbg",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 0.40529924300080344,
+      "scaled_effect": 0.40529924300080344,
+      "posterior": {
+        "mean": 0.8105984860016069,
+        "variance": 0.10513110342409213,
+        "sd": 0.32423926878786924,
+        "contraction": 0.0,
+        "prior_mean": 0.809753349642117,
+        "prior_variance": 0.10491207796106058,
+        "source": "pop+cohort",
+        "lam_js": 0.8081841432225064,
+        "n_cohort": 316,
+        "z_like": 2.5000009685191276
+      },
+      "cohort_prior": {
+        "mean": 0.8107990721628783,
+        "variance": 0.10518322166722949,
+        "n": 316
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "testosterone",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -2.2893074178120694,
+      "scaled_effect": -2.2893074178120694,
+      "posterior": {
+        "mean": -4.578614835624139,
+        "variance": 53.59271967637739,
+        "sd": 7.3207048619909125,
+        "contraction": 0.0,
+        "prior_mean": -4.616039301356726,
+        "prior_variance": 53.5891486908429,
+        "source": "pop+cohort",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -0.6254336053617322
+      },
+      "cohort_prior": {
+        "mean": -4.573358590436977,
+        "variance": 53.59322125740484,
+        "n": 534
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "training_volume",
+      "outcome": "uric_acid",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 42,
+      "horizon_display": "6 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 150.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.5,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.06764488510356005,
+      "scaled_effect": -0.06764488510356005,
+      "posterior": {
+        "mean": -0.1352897702071201,
+        "variance": 0.0029285281752009246,
+        "sd": 0.05411587729309139,
+        "contraction": 0.0,
+        "prior_mean": -0.1351167020782477,
+        "prior_variance": 0.002921043708880311,
+        "source": "pop+cohort",
+        "lam_js": 0.8120300751879699,
+        "n_cohort": 324,
+        "z_like": -2.5000014223994045
+      },
+      "cohort_prior": {
+        "mean": -0.1353298322739887,
+        "variance": 0.0029302661605289464,
+        "n": 324
+      },
+      "user_obs": null,
+      "gate": {
+        "score": 0.0,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.16158983053300774,
+        "range_fraction": 0.924170616113744,
+        "mode_fraction": 0.09,
+        "n_distinct": 27
+      }
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "apob",
+      "pathway": "biomarker",
+      "evidence_tier": "personal_emerging",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Emerging personal evidence from 2 lab draws; continues to refine over time",
+      "nominal_step": 60.0,
+      "dose_multiplier": 0.5,
+      "dose_multiplier_raw": 0.6879153366899515,
+      "direction_conflict": true,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": 1.436782561672816,
+      "scaled_effect": 1.436782561672816,
+      "posterior": {
+        "mean": 2.873565123345632,
+        "variance": 8.370688231695153,
+        "sd": 2.8932141696900273,
+        "contraction": 0.18791533668995153,
+        "prior_mean": -4.6200276199644446,
+        "prior_variance": 10.307654620118445,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.9932085752412514
+      },
+      "cohort_prior": {
+        "mean": -4.493745083089153,
+        "variance": 10.327530057194451,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 17.247250000000005,
+        "se": 2.0781250000000004,
+        "n": 1,
+        "at_nominal_step": 34.49450000000001,
+        "se_at_step": 6.6499999999999995,
+        "residual_sd": 6.6499999999999995,
+        "sigma_data_used": 6.6499999999999995,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.09395766834497576,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.13759620903874073,
+        "range_fraction": 0.5741626794258373,
+        "mode_fraction": 0.16,
+        "n_distinct": 12
+      }
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "hdl",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 70,
+      "horizon_display": "10 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 60.0,
+      "dose_multiplier": 0.5919676428327743,
+      "dose_multiplier_raw": 0.5919676428327743,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5919676428327743,
+      "unbounded_scaled_effect": 0.4421965689319029,
+      "scaled_effect": 0.4421965689319029,
+      "posterior": {
+        "mean": 0.7469944924959684,
+        "variance": 0.9352795539017629,
+        "sd": 0.9670985233686188,
+        "contraction": 0.09196764283277425,
+        "prior_mean": 2.5372313362765033,
+        "prior_variance": 1.0300068566053524,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": 0.772407851367636
+      },
+      "cohort_prior": {
+        "mean": 2.5478518097163536,
+        "variance": 1.038647815083984,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": -7.8530075503355725,
+        "se": 0.9625000000000002,
+        "n": 1,
+        "at_nominal_step": -15.706015100671145,
+        "se_at_step": 3.08,
+        "residual_sd": 3.08,
+        "sigma_data_used": 3.08,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.09196764283277425,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.13759620903874073,
+        "range_fraction": 0.5741626794258373,
+        "mode_fraction": 0.16,
+        "n_distinct": 12
+      }
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "ldl",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 60.0,
+      "dose_multiplier": 0.5320093883051303,
+      "dose_multiplier_raw": 0.5320093883051303,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5320093883051303,
+      "unbounded_scaled_effect": -1.3479107234510048,
+      "scaled_effect": -1.3479107234510048,
+      "posterior": {
+        "mean": -2.5336220620939867,
+        "variance": 1.936790264436239,
+        "sd": 1.3916861228151407,
+        "contraction": 0.03200938830513034,
+        "prior_mean": -3.535382924238428,
+        "prior_variance": 2.0008357943111483,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -1.8205412991895806
+      },
+      "cohort_prior": {
+        "mean": -3.567277012782788,
+        "variance": 2.0360744457485587,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 9.243393782383425,
+        "se": 2.0125000000000006,
+        "n": 1,
+        "at_nominal_step": 18.48678756476685,
+        "se_at_step": 6.44,
+        "residual_sd": 6.44,
+        "sigma_data_used": 6.44,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.03200938830513034,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.13759620903874073,
+        "range_fraction": 0.5741626794258373,
+        "mode_fraction": 0.16,
+        "n_distinct": 12
+      }
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "non_hdl_cholesterol",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 60.0,
+      "dose_multiplier": 0.5894103960626523,
+      "dose_multiplier_raw": 0.5894103960626523,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5894103960626523,
+      "unbounded_scaled_effect": -1.674526229972925,
+      "scaled_effect": -1.674526229972925,
+      "posterior": {
+        "mean": -2.8410191628091486,
+        "variance": 5.816003598212135,
+        "sd": 2.411639193207005,
+        "contraction": 0.08941039606265233,
+        "prior_mean": -6.318165504572421,
+        "prior_variance": 6.3870744549070215,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -1.1780448629345557
+      },
+      "cohort_prior": {
+        "mean": -6.338887224425831,
+        "variance": 6.429038599038245,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 15.301705974842767,
+        "se": 2.4500000000000006,
+        "n": 1,
+        "at_nominal_step": 30.603411949685533,
+        "se_at_step": 7.84,
+        "residual_sd": 7.84,
+        "sigma_data_used": 7.84,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.08941039606265233,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.13759620903874073,
+        "range_fraction": 0.5741626794258373,
+        "mode_fraction": 0.16,
+        "n_distinct": 12
+      }
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "total_cholesterol",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 84,
+      "horizon_display": "12 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 60.0,
+      "dose_multiplier": 0.5289510963718428,
+      "dose_multiplier_raw": 0.5289510963718428,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5289510963718428,
+      "unbounded_scaled_effect": -1.5951205795594163,
+      "scaled_effect": -1.5951205795594163,
+      "posterior": {
+        "mean": -3.015629593171457,
+        "variance": 2.2666868715550024,
+        "sd": 1.5055520155594102,
+        "contraction": 0.02895109637184279,
+        "prior_mean": -3.819576583489595,
+        "prior_variance": 2.3342664443427275,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -2.0030059154422206
+      },
+      "cohort_prior": {
+        "mean": -3.8304827518334967,
+        "variance": 2.3476156979350273,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 10.122178867403324,
+        "se": 2.5593750000000006,
+        "n": 1,
+        "at_nominal_step": 20.24435773480665,
+        "se_at_step": 8.19,
+        "residual_sd": 8.19,
+        "sigma_data_used": 8.19,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.02895109637184279,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.13759620903874073,
+        "range_fraction": 0.5741626794258373,
+        "mode_fraction": 0.16,
+        "n_distinct": 12
+      }
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "triglycerides",
+      "pathway": "biomarker",
+      "evidence_tier": "cohort_level",
+      "horizon_days": 35,
+      "horizon_display": "5 weeks",
+      "supporting_data_description": "Based on cohort priors; personal response to be confirmed at next lab draw",
+      "nominal_step": 60.0,
+      "dose_multiplier": 0.5905869121557579,
+      "dose_multiplier_raw": 0.5905869121557579,
+      "direction_conflict": false,
+      "dose_bounded": false,
+      "unbounded_dose_multiplier": 0.5905869121557579,
+      "unbounded_scaled_effect": -2.516865722612024,
+      "scaled_effect": -2.516865722612024,
+      "posterior": {
+        "mean": -4.26163477518486,
+        "variance": 8.06758340811642,
+        "sd": 2.8403491701050454,
+        "contraction": 0.09058691215575787,
+        "prior_mean": -7.446139027344213,
+        "prior_variance": 8.87119782632618,
+        "source": "pop+cohort+user",
+        "lam_js": 0.8768472906403941,
+        "n_cohort": 534,
+        "z_like": -1.5003911561434016
+      },
+      "cohort_prior": {
+        "mean": -7.478261963307788,
+        "variance": 8.947904318696969,
+        "n": 534
+      },
+      "user_obs": {
+        "slope": 12.751136363636366,
+        "se": 2.8437500000000004,
+        "n": 1,
+        "at_nominal_step": 25.502272727272732,
+        "se_at_step": 9.1,
+        "residual_sd": 9.1,
+        "sigma_data_used": 9.1,
+        "pathway": "biomarker",
+        "confounders_adjusted": [
+          "cohort_median"
+        ]
+      },
+      "gate": {
+        "score": 0.09058691215575787,
+        "tier": "not_exposed",
+        "suppression_reason": null,
+        "regime_boost_applied": false,
+        "regimes_addressed": []
+      },
+      "positivity_flag": "ok",
+      "positivity": {
+        "n": 100,
+        "cv": 0.13759620903874073,
+        "range_fraction": 0.5741626794258373,
+        "mode_fraction": 0.16,
+        "n_distinct": 12
+      }
+    }
+  ],
+  "tier_counts": {
+    "recommended": 2,
+    "possible": 2,
+    "not_exposed": 40
+  },
+  "exposed_count": 4,
+  "protocols": [
+    {
+      "protocol_id": "bedtime_conservative_p0308",
+      "action": "bedtime",
+      "target_value": 20.196666666666665,
+      "current_value": 20.446666666666665,
+      "delta": -0.25,
+      "unit": "hr",
+      "option_index": 0,
+      "option_label": "conservative",
+      "supporting_insight_ids": [
+        "bedtime_sleep_quality"
+      ],
+      "outcomes_served": [
+        "sleep_quality"
+      ],
+      "gate_tier": "possible",
+      "weakest_contraction": 0.5292115345314148,
+      "horizon_days": 2,
+      "description": "Shift bedtime earlier to 8:12pm",
+      "rationale": "Optimizes sleep quality",
+      "clipped_at_ceiling": false,
+      "unclipped_value": null
+    },
+    {
+      "protocol_id": "bedtime_aggressive_p0308",
+      "action": "bedtime",
+      "target_value": 20.054746565480123,
+      "current_value": 20.446666666666665,
+      "delta": -0.3919201011865425,
+      "unit": "hr",
+      "option_index": 1,
+      "option_label": "aggressive",
+      "supporting_insight_ids": [
+        "bedtime_deep_sleep"
+      ],
+      "outcomes_served": [
+        "deep_sleep"
+      ],
+      "gate_tier": "possible",
+      "weakest_contraction": 0.28384020237308494,
+      "horizon_days": 3,
+      "description": "Shift bedtime earlier to 8:03pm",
+      "rationale": "Optimizes deep sleep",
+      "clipped_at_ceiling": false,
+      "unclipped_value": null
+    },
+    {
+      "protocol_id": "training_load_conservative_p0308",
+      "action": "training_load",
+      "target_value": 213.82228541503787,
+      "current_value": 71.67466666666668,
+      "delta": 142.1476187483712,
+      "unit": "TRIMP/day",
+      "option_index": 0,
+      "option_label": "conservative",
+      "supporting_insight_ids": [
+        "training_load_resting_hr"
+      ],
+      "outcomes_served": [
+        "resting_hr"
+      ],
+      "gate_tier": "recommended",
+      "weakest_contraction": 0.921476187483712,
+      "horizon_days": 4,
+      "description": "Target training load ~214 TRIMP/day",
+      "rationale": "Optimizes resting HR",
+      "clipped_at_ceiling": false,
+      "unclipped_value": null
+    },
+    {
+      "protocol_id": "training_load_aggressive_p0308",
+      "action": "training_load",
+      "target_value": 217.06655382285766,
+      "current_value": 71.67466666666668,
+      "delta": 145.391887156191,
+      "unit": "TRIMP/day",
+      "option_index": 1,
+      "option_label": "aggressive",
+      "supporting_insight_ids": [
+        "training_load_hrv_daily"
+      ],
+      "outcomes_served": [
+        "hrv_daily"
+      ],
+      "gate_tier": "recommended",
+      "weakest_contraction": 0.95391887156191,
+      "horizon_days": 4,
+      "description": "Target training load ~217 TRIMP/day",
+      "rationale": "Optimizes HRV",
+      "clipped_at_ceiling": false,
+      "unclipped_value": null
+    }
+  ],
+  "current_values": {
+    "bedtime": 20.446666666666665,
+    "sleep_duration": 7.15,
+    "running_volume": 8.423333333333334,
+    "steps": 8502.533333333333,
+    "training_load": 71.67466666666668,
+    "active_energy": 460.90133333333335
+  },
+  "behavioral_sds": {
+    "bedtime": 0.372836184026379,
+    "sleep_duration": 0.314958149562969,
+    "running_volume": 1.0013694799945825,
+    "steps": 908.2866316783445,
+    "training_load": 13.129947988695472,
+    "active_energy": 42.01122761470795
+  },
+  "outcome_baselines": {
+    "hrv_daily": 46.728571428571435,
+    "resting_hr": 67.58571428571427,
+    "sleep_quality": 62.94285714285714,
+    "sleep_efficiency": 84.55,
+    "deep_sleep": 73.61428571428571,
+    "ferritin": 47.11,
+    "iron_total": 104.83,
+    "hemoglobin": 12.29,
+    "rbc": 4.32,
+    "mcv": 94.12,
+    "rdw": 13.86,
+    "nlr": 1.94,
+    "wbc": 5.56,
+    "platelets": 251.31,
+    "apob": 40.0,
+    "ldl": 78.85,
+    "non_hdl_cholesterol": 88.7,
+    "total_cholesterol": 173.26,
+    "hdl": 56.34,
+    "triglycerides": 42.75,
+    "hba1c": 5.68,
+    "glucose": 103.25,
+    "insulin": 8.8,
+    "uric_acid": 5.73,
+    "hscrp": 0.33,
+    "testosterone": 284.2,
+    "cortisol": 20.66,
+    "estradiol": 29.43,
+    "dhea_s": 283.15,
+    "shbg": 38.68,
+    "zinc": 91.04,
+    "magnesium_rbc": 6.52,
+    "b12": 150.0,
+    "folate": 17.4,
+    "homocysteine": 11.05,
+    "omega3_index": 4.97,
+    "ast": 24.25,
+    "alt": 22.61,
+    "creatinine": 0.77,
+    "albumin": 4.79,
+    "vo2_peak": 22.32,
+    "body_fat_pct": 29.12,
+    "body_mass_kg": 77.84
+  },
+  "regime_activations": {
+    "overreaching_state": 0.05927386222095379,
+    "iron_deficiency_state": 0.031614940115118194,
+    "sleep_deprivation_state": 0.999983298578152,
+    "inflammation_state": 1.5928246748460262e-06
+  },
+  "release_schedule": [
+    {
+      "day": 7,
+      "protocol_id": "bedtime_conservative_p0308",
+      "framing": "initial"
+    },
+    {
+      "day": 8,
+      "protocol_id": "training_load_aggressive_p0308",
+      "framing": "initial"
+    },
+    {
+      "day": 9,
+      "protocol_id": "training_load_conservative_p0308",
+      "framing": "initial"
+    },
+    {
+      "day": 10,
+      "protocol_id": "bedtime_aggressive_p0308",
+      "framing": "initial"
+    },
+    {
+      "day": 21,
+      "protocol_id": "bedtime_conservative_p0308",
+      "framing": "adherence-check"
+    },
+    {
+      "day": 22,
+      "protocol_id": "training_load_aggressive_p0308",
+      "framing": "adherence-check"
+    },
+    {
+      "day": 23,
+      "protocol_id": "training_load_conservative_p0308",
+      "framing": "adherence-check"
+    },
+    {
+      "day": 24,
+      "protocol_id": "bedtime_aggressive_p0308",
+      "framing": "adherence-check"
+    },
+    {
+      "day": 35,
+      "protocol_id": "bedtime_conservative_p0308",
+      "framing": "reinforcement"
+    },
+    {
+      "day": 36,
+      "protocol_id": "training_load_aggressive_p0308",
+      "framing": "reinforcement"
+    },
+    {
+      "day": 37,
+      "protocol_id": "training_load_conservative_p0308",
+      "framing": "reinforcement"
+    },
+    {
+      "day": 38,
+      "protocol_id": "bedtime_aggressive_p0308",
+      "framing": "reinforcement"
+    }
+  ],
+  "exploration_recommendations": [
+    {
+      "action": "dietary_energy",
+      "outcome": "body_mass_kg",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "dietary_protein",
+      "outcome": "body_fat_pct",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.010334018786962385,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "ferritin",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.6409130429919474,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "hemoglobin",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.7908644720991342,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "iron_total",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.15177448693483642,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "magnesium_rbc",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.18818871055918351,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "mcv",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.164091236742956,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "rbc",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.2849506429344275,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "rdw",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.004814033608343649,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "vo2_peak",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.41075549643007314,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "running_volume",
+      "outcome": "zinc",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.34227809587251823,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "cortisol",
+      "pathway": "biomarker",
+      "kind": "vary_action",
+      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
+      "prior_contraction": 0.049087143152900525,
+      "positivity_flag": "marginal",
+      "user_n": 1
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "glucose",
+      "pathway": "biomarker",
+      "kind": "vary_action",
+      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
+      "prior_contraction": 0.046905687951652286,
+      "positivity_flag": "marginal",
+      "user_n": 1
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "hrv_daily",
+      "pathway": "wearable",
+      "kind": "vary_action",
+      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
+      "prior_contraction": 0.025096369247631922,
+      "positivity_flag": "marginal",
+      "user_n": 62
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "testosterone",
+      "pathway": "biomarker",
+      "kind": "vary_action",
+      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
+      "prior_contraction": 0.040384613949353665,
+      "positivity_flag": "marginal",
+      "user_n": 1
+    },
+    {
+      "action": "sleep_duration",
+      "outcome": "wbc",
+      "pathway": "biomarker",
+      "kind": "vary_action",
+      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "marginal",
+      "user_n": 1
+    },
+    {
+      "action": "steps",
+      "outcome": "body_mass_kg",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.3139724365333555,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "training_volume",
+      "outcome": "alt",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "ast",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "body_fat_pct",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.001191872097543345,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "cortisol",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "dhea_s",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "estradiol",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "glucose",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.14440662500975854,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "hdl",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "homocysteine",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "hscrp",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "insulin",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 1.3772939005396445e-05,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "platelets",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "shbg",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "testosterone",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "training_volume",
+      "outcome": "uric_acid",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.0,
+      "positivity_flag": "ok",
+      "user_n": 0
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "apob",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.18791533668995153,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "hdl",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.09196764283277425,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "ldl",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.03200938830513034,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "non_hdl_cholesterol",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.08941039606265233,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "total_cholesterol",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.02895109637184279,
+      "positivity_flag": "ok",
+      "user_n": 1
+    },
+    {
+      "action": "zone2_volume",
+      "outcome": "triglycerides",
+      "pathway": "biomarker",
+      "kind": "repeat_measurement",
+      "rationale": "Biomarker effect exists in the population prior but the posterior hasn't updated \u2014 a second blood draw in 8-12 weeks would tell us if this pathway is active for you.",
+      "prior_contraction": 0.09058691215575787,
+      "positivity_flag": "ok",
+      "user_n": 1
+    }
+  ]
+}

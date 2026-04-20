@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serif + Habit Bandz | Personalized Urge Intelligence</title>
+  <style>
+    :root {
+      --primary: #5b8fd4;
+      --primary-light: #e8f1fa;
+      --secondary: #8b7ec8;
+      --accent: #e8927c;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --bg: #fafbfc;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 2px solid var(--primary-light);
+    }
+
+    .logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-serif { color: var(--primary); }
+    .logo-hb { color: var(--accent); }
+    .logo-plus { color: var(--text-muted); font-weight: 300; }
+
+    .tagline {
+      font-size: 20px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+      margin-bottom: 16px;
+    }
+
+    /* The Problem */
+    .problem-box {
+      background: linear-gradient(135deg, #fef3f2 0%, #fef9f8 100%);
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .problem-box h3 {
+      color: #dc2626;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .problem-box p {
+      color: #7f1d1d;
+      font-size: 15px;
+    }
+
+    /* Value Props Grid */
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .value-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .value-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(91, 143, 212, 0.1);
+    }
+
+    .value-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .value-card h4 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .value-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Technical Edge */
+    .tech-box {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #f8fafc 100%);
+      border: 1px solid #c7d9f0;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .tech-formula {
+      font-family: 'Georgia', serif;
+      font-size: 18px;
+      text-align: center;
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .tech-formula .theta { color: var(--primary); font-weight: 600; }
+    .tech-formula .beta { color: var(--secondary); font-weight: 600; }
+
+    .tech-examples {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .tech-example {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .tech-example strong {
+      display: block;
+      font-size: 12px;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    /* Data Sources */
+    .data-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .data-source {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .data-source span:first-child {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+
+    .data-arrow {
+      font-size: 20px;
+      color: var(--primary);
+    }
+
+    .data-output {
+      background: var(--primary);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .data-output strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .data-output span {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    /* Outcomes */
+    .outcome-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .outcome-card {
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .outcome-number {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .outcome-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, var(--primary) 0%, #4a7fc7 100%);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      color: white;
+    }
+
+    .cta-box h3 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .cta-box p {
+      font-size: 15px;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+
+    .cta-items {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      font-size: 14px;
+    }
+
+    .cta-items span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    @media print {
+      body { padding: 20px; }
+      .value-card:hover { border-color: #e2e8f0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logos">
+      <span class="logo logo-serif">Serif</span>
+      <span class="logo logo-plus">+</span>
+      <span class="logo logo-hb">Habit Bandz</span>
+    </div>
+    <p class="tagline">Personalized Urge Intelligence for Better Outcomes</p>
+  </header>
+
+  <!-- 5 Key Talking Points -->
+  <section class="section">
+    <div class="section-title">5 Talking Points</div>
+    <div style="background: linear-gradient(135deg, #fefce8 0%, #fef9f8 100%); border: 2px solid #fbbf24; border-radius: 12px; padding: 24px;">
+      <ol style="margin: 0; padding-left: 20px; display: grid; gap: 16px;">
+        <li style="font-size: 15px; line-height: 1.5;">
+          <strong style="color: #b45309;">Personal thresholds, not population averages.</strong><br>
+          <span style="color: #78716c;">Serif finds each user's unique urge triggers - "YOUR threshold is 6.2 hours of sleep" - not generic advice. This is the core differentiator.</span>
+        </li>
+        <li style="font-size: 15px; line-height: 1.5;">
+          <strong style="color: #b45309;">Habit Bandz data becomes 10x more powerful with context.</strong><br>
+          <span style="color: #78716c;">Urge patterns alone are limited. Combined with HRV, sleep quality, and stress data, we can predict urges BEFORE they happen and intervene proactively.</span>
+        </li>
+        <li style="font-size: 15px; line-height: 1.5;">
+          <strong style="color: #b45309;">Clinicians are flying blind between sessions.</strong><br>
+          <span style="color: #78716c;">Serif gives therapists a dashboard showing what's actually driving each patient's behavior - auto-generated session prep, personalized discussion points, adherence tracking.</span>
+        </li>
+        <li style="font-size: 15px; line-height: 1.5;">
+          <strong style="color: #b45309;">Evidence transparency builds trust.</strong><br>
+          <span style="color: #78716c;">We show users exactly how confident we are: "87% based on YOUR data, 13% population prior." No black-box recommendations - users see the causal chain.</span>
+        </li>
+        <li style="font-size: 15px; line-height: 1.5;">
+          <strong style="color: #b45309;">14 days to personalized insights.</strong><br>
+          <span style="color: #78716c;">Serif's Bayesian approach starts with population priors and rapidly calibrates to each individual. Users see meaningful insights within 2 weeks, not months.</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- The Problem -->
+  <section class="section">
+    <div class="section-title">The Challenge</div>
+    <div class="problem-box">
+      <h3>One-size-fits-all doesn't work for BFRBs</h3>
+      <p>Every person's urge triggers are different. Generic timing recommendations and population averages miss the individual patterns that matter most. Clinicians lack visibility into what's actually driving each patient's behavior outside of sessions. Without personalized causal insights, both users and therapists are flying blind.</p>
+    </div>
+  </section>
+
+  <!-- Value Props -->
+  <section class="section">
+    <div class="section-title">What Serif Adds to Habit Bandz</div>
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="value-icon" style="background: #dbeafe;">&#x1F3AF;</div>
+        <h4>Personal Urge Thresholds</h4>
+        <p>Discover each user's unique triggers: "Your urge intensity increases 47% when HRV drops below 32ms" - not population averages.</p>
+      </div>
+      <div class="value-card">
+        <div class="value-icon" style="background: #f3e8ff;">&#x1F4C8;</div>
+        <h4>Quantified Intervention Impact</h4>
+        <p>Measure exactly how effective urge surfing is for each person: "Your surf success rate is 23% higher after 7+ hours of sleep."</p>
+      </div>
+      <div class="value-card">
+        <div class="value-icon" style="background: #fef3c7;">&#x1F9D1;&#x200D;&#x2695;&#xFE0F;</div>
+        <h4>Clinical Dashboard</h4>
+        <p>Give therapists real data between sessions: which interventions work, what triggers relapses, personalized discussion points.</p>
+      </div>
+      <div class="value-card">
+        <div class="value-icon" style="background: #dcfce7;">&#x1F4F1;</div>
+        <h4>Proactive Daily Protocols</h4>
+        <p>"Low HRV this morning - schedule a 10-min breathing exercise before your typical 2pm urge window."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technical Edge -->
+  <section class="section">
+    <div class="section-title">The Serif Difference: Causal AI</div>
+    <div class="tech-box">
+      <div class="tech-formula">
+        Find personal <span class="theta">&theta;</span> (thresholds) and <span class="beta">&beta;</span> (effect sizes) for each user
+      </div>
+      <div class="tech-examples">
+        <div class="tech-example">
+          <strong>&theta; Example (Threshold)</strong>
+          "Sarah's urge intensity spikes when she gets less than 6.5 hours of sleep" - her personal threshold, not 7 hours like population average.
+        </div>
+        <div class="tech-example">
+          <strong>&beta; Example (Effect Size)</strong>
+          "Each additional HRV point above Sarah's 35ms threshold reduces next-day urge frequency by 8%."
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Integration -->
+  <section class="section">
+    <div class="section-title">Multi-Modal Data Fusion</div>
+    <div class="data-flow">
+      <div class="data-source">
+        <span>&#x231A;</span>
+        Habit Bandz Device
+      </div>
+      <div class="data-source">
+        <span>&#x2764;&#xFE0F;</span>
+        Wearables (HRV, Sleep)
+      </div>
+      <div class="data-source">
+        <span>&#x1F4DD;</span>
+        Surveys & Journals
+      </div>
+      <span class="data-arrow">&rarr;</span>
+      <div class="data-output">
+        <strong>Serif Causal Engine</strong>
+        <span>Personalized insights in 14 days</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Projected Outcomes -->
+  <section class="section">
+    <div class="section-title">Projected Impact</div>
+    <div class="outcome-grid">
+      <div class="outcome-card">
+        <div class="outcome-number">+34%</div>
+        <div class="outcome-label">Surf Success Rate<br>(personalized timing)</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-number">3x</div>
+        <div class="outcome-label">Clinician Efficiency<br>(auto-generated prep)</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-number">89%</div>
+        <div class="outcome-label">User Retention<br>(meaningful insights)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section">
+    <div class="cta-box">
+      <h3>Let's Make Habit Bandz Smarter</h3>
+      <p>Serif transforms device data into personalized causal intelligence - showing each user exactly what works for them.</p>
+      <div class="cta-items">
+        <span>&#x2713; 14-day pilot with 50 users</span>
+        <span>&#x2713; Full clinician dashboard</span>
+        <span>&#x2713; No upfront integration cost</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p><strong>Serif</strong> | Personalized Health Intelligence</p>
+    <p style="margin-top: 8px;">From "what works for most people" to "what works for you"</p>
+  </footer>
+</body>
+</html>

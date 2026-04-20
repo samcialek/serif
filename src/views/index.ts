@@ -1,0 +1,16 @@
+// Views barrel export
+
+export { LandingView } from './LandingView'
+export { CoachLandingView } from './CoachLandingView'
+export { ProtocolsView } from './ProtocolsView'
+export { CoachView } from './CoachView'
+export { ApiView } from './ApiView'
+export { AdminView } from './AdminView'
+export { ClientsView } from './ClientsView'
+export { UserDetailView } from './UserDetailView'
+export { DataView } from './DataView'
+export { StyleDemoView } from './StyleDemoView'
+export { default as CurveStyleDemoView } from './CurveStyleDemoView'
+export { DataValueView } from './DataValueView'
+export { PortalView } from './PortalView'
+export { TwinView } from './TwinView'
