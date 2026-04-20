@@ -28,7 +28,17 @@ const ACTION_LABELS: Record<string, string> = {
   steps: 'Steps',
   dietary_protein: 'Dietary protein',
   dietary_energy: 'Dietary energy',
+  // Load actions — surfaced as insight sources but not as prescribable
+  // protocols. Labels lead with the human concept, not the raw column.
+  acwr: 'Acute:chronic load',
+  sleep_debt: 'Sleep debt',
+  travel_load: 'Travel load',
 }
+
+// Load actions are context-level knobs: the Insights tab surfaces their
+// downstream effects, but the Protocols tab never prescribes them because
+// they're rolling aggregates, not single-action levers.
+const LOAD_ACTIONS = new Set(['acwr', 'sleep_debt', 'travel_load'])
 
 // Feasible 4–6 week behaviour-change shift per action. Used by the
 // Insights tab to display effects at a realistic dose rather than at
@@ -47,6 +57,12 @@ export const FEASIBLE_SHIFT: Record<string, { amount: number; label: string }> =
   training_load: { amount: 150, label: '+150 TRIMP/week' },
   training_volume: { amount: 300, label: '+5 hours/week' },
   zone2_volume: { amount: 120, label: '+2 hours/week' },
+  // Load actions: labels describe a direction the user could steer toward
+  // through their primary behaviours. doseShape handling flips the sign
+  // for plateau_down / inverted_u cases at render time.
+  acwr: { amount: 0.3, label: '+0.3 acute:chronic ratio' },
+  sleep_debt: { amount: 5, label: '+5h accumulated 14d debt' },
+  travel_load: { amount: 0.5, label: '+0.5 travel load' },
 }
 
 export function feasibleShiftFor(

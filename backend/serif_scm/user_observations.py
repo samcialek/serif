@@ -61,12 +61,20 @@ NATIVE_COLUMNS: tuple[str, ...] = (
 # perfect collinearity if both the derived action and its native deps appeared
 # in the same design matrix.
 ACTION_NATIVE_DEPS: dict[str, tuple[str, ...]] = {
-    "bedtime":        ("bedtime_hr",),
-    "sleep_duration": ("sleep_hrs",),
-    "running_volume": ("run_km",),
-    "steps":          ("steps",),
-    "training_load":  ("training_min",),
-    "active_energy":  ("steps", "training_min"),
+    "bedtime":         ("bedtime_hr",),
+    "sleep_duration":  ("sleep_hrs",),
+    "running_volume":  ("run_km",),
+    "steps":           ("steps",),
+    "training_load":   ("training_min",),
+    "active_energy":   ("steps", "training_min"),
+    "training_volume": ("training_min",),
+    "zone2_volume":    ("zone2_min",),
+    # Dietary actions: the synthetic generator doesn't persist protein_g /
+    # dietary_kcal columns, so _daily_action returns zeros and the OLS
+    # collapses to no-variation. Still register native-deps defensively so
+    # the lookup doesn't KeyError on widened supported_pairs.
+    "dietary_protein": (),
+    "dietary_energy":  (),
 }
 
 # Dose applied per day to equal MARGINAL_STEPS[action] on the DAG node.
@@ -371,6 +379,15 @@ def build_all_user_observations(
     life = pd.read_csv(data_dir / "lifestyle_app.csv")
 
     pairs = list(supported_pairs) if supported_pairs is not None else list(SUPPORTED_PAIRS)
+    # Load actions (acwr, sleep_debt, travel_load) are rolling aggregates of
+    # the native columns already in the design matrix — fitting a daily OLS
+    # against them would either collinearity-collapse (acwr is a deterministic
+    # ratio of training_min windows) or require a separate rolling-feature
+    # pipeline. Skip them here; they stay at the cohort prior, which is exactly
+    # what load-sourced insights should carry (they're context knobs, not
+    # user-identifiable slopes).
+    LOAD_ACTIONS = frozenset({"acwr", "sleep_debt", "travel_load"})
+    pairs = [(a, o) for (a, o) in pairs if a not in LOAD_ACTIONS]
     wearable_pairs = [(a, o) for a, o in pairs if o in WEARABLE_HORIZONS]
     biomarker_pairs = [(a, o) for a, o in pairs if o in BIOMARKER_HORIZONS]
 

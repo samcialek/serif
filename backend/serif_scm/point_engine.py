@@ -403,6 +403,17 @@ MANIPULABLE_NODES = {
     "dietary_energy",
 }
 
+# Rolling cumulative loads. Treated as "actions" for the marginal-effect probe
+# (so downstream-of-load insights surface in the Insights tab) but *not* for
+# protocol synthesis — you can't directly prescribe ACWR. Loads are confounders
+# that the UI surfaces as context and that the engine adjusts for when fitting
+# manipulable-action slopes. See backend/serif_scm/loads.py for derivation.
+LOAD_ACTIONS = {
+    "acwr",
+    "sleep_debt",
+    "travel_load",
+}
+
 # Step sizes for marginal effect computation (meaningful behavioral changes)
 MARGINAL_STEPS: dict[str, float] = {
     "running_volume":   30.0,    # +30 km/month
@@ -415,6 +426,10 @@ MARGINAL_STEPS: dict[str, float] = {
     "active_energy":    100.0,   # +100 kcal/day
     "dietary_protein":  20.0,    # +20 g/day
     "dietary_energy":   -200.0,  # -200 kcal/day (deficit)
+    # Load probes. Negative steps where the desired direction is a reduction.
+    "acwr":             0.2,     # +0.2 acute:chronic ratio (moving up the load curve)
+    "sleep_debt":       -3.0,    # -3 hours of 14-day accumulated debt
+    "travel_load":      -0.3,    # -0.3 jet-lag score (moving toward no-travel)
 }
 
 
