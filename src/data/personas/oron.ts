@@ -9,7 +9,7 @@ import type { Persona, Insight, DailyMetrics, LabResult, Protocol, DailyPlan } f
 export const oronPersona: Persona = {
   id: 'oron',
   name: 'Oron A.',
-  avatar: '/serif-demo/OrenA.jpeg',
+  avatar: `${import.meta.env.BASE_URL}OrenA.jpeg`,
   persona: 'Triathlete optimizing iron status & endurance performance',
   age: 43,
   archetype: 'The Iron-Depleted Endurance Athlete',

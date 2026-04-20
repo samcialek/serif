@@ -111,7 +111,7 @@ export const Sidebar = forwardRef<HTMLElement, SidebarProps>(
         <div className="h-24 flex items-center px-5 border-b border-slate-100">
           <NavLink to="/" className="flex items-center gap-3">
             <img
-              src="/serif-demo/serif_shine.png"
+              src={`${import.meta.env.BASE_URL}serif_shine.png`}
               alt="Serif"
               className="w-[72px] h-[72px] object-contain"
             />
@@ -324,7 +324,7 @@ export const CollapsibleSidebar = forwardRef<
       <div className="h-24 flex items-center justify-between px-3 border-b border-slate-100">
         <NavLink to="/" className="flex items-center gap-2">
           <img
-            src="/serif-demo/serif_shine.png"
+            src={`${import.meta.env.BASE_URL}serif_shine.png`}
             alt="Serif"
             className="w-[72px] h-[72px] object-contain flex-shrink-0"
           />
