@@ -1,19 +1,19 @@
 /**
- * OptimalSchedule — renders the twin-SEM counterfactual pick.
+ * OptimalSchedule — renders the full daily protocol.
  *
- * Displays:
- *   1. Chosen schedule (bedtime + session) as time-blocked cards
- *   2. Projected outcomes with baseline → projected deltas
- *   3. "Why this beat the alternatives" — top runner-ups with score diffs
+ * The twin-SEM pick (bedtime + session) is the spine; buildDailyProtocol
+ * fills in the rest of the day. Layout priorities:
+ *   1. Protocol timeline — dominant content (10–14 concrete actions)
+ *   2. Projected outcomes — compact strip, one line per outcome
+ *   3. Alternatives considered — collapsed accordion
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
   Calendar,
-  Moon,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react'
@@ -31,7 +31,13 @@ import type {
   ScoredSchedule,
 } from '@/utils/twinSem'
 import { SESSION_PRESETS, diffSchedules } from '@/utils/twinSem'
-import type { RegimeKey } from '@/data/portal/types'
+import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
+import type { ProtocolItem } from '@/utils/dailyProtocol'
+import {
+  buildDailyProtocol,
+  sourceLabel,
+  tagColor,
+} from '@/utils/dailyProtocol'
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'Overreaching',
@@ -64,45 +70,49 @@ const OUTCOME_UNIT: Record<string, string> = {
   zinc: ' µg/dL',
 }
 
-const TIER_LABEL: Record<string, string> = {
-  personal_established: 'Personal · established',
-  personal_emerging: 'Personal · emerging',
-  cohort_level: 'Cohort-level',
-}
-
-function formatBedtime(decimalHours: number): string {
-  return formatClockTime(roundToIncrement(decimalHours, 0.25))
-}
-
-function formatHrsMin(hours: number): string {
-  return formatHours(hours)
+const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
+  twin_sem: 'bg-emerald-500',
+  regime_driven: 'bg-amber-500',
+  baseline: 'bg-slate-300',
 }
 
 interface OptimalScheduleProps {
+  participant: ParticipantPortal
   result: CounterfactualResult
   dateLabel: string
   dayOfWeek: string
   activeRegimes: Array<{ key: RegimeKey; activation: number }>
-  wakeTime: number // decimal hours
-  current: {
-    bedtime: number
-    sleep_duration: number
-    training_load: number
-    running_volume: number
-  }
+  wakeTime: number
 }
 
 export function OptimalSchedule({
+  participant,
   result,
   dateLabel,
   dayOfWeek,
   activeRegimes,
   wakeTime,
-  current,
 }: OptimalScheduleProps) {
   const { best, alternatives } = result
-  const [expanded, setExpanded] = useState<boolean>(true)
+  const [altOpen, setAltOpen] = useState<boolean>(false)
+  const [outcomesOpen, setOutcomesOpen] = useState<boolean>(false)
   const session = SESSION_PRESETS[best.schedule.session]
+
+  const protocol = useMemo(
+    () =>
+      buildDailyProtocol(participant, best.schedule, {
+        wakeTime,
+      }),
+    [participant, best.schedule, wakeTime],
+  )
+
+  // Top 3 beneficial projections for the compact outcomes strip.
+  const topProjections = useMemo(() => {
+    const items = best.projections
+      .filter((p) => Math.abs(p.weighted_total) > 0.01)
+      .sort((a, b) => Math.abs(b.weighted_total) - Math.abs(a.weighted_total))
+    return items
+  }, [best.projections])
 
   return (
     <div className="space-y-5">
@@ -115,14 +125,22 @@ export function OptimalSchedule({
           </h2>
           <p className="text-xs text-slate-500 tabular-nums">{dateLabel}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] uppercase tracking-wider text-slate-400">
-            Twin-SEM score
-          </span>
-          <span className="text-lg font-bold tabular-nums text-emerald-700">
-            {best.total >= 0 ? '+' : ''}
-            {best.total.toFixed(2)}
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">Session</p>
+            <p className="text-sm font-semibold text-slate-700">
+              {session.icon} {session.label}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">
+              Twin-SEM score
+            </p>
+            <p className="text-lg font-bold tabular-nums text-emerald-700">
+              {best.total >= 0 ? '+' : ''}
+              {best.total.toFixed(2)}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -131,138 +149,117 @@ export function OptimalSchedule({
         <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
           <span>
-            <span className="font-semibold">Active regime{activeRegimes.length > 1 ? 's' : ''}:</span>{' '}
+            <span className="font-semibold">
+              Active regime{activeRegimes.length > 1 ? 's' : ''}:
+            </span>{' '}
             {activeRegimes
-              .map((r) => `${REGIME_LABEL[r.key]} (${(r.activation * 100).toFixed(0)}%)`)
+              .map(
+                (r) =>
+                  `${REGIME_LABEL[r.key]} (${(r.activation * 100).toFixed(0)}%)`,
+              )
               .join(' · ')}{' '}
-            — schedule dials back accordingly.
+            — protocol is tuned accordingly.
           </span>
         </div>
       )}
 
-      {/* Chosen schedule — time-blocked */}
-      <div>
-        <p className="text-[11px] uppercase tracking-wider text-slate-500 font-medium mb-2">
-          Today's optimal plan
-        </p>
-        <div className="grid md:grid-cols-2 gap-3">
-          {/* Training session */}
-          <div
-            className={cn(
-              'p-4 rounded-xl border-2 relative overflow-hidden',
-              best.schedule.session === 'rest'
-                ? 'bg-slate-50 border-slate-300'
-                : 'bg-sky-50 border-sky-300',
-            )}
+      {/* Compact outcomes strip */}
+      {topProjections.length > 0 && (
+        <div>
+          <button
+            onClick={() => setOutcomesOpen(!outcomesOpen)}
+            className="w-full text-left"
           >
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl">{session.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
-                  {best.schedule.session === 'rest' ? 'All day' : session.time}
-                </p>
-                <p className="text-base font-bold text-slate-900">{session.label}</p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-700 leading-snug">{session.description}</p>
-            {best.schedule.session !== 'rest' && session.training_load > 0 && (
-              <div className="mt-2 pt-2 border-t border-sky-200 flex items-center gap-3 text-[11px] text-slate-600">
-                <span className="tabular-nums">
-                  <span className="font-semibold">{session.training_load.toFixed(0)}</span>{' '}
-                  TRIMP
-                </span>
-                <span className="tabular-nums">
-                  <span className="font-semibold">{formatHours(session.training_volume)}</span>
-                </span>
-                {session.zone2_volume > 0 && (
-                  <span className="tabular-nums">
-                    <span className="font-semibold">{session.zone2_volume}</span> km Z2
-                  </span>
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+                Projected outcomes
+              </p>
+              <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                {outcomesOpen ? 'Hide detail' : 'Show detail'}
+                {outcomesOpen ? (
+                  <ChevronUp className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
                 )}
-                {session.running_volume > 0 && (
-                  <span className="tabular-nums">
-                    <span className="font-semibold">{session.running_volume}</span> km run
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Bedtime + sleep */}
-          <div className="p-4 rounded-xl border-2 bg-violet-50 border-violet-300">
-            <div className="flex items-baseline gap-2 mb-2">
-              <Moon className="w-5 h-5 text-violet-600" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">
-                  Lights out
-                </p>
-                <p className="text-base font-bold text-slate-900">
-                  {formatBedtime(best.schedule.bedtime)}
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-700 leading-snug">
-              {formatHrsMin(best.schedule.sleep_duration)} in bed — wake{' '}
-              {formatClockTime(wakeTime)}
-            </p>
-            <div className="mt-2 pt-2 border-t border-violet-200 flex items-center gap-3 text-[11px] text-slate-600">
-              <span className="tabular-nums">
-                Shift from{' '}
-                <span className="font-semibold">{formatBedtime(current.bedtime)}</span>
-              </span>
-              <span className="tabular-nums">
-                <span className="font-semibold">
-                  {(best.schedule.bedtime - current.bedtime >= 0 ? '+' : '') +
-                    Math.round((best.schedule.bedtime - current.bedtime) * 60)}
-                </span>{' '}
-                min
               </span>
             </div>
-          </div>
+            <div className="flex items-center gap-2 flex-wrap p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+              {topProjections.map((p) => (
+                <OutcomeChip key={p.outcome} projection={p} />
+              ))}
+            </div>
+          </button>
+          {outcomesOpen && (
+            <div className="mt-2 divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+              {topProjections.map((p, i) => (
+                <ProjectionRow key={i} projection={p} />
+              ))}
+            </div>
+          )}
         </div>
+      )}
 
-        {best.regimeLabels.length > 0 && (
-          <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 flex items-start gap-1.5">
-            <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-            <span>{best.regimeLabels.join(' · ')}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Projected outcomes */}
+      {/* PROTOCOL TIMELINE — dominant content */}
       <div>
-        <p className="text-[11px] uppercase tracking-wider text-slate-500 font-medium mb-2">
-          Projected outcomes under this plan
-        </p>
-        <div className="divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
-          {collapseGroupedProjections(best.projections).map((p, i) => (
-            <ProjectionRow key={i} projection={p} />
-          ))}
+        <div className="flex items-baseline justify-between mb-3">
+          <p className="text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+            Today's protocol
+          </p>
+          <p className="text-[11px] text-slate-400 tabular-nums">
+            {protocol.length} actions · wake {formatClockTime(wakeTime)} → lights out{' '}
+            {formatClockTime(best.schedule.bedtime)}
+          </p>
+        </div>
+        <div className="relative">
+          {/* Timeline spine */}
+          <div className="absolute left-[22px] top-2 bottom-2 w-px bg-slate-200" />
+          <ul className="space-y-2.5">
+            {protocol.map((p, i) => (
+              <ProtocolRow key={i} item={p} />
+            ))}
+          </ul>
+        </div>
+        <div className="mt-3 flex items-center gap-3 flex-wrap text-[10px] text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" /> Twin-SEM pick
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500" /> Regime-driven
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-slate-300" /> Baseline
+          </span>
+          {best.regimeLabels.length > 0 && (
+            <span className="text-amber-700 ml-auto">
+              <AlertTriangle className="inline w-3 h-3 mr-1" />
+              {best.regimeLabels.join(' · ')}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Alternatives considered */}
       <div>
         <button
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => setAltOpen(!altOpen)}
           className="flex items-center justify-between w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
         >
           <span>
             Alternatives considered{' '}
             <span className="text-slate-500 font-normal">
-              ({alternatives.length} of {result.all.length - 1} runner-ups shown)
+              ({alternatives.length} of {result.all.length - 1} runner-ups)
             </span>
           </span>
-          {expanded ? (
+          {altOpen ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
             <ChevronDown className="w-4 h-4" />
           )}
         </button>
-        {expanded && (
+        {altOpen && (
           <div className="mt-2 space-y-2">
             {alternatives.map((alt, i) => (
-              <AlternativeRow key={i} base={best} alt={alt} wakeTime={wakeTime} />
+              <AlternativeRow key={i} base={best} alt={alt} />
             ))}
           </div>
         )}
@@ -271,76 +268,152 @@ export function OptimalSchedule({
   )
 }
 
-// Group multiple outcomes (e.g., iron panel) under one row.
-interface DisplayProjection {
-  label: string
-  outcomes: OutcomeProjection[]
-  is_group: boolean
-}
-
-function collapseGroupedProjections(projs: OutcomeProjection[]): DisplayProjection[] {
-  const out: DisplayProjection[] = []
-  const groupBuckets = new Map<string, OutcomeProjection[]>()
-  for (const p of projs) {
-    if (p.group) {
-      const bucket = groupBuckets.get(p.group) ?? []
-      bucket.push(p)
-      groupBuckets.set(p.group, bucket)
-    } else {
-      out.push({
-        label: OUTCOME_DISPLAY[p.outcome] ?? p.outcome,
-        outcomes: [p],
-        is_group: false,
-      })
-    }
-  }
-  for (const [, bucket] of groupBuckets) {
-    out.push({
-      label: bucket[0].groupLabel ?? bucket[0].group ?? '',
-      outcomes: bucket,
-      is_group: true,
-    })
-  }
-  return out
-}
-
-function ProjectionRow({ projection }: { projection: DisplayProjection }) {
-  if (projection.is_group) {
-    const totalWeighted = projection.outcomes.reduce((s, p) => s + p.weighted_total, 0)
-    return (
-      <div className="p-3 bg-white">
-        <div className="flex items-baseline justify-between gap-3 mb-1.5">
-          <span className="text-sm font-semibold text-slate-800">{projection.label}</span>
-          <ContributionBadge weighted={totalWeighted} />
-        </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-          {projection.outcomes.map((p) => (
-            <div key={p.outcome} className="flex items-baseline justify-between gap-1.5">
-              <span className="text-slate-500">{OUTCOME_DISPLAY[p.outcome] ?? p.outcome}</span>
-              <ProjectedDeltaInline projection={p} />
-            </div>
-          ))}
-        </div>
+function ProtocolRow({ item }: { item: ProtocolItem }) {
+  return (
+    <li className="relative pl-12">
+      {/* Time + source dot on the spine */}
+      <div className="absolute left-0 top-0.5 flex items-center gap-1.5 w-[44px]">
+        <span
+          className={cn(
+            'w-2 h-2 rounded-full flex-shrink-0 ring-2 ring-white relative z-10',
+            SOURCE_DOT[item.source],
+          )}
+        />
       </div>
+      <div className="flex items-baseline gap-2 mb-0.5">
+        <span className="text-[11px] font-medium tabular-nums text-slate-500 w-14 flex-shrink-0">
+          {item.displayTime}
+        </span>
+        <span className="text-base leading-none">{item.icon}</span>
+        <span className="text-sm font-semibold text-slate-800">{item.title}</span>
+        <span className="text-sm text-slate-600">·</span>
+        <span className="text-sm text-slate-700">{item.dose}</span>
+      </div>
+      {item.details && item.details.length > 0 && (
+        <ul className="ml-[72px] space-y-0.5 mb-1">
+          {item.details.map((d, i) => (
+            <li key={i} className="text-[12px] text-slate-600 leading-snug">
+              · {d}
+            </li>
+          ))}
+        </ul>
+      )}
+      {item.rationale && (
+        <p className="ml-[72px] text-[11px] text-slate-500 italic leading-snug mb-1">
+          {item.rationale}
+        </p>
+      )}
+      <div className="ml-[72px] flex items-center gap-1.5 flex-wrap">
+        {item.tags.map((t) => (
+          <span
+            key={t}
+            className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded border tabular-nums',
+              tagColor(t),
+            )}
+          >
+            {t}
+          </span>
+        ))}
+        <span className="text-[10px] text-slate-400 ml-auto">
+          {sourceLabel(item.source)}
+        </span>
+      </div>
+    </li>
+  )
+}
+
+function OutcomeChip({ projection: p }: { projection: OutcomeProjection }) {
+  const unit = OUTCOME_UNIT[p.outcome] ?? ''
+  const inc = outcomeIncrement(p.outcome)
+  const deltaDisplay = roundToIncrement(p.delta, inc)
+  const label =
+    OUTCOME_DISPLAY[p.outcome] ??
+    (p.groupLabel ? p.groupLabel : p.outcome)
+  const Arrow = p.is_user_benefit ? TrendingUp : TrendingDown
+  const tone = p.is_user_benefit ? 'text-emerald-700' : 'text-rose-700'
+
+  if (p.baseline != null && p.projected != null) {
+    return (
+      <span className="flex items-baseline gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[11px] tabular-nums">
+        <span className="text-slate-600">{label}</span>
+        <span className="text-slate-700">
+          {formatOutcomeValue(p.baseline, p.outcome)} →{' '}
+          {formatOutcomeValue(p.projected, p.outcome)}
+          {unit}
+        </span>
+        <Arrow className={cn('w-3 h-3', tone)} />
+      </span>
     )
   }
-  const p = projection.outcomes[0]
+  return (
+    <span className="flex items-baseline gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[11px] tabular-nums">
+      <span className="text-slate-600">{label}</span>
+      <span className={tone}>
+        {deltaDisplay >= 0 ? '+' : ''}
+        {deltaDisplay.toFixed(inc < 1 ? 1 : 0)}
+        {unit}
+      </span>
+      <Arrow className={cn('w-3 h-3', tone)} />
+    </span>
+  )
+}
+
+const TIER_LABEL: Record<string, string> = {
+  personal_established: 'Personal · established',
+  personal_emerging: 'Personal · emerging',
+  cohort_level: 'Cohort-level',
+}
+
+function ProjectionRow({ projection: p }: { projection: OutcomeProjection }) {
+  const label =
+    OUTCOME_DISPLAY[p.outcome] ??
+    (p.groupLabel ? p.groupLabel : p.outcome)
+  const unit = OUTCOME_UNIT[p.outcome] ?? ''
+  const inc = outcomeIncrement(p.outcome)
+  const deltaDisplay = roundToIncrement(p.delta, inc)
+  const Arrow = p.is_user_benefit ? TrendingUp : TrendingDown
+  const tone = p.is_user_benefit ? 'text-emerald-700' : 'text-rose-700'
   return (
     <div className="p-3 bg-white">
       <div className="flex items-baseline justify-between gap-3 mb-1">
-        <span className="text-sm font-semibold text-slate-800">{projection.label}</span>
-        <ProjectedDeltaInline projection={p} />
+        <span className="text-sm font-semibold text-slate-800">{label}</span>
+        <span className={cn('text-[11px] tabular-nums flex items-baseline gap-1', tone)}>
+          {p.baseline != null && p.projected != null ? (
+            <>
+              {formatOutcomeValue(p.baseline, p.outcome)} →{' '}
+              {formatOutcomeValue(p.projected, p.outcome)}
+              {unit}
+            </>
+          ) : (
+            <>
+              {deltaDisplay >= 0 ? '+' : ''}
+              {deltaDisplay.toFixed(inc < 1 ? 1 : 0)}
+              {unit}
+            </>
+          )}
+          <Arrow className="w-3 h-3" />
+        </span>
       </div>
       {p.contributions.length > 0 && (
         <div className="space-y-0.5">
           {p.contributions
             .slice()
-            .sort((a, b) => Math.abs(b.weighted_contribution) - Math.abs(a.weighted_contribution))
+            .sort(
+              (a, b) =>
+                Math.abs(b.weighted_contribution) -
+                Math.abs(a.weighted_contribution),
+            )
             .slice(0, 3)
             .map((c, i) => (
               <p key={i} className="text-[11px] text-slate-500 leading-snug">
-                via <span className="font-medium text-slate-700">{c.action.replace(/_/g, ' ')}</span>{' '}
-                <span className="text-slate-400">({TIER_LABEL[c.tier] ?? c.tier})</span>{' '}
+                via{' '}
+                <span className="font-medium text-slate-700">
+                  {c.action.replace(/_/g, ' ')}
+                </span>{' '}
+                <span className="text-slate-400">
+                  ({TIER_LABEL[c.tier] ?? c.tier})
+                </span>{' '}
                 <span className="tabular-nums">
                   {c.weighted_contribution >= 0 ? '+' : ''}
                   {c.weighted_contribution.toFixed(2)}
@@ -353,55 +426,12 @@ function ProjectionRow({ projection }: { projection: DisplayProjection }) {
   )
 }
 
-function ProjectedDeltaInline({ projection: p }: { projection: OutcomeProjection }) {
-  const unit = OUTCOME_UNIT[p.outcome] ?? ''
-  const inc = outcomeIncrement(p.outcome)
-  const deltaDisplay = roundToIncrement(p.delta, inc)
-  const Arrow = p.is_user_benefit ? TrendingUp : TrendingDown
-  const tone = p.is_user_benefit ? 'text-emerald-700' : 'text-rose-700'
-
-  if (p.baseline != null && p.projected != null) {
-    return (
-      <span className="flex items-baseline gap-1.5 tabular-nums text-[11px]">
-        <span className="text-slate-600">
-          {formatOutcomeValue(p.baseline, p.outcome)} → {formatOutcomeValue(p.projected, p.outcome)}
-          {unit}
-        </span>
-        <Arrow className={cn('w-3 h-3', tone)} />
-      </span>
-    )
-  }
-  return (
-    <span className={cn('flex items-baseline gap-1 tabular-nums text-[11px]', tone)}>
-      <span>
-        {deltaDisplay >= 0 ? '+' : ''}
-        {deltaDisplay.toFixed(inc < 1 ? 1 : 0)}
-        {unit}
-      </span>
-      <Arrow className="w-3 h-3" />
-    </span>
-  )
-}
-
-function ContributionBadge({ weighted }: { weighted: number }) {
-  const tone =
-    weighted > 0.01 ? 'text-emerald-700' : weighted < -0.01 ? 'text-rose-700' : 'text-slate-500'
-  return (
-    <span className={cn('text-[11px] tabular-nums font-medium', tone)}>
-      {weighted >= 0 ? '+' : ''}
-      {weighted.toFixed(2)}
-    </span>
-  )
-}
-
 function AlternativeRow({
   base,
   alt,
-  wakeTime,
 }: {
   base: ScoredSchedule
   alt: ScoredSchedule
-  wakeTime: number
 }) {
   const altSession = SESSION_PRESETS[alt.schedule.session]
   const diff = diffSchedules(base, alt)
@@ -414,7 +444,8 @@ function AlternativeRow({
           </span>
           <span className="text-xs text-slate-500">·</span>
           <span className="text-xs text-slate-600 tabular-nums">
-            {formatBedtime(alt.schedule.bedtime)} lights out · {formatHours(alt.schedule.sleep_duration)} in bed
+            {formatClockTime(alt.schedule.bedtime)} lights out ·{' '}
+            {formatHours(alt.schedule.sleep_duration)} in bed
           </span>
         </div>
         <span
@@ -439,8 +470,8 @@ function AlternativeRow({
                   ? 'text-emerald-700'
                   : 'text-rose-700'
                 : d.beneficial
-                ? 'text-rose-700'
-                : 'text-emerald-700',
+                  ? 'text-rose-700'
+                  : 'text-emerald-700',
             )}
           >
             {d.delta >= 0 ? '+' : ''}

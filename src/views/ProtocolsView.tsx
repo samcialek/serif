@@ -33,16 +33,10 @@ export function ProtocolsView() {
     const wakeTime = derivedWakeTime(participant)
     const regimes = participant.regime_activations ?? {}
     const activeRegimes = (Object.entries(regimes) as Array<[RegimeKey, number]>)
-      .filter(([, v]) => v >= 0.5)
+      .filter(([, v]) => v >= 0.3)
       .sort((a, b) => b[1] - a[1])
       .map(([key, activation]) => ({ key, activation }))
-    const current = {
-      bedtime: participant.current_values?.bedtime ?? 22.5,
-      sleep_duration: participant.current_values?.sleep_duration ?? 8,
-      training_load: participant.current_values?.training_load ?? 0,
-      running_volume: participant.current_values?.running_volume ?? 0,
-    }
-    return { result, wakeTime, activeRegimes, current }
+    return { result, wakeTime, activeRegimes }
   }, [participant])
 
   if (activePid == null) {
@@ -109,12 +103,12 @@ export function ProtocolsView() {
       >
         <Card padding="md" className="rounded-xl">
           <OptimalSchedule
+            participant={participant}
             result={twin.result}
             dateLabel={dateLabel}
             dayOfWeek={DAY_OF_WEEK[today.getDay()]}
             activeRegimes={twin.activeRegimes}
             wakeTime={twin.wakeTime}
-            current={twin.current}
           />
         </Card>
       </motion.div>
