@@ -9,6 +9,14 @@
  */
 
 import type { ParticipantPortal, Protocol, RegimeKey } from '@/data/portal/types'
+import {
+  actionIncrement,
+  formatActionValue,
+  formatClockTime,
+  formatHours,
+  roundForAction,
+  roundToIncrement,
+} from '@/utils/rounding'
 
 export interface ScheduleItem {
   time: string // HH:MM
@@ -56,6 +64,27 @@ function dayOfYear(date: Date): number {
   return Math.floor((date.getTime() - start.getTime()) / 86_400_000)
 }
 
+// 24-hour HH:MM for the schedule time slot (sortable via localeCompare).
+// 15-min rounding via the centralized bedtime increment.
+function toClock24(decimalHours: number): string {
+  const rounded = roundToIncrement(decimalHours, 0.25)
+  let total = rounded
+  while (total >= 24) total -= 24
+  while (total < 0) total += 24
+  const h = Math.floor(total)
+  const m = Math.round((total - h) * 60)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+// Weekly total formatted with protocol's native unit. Uses the action's
+// clinical rounding increment so week aggregates align with daily dose.
+function formatWeeklyTotal(value: number, action: string, unit?: string): string {
+  const rounded = roundForAction(value, action)
+  const inc = actionIncrement(action)
+  const decimals = inc >= 1 ? 0 : inc >= 0.1 ? 1 : 2
+  return `${rounded.toFixed(decimals)}${unit ? ' ' + unit : ''}`
+}
+
 // How often per week each action is performed (for translating weekly
 // target -> today's dose).
 const WEEKLY_CADENCE: Record<string, number> = {
@@ -88,12 +117,6 @@ const ACTION_SLOT: Record<
   sleep_duration: { time: '22:30', slot: 'evening', icon: '😴', title: 'Sleep window' },
 }
 
-function formatHoursAsClock(hours: number): string {
-  const h = Math.floor(hours)
-  const m = Math.round((hours - h) * 60)
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-}
-
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'Overreaching',
   iron_deficiency_state: 'Iron-deficient',
@@ -121,21 +144,22 @@ function doseForToday(
 
   // Bedtime / sleep_duration: target is a daily clock / duration — direct.
   if (action === 'bedtime') {
-    const today = formatHoursAsClock(target_value)
-    const curr = formatHoursAsClock(current_value)
-    const delta = Math.round((current_value - target_value) * 60)
+    const today = formatClockTime(target_value)
+    const curr = formatClockTime(current_value)
+    const deltaHours = roundToIncrement(current_value - target_value, 0.25)
+    const deltaMin = Math.round(deltaHours * 60)
     return {
       dose: `${today} tonight`,
       rationale:
-        delta > 0
-          ? `You've been averaging ${curr} — pull tonight forward by ~${delta} min`
+        deltaMin > 0
+          ? `You've been averaging ${curr} — pull tonight forward by ~${deltaMin} min`
           : `On target (avg ${curr})`,
     }
   }
   if (action === 'sleep_duration') {
     return {
-      dose: `${target_value.toFixed(1)} h in bed`,
-      rationale: `Week trailing avg ${current_value.toFixed(1)} h — aim for ${target_value.toFixed(1)} h tonight`,
+      dose: `${formatHours(target_value)} in bed`,
+      rationale: `Week trailing avg ${formatHours(current_value)} — aim for ${formatHours(target_value)} tonight`,
     }
   }
 
@@ -144,10 +168,10 @@ function doseForToday(
   if (cadence >= 7) {
     const pct = Math.round((current_value / target_value) * 100)
     return {
-      dose: `${target_value.toFixed(0)}${unit ? ' ' + unit : ''} today`,
+      dose: formatActionValue(target_value, action),
       rationale:
         pct < 80
-          ? `Week trailing avg ${current_value.toFixed(0)}${unit ? ' ' + unit : ''} (~${pct}% of target)`
+          ? `Week trailing avg ${formatActionValue(current_value, action)} (~${pct}% of target)`
           : `Holding steady at ~${pct}% of target`,
     }
   }
@@ -172,19 +196,20 @@ function doseForToday(
     regimeModifier = 'Inflammation: skip hard intervals, recovery pace'
   }
 
+  const weeklyDoneStr = formatWeeklyTotal(weeklyDone, action, unit)
+  const weeklyTargetStr = formatWeeklyTotal(weeklyTarget, action, unit)
+
   if (adjustedDose < weeklyTarget * 0.04) {
     return {
       dose: 'Rest day',
-      rationale: `You're ahead of the weekly target (${weeklyDone.toFixed(0)}/${weeklyTarget.toFixed(0)}${unit ? ' ' + unit : ''})`,
+      rationale: `You're ahead of the weekly target (${weeklyDoneStr} / ${weeklyTargetStr})`,
       modifier: regimeModifier,
     }
   }
 
   return {
-    dose: `${adjustedDose.toFixed(1)}${unit ? ' ' + unit : ''}${
-      action.includes('volume') || action === 'running_volume' ? ' today' : ''
-    }`,
-    rationale: `Week so far: ${weeklyDone.toFixed(0)}/${weeklyTarget.toFixed(0)}${unit ? ' ' + unit : ''} (${Math.round(weekRatio * 100)}%) · today brings you to the cadence`,
+    dose: formatActionValue(adjustedDose, action),
+    rationale: `Week so far: ${weeklyDoneStr} / ${weeklyTargetStr} (${Math.round(weekRatio * 100)}%) · today brings you to the cadence`,
     modifier: regimeModifier,
   }
 }
@@ -282,10 +307,11 @@ export function deriveTodaySchedule(
     const weekRatio = ratios[action] ?? 0.5
     const { dose, rationale, modifier } = doseForToday(protocol, weekRatio, regimes)
 
-    // Override time for bedtime: use the target itself.
+    // Override time for bedtime: use the target itself (24h HH:MM so
+    // localeCompare sorts it correctly relative to other slot times).
     let time = slot.time
     if (action === 'bedtime') {
-      time = formatHoursAsClock(protocol.target_value)
+      time = toClock24(protocol.target_value)
     }
 
     items.push({
