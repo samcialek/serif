@@ -357,7 +357,7 @@ function InsightSections({
       {loadDriven.length > 0 && (
         <InsightGroup
           title="Context drivers"
-          hint="How today's rolling loads move your outcomes"
+          hint="Cohort-level mechanisms — how today's rolling loads move your outcomes"
           items={loadDriven}
           density={density}
           muted
