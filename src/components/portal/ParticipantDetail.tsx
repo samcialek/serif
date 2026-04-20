@@ -1,8 +1,22 @@
-import { useMemo } from 'react'
-import { User, Users, AlertCircle, Loader2, Microscope, Activity } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  User,
+  Users,
+  AlertCircle,
+  Loader2,
+  Microscope,
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  Rows,
+} from 'lucide-react'
+import { cn } from '@/utils/classNames'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { usePortalStore } from '@/stores/portalStore'
+import { participantLoader } from '@/data/portal/participantLoader'
 import { InsightRow } from './InsightRow'
 import { ProtocolCard } from './ProtocolCard'
 import { TierFilterChips } from './TierFilterChips'
@@ -68,9 +82,35 @@ function groupByPathway(
 
 export function ParticipantDetail() {
   const activePid = usePortalStore((s) => s.activePid)
+  const setActivePid = usePortalStore((s) => s.setActivePid)
   const tierFilter = usePortalStore((s) => s.tierFilter)
   const { participant, isLoading, error } = useParticipant()
   const { displayName, kind } = useActiveParticipant()
+  const [density, setDensity] = useState<'compact' | 'detailed'>('detailed')
+  const [totalParticipants, setTotalParticipants] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    participantLoader
+      .loadManifest()
+      .then((m) => {
+        if (!cancelled) setTotalParticipants(m.n_participants)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const goto = (offset: number) => {
+    if (activePid == null || totalParticipants == null) return
+    const next = activePid + offset
+    if (next < 1 || next > totalParticipants) return
+    setActivePid(next)
+  }
+  const canPrev = activePid != null && activePid > 1
+  const canNext =
+    activePid != null && totalParticipants != null && activePid < totalParticipants
 
   const insights = useMemo(() => {
     if (!participant) return []
@@ -208,6 +248,40 @@ export function ParticipantDetail() {
               value={participant.effects_bayesian.length}
               hint="Action-to-outcome links the engine tracks"
             />
+            <div className="flex items-center gap-1 pl-3 border-l border-slate-200">
+              <button
+                onClick={() => goto(-1)}
+                disabled={!canPrev}
+                title="Previous member"
+                className={cn(
+                  'p-1 rounded-md border',
+                  canPrev
+                    ? 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    : 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed',
+                )}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => goto(1)}
+                disabled={!canNext}
+                title="Next member"
+                className={cn(
+                  'p-1 rounded-md border',
+                  canNext
+                    ? 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    : 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed',
+                )}
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <Link
+                to="/members"
+                className="ml-1 text-[11px] font-medium text-primary-600 hover:text-primary-700 px-2 py-1 rounded-md hover:bg-primary-50 transition-colors"
+              >
+                Switch
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -265,9 +339,12 @@ export function ParticipantDetail() {
 
       {/* Insights — grouped by pathway */}
       <section>
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">
-          Insights <span className="text-slate-400 font-normal">({insights.length})</span>
-        </h3>
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-700">
+            Insights <span className="text-slate-400 font-normal">({insights.length})</span>
+          </h3>
+          <DensityToggle density={density} onChange={setDensity} />
+        </div>
         {insights.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl">
             No insights match the current tier filter.
@@ -282,13 +359,14 @@ export function ParticipantDetail() {
                   </div>
                   <span className="text-[10px] text-slate-400 tabular-nums">{items.length}</span>
                 </div>
-                <div className="space-y-3">
+                <div className={density === 'compact' ? 'space-y-1' : 'space-y-3'}>
                   {items.map((insight) => (
                     <InsightRow
                       key={`${insight.action}_${insight.outcome}`}
                       insight={insight}
                       currentValue={current_values[insight.action]}
                       outcomeBaseline={outcome_baselines?.[insight.outcome]}
+                      density={density}
                     />
                   ))}
                 </div>
@@ -297,6 +375,45 @@ export function ParticipantDetail() {
           </div>
         )}
       </section>
+    </div>
+  )
+}
+
+function DensityToggle({
+  density,
+  onChange,
+}: {
+  density: 'compact' | 'detailed'
+  onChange: (d: 'compact' | 'detailed') => void
+}) {
+  return (
+    <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-md border border-slate-200">
+      <button
+        onClick={() => onChange('compact')}
+        title="Compact view"
+        className={cn(
+          'flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded transition-colors',
+          density === 'compact'
+            ? 'bg-white text-slate-800 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700',
+        )}
+      >
+        <List className="w-3 h-3" />
+        Compact
+      </button>
+      <button
+        onClick={() => onChange('detailed')}
+        title="Detailed view"
+        className={cn(
+          'flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded transition-colors',
+          density === 'detailed'
+            ? 'bg-white text-slate-800 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700',
+        )}
+      >
+        <Rows className="w-3 h-3" />
+        Detailed
+      </button>
     </div>
   )
 }

@@ -149,9 +149,15 @@ interface InsightRowProps {
   insight: InsightBayesian
   currentValue?: number
   outcomeBaseline?: number
+  density?: 'compact' | 'detailed'
 }
 
-export function InsightRow({ insight, currentValue, outcomeBaseline }: InsightRowProps) {
+export function InsightRow({
+  insight,
+  currentValue,
+  outcomeBaseline,
+  density = 'detailed',
+}: InsightRowProps) {
   const [expanded, setExpanded] = useState(false)
   const {
     action,
@@ -213,6 +219,156 @@ export function InsightRow({ insight, currentValue, outcomeBaseline }: InsightRo
   const PathwayIcon = pathway === 'biomarker' ? FlaskConical : Watch
   const actionLabel = ACTION_LABELS[action] ?? action
   const outcomeLabel = OUTCOME_LABELS[outcome] ?? outcome
+
+  const expandedBody = expanded ? (
+    <div
+      className={cn(
+        'space-y-3',
+        density === 'compact'
+          ? 'px-3 pb-3 pt-2 border-t border-slate-100 bg-slate-50/60'
+          : 'px-4 pb-4 pt-3 border-t border-slate-100',
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${personalPct}%`, backgroundColor: borderColor }}
+          />
+        </div>
+        <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
+          {personalPct}% personal · {cohortPct}% cohort
+        </span>
+      </div>
+
+      <div>
+        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
+          Expected benefit
+        </p>
+        <p className="text-sm font-semibold text-slate-800">
+          ~{formatOutcomeValue(Math.abs(scaled_effect), outcome)}
+          {meta?.unit ? ` ${meta.unit}` : ''} improvement in{' '}
+          {meta?.noun ?? outcomeLabel.toLowerCase()}
+        </p>
+      </div>
+
+      {recommendedAction && (
+        <div>
+          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
+            Recommended action
+          </p>
+          <p className="text-sm text-slate-700">{recommendedAction}</p>
+        </div>
+      )}
+
+      {outcomeBaseline != null && Number.isFinite(outcomeBaseline) && (
+        <div>
+          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
+            Baseline → projection
+          </p>
+          <p className="text-sm text-slate-700 tabular-nums">
+            {formatOutcomeValue(outcomeBaseline, outcome)} → ~
+            {formatOutcomeValue(
+              outcomeBaseline + Math.abs(scaled_effect) * outcomeDir,
+              outcome,
+            )}
+            {meta?.unit ? ` ${meta.unit}` : ''}
+          </p>
+        </div>
+      )}
+
+      {direction_conflict && (
+        <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-amber-700">
+              Your data differs from typical
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Your personal response moves opposite to the cohort pattern — interpret with care.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-slate-500">
+        Posterior contraction {(posterior.contraction * 100).toFixed(0)}% · horizon{' '}
+        {horizon_display ?? '—'}
+      </p>
+
+      {supporting_data_description && (
+        <p className="text-xs text-slate-500 italic">{supporting_data_description}</p>
+      )}
+    </div>
+  ) : null
+
+  if (density === 'compact') {
+    return (
+      <div
+        className="bg-white border border-slate-200 rounded-md overflow-hidden"
+        style={{ borderLeftColor: borderColor, borderLeftWidth: borderWidth }}
+      >
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="w-full px-2.5 py-1.5 flex items-center gap-2 text-left hover:bg-slate-50 transition-colors"
+        >
+          <ChevronRight
+            className={cn(
+              'w-3.5 h-3.5 text-slate-400 flex-shrink-0 transition-transform',
+              expanded && 'rotate-90',
+            )}
+          />
+          <span
+            className="text-[13px] font-medium text-slate-800 w-32 flex-shrink-0 truncate"
+            title={actionLabel}
+          >
+            {actionLabel}
+          </span>
+          <span className="text-slate-300 text-xs flex-shrink-0">→</span>
+          <span
+            className="text-[13px] font-medium text-slate-800 w-32 flex-shrink-0 truncate"
+            title={outcomeLabel}
+          >
+            {outcomeLabel}
+          </span>
+          <TierBadge tier={gate.tier} />
+          <span
+            className={cn(
+              'inline-flex items-center px-1.5 py-0 text-[10px] font-medium border rounded',
+              EVIDENCE_TIER_STYLE[evidenceTier],
+            )}
+          >
+            {EVIDENCE_TIER_LABELS[evidenceTier]}
+          </span>
+          <PathwayIcon
+            className={cn(
+              'w-3 h-3 flex-shrink-0',
+              pathway === 'biomarker' ? 'text-rose-500' : 'text-sky-500',
+            )}
+          />
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: borderColor }}
+            title={`${personalPct}% personal`}
+          />
+          <span className="ml-auto text-[11px] text-slate-500 tabular-nums flex-shrink-0 hidden md:inline">
+            {personalPct}% yours
+          </span>
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 font-semibold tabular-nums text-[12px] flex-shrink-0',
+              arrowColor,
+            )}
+          >
+            <ArrowIcon className="w-3.5 h-3.5" />
+            {compactMagnitude}
+          </span>
+        </button>
+        {expandedBody}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -287,80 +443,7 @@ export function InsightRow({ insight, currentValue, outcomeBaseline }: InsightRo
         </div>
       </button>
 
-      {expanded && (
-        <div className="px-4 pb-4 pt-3 border-t border-slate-100 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${personalPct}%`, backgroundColor: borderColor }}
-              />
-            </div>
-            <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
-              {personalPct}% personal · {cohortPct}% cohort
-            </span>
-          </div>
-
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
-              Expected benefit
-            </p>
-            <p className="text-sm font-semibold text-slate-800">
-              ~{formatOutcomeValue(Math.abs(scaled_effect), outcome)}
-              {meta?.unit ? ` ${meta.unit}` : ''} improvement in{' '}
-              {meta?.noun ?? outcomeLabel.toLowerCase()}
-            </p>
-          </div>
-
-          {recommendedAction && (
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
-                Recommended action
-              </p>
-              <p className="text-sm text-slate-700">{recommendedAction}</p>
-            </div>
-          )}
-
-          {outcomeBaseline != null && Number.isFinite(outcomeBaseline) && (
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
-                Baseline → projection
-              </p>
-              <p className="text-sm text-slate-700 tabular-nums">
-                {formatOutcomeValue(outcomeBaseline, outcome)} → ~
-                {formatOutcomeValue(
-                  outcomeBaseline + Math.abs(scaled_effect) * outcomeDir,
-                  outcome,
-                )}
-                {meta?.unit ? ` ${meta.unit}` : ''}
-              </p>
-            </div>
-          )}
-
-          {direction_conflict && (
-            <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-amber-700">
-                  Your data differs from typical
-                </p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Your personal response moves opposite to the cohort pattern — interpret with care.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-slate-500">
-            Posterior contraction {(posterior.contraction * 100).toFixed(0)}% · horizon{' '}
-            {horizon_display ?? '—'}
-          </p>
-
-          {supporting_data_description && (
-            <p className="text-xs text-slate-500 italic">{supporting_data_description}</p>
-          )}
-        </div>
-      )}
+      {expandedBody}
     </div>
   )
 }
