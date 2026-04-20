@@ -202,11 +202,6 @@ const EVIDENCE_TIER_STYLE: Record<EvidenceTier, string> = {
   personal_established: 'text-emerald-700 bg-emerald-50 border-emerald-200',
 }
 
-const PATHWAY_STYLE: Record<Pathway, string> = {
-  wearable: 'text-sky-700 bg-sky-50 border-sky-200',
-  biomarker: 'text-rose-700 bg-rose-50 border-rose-200',
-}
-
 // Left-border thickness scales with evidence tier: thicker = more
 // personal-data-informed edge. Colour is tier-only; we don't encode
 // personalisation-fraction here because the Insights tab is meant to

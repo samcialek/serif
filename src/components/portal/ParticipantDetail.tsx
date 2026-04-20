@@ -216,14 +216,7 @@ export function ParticipantDetail() {
 
   if (!participant) return null
 
-  const {
-    cohort,
-    age,
-    is_female,
-    exposed_count,
-    current_values,
-    outcome_baselines,
-  } = participant
+  const { cohort, age, is_female, exposed_count } = participant
 
   return (
     <div className="space-y-6">
