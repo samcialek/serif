@@ -44,6 +44,16 @@ const ACTION_ORDER = [
   'dietary_energy',
 ]
 
+// Load actions are rolling aggregates of behaviour, not directly
+// prescribable. The Insights tab surfaces their downstream effects in a
+// separate "Context drivers" section so the user doesn't confuse "what
+// can I do?" (behavioural) with "what is my state doing to me?" (load).
+const LOAD_ACTIONS = new Set(['acwr', 'sleep_debt', 'travel_load'])
+
+function isLoadInsight(i: InsightBayesian): boolean {
+  return LOAD_ACTIONS.has(i.action)
+}
+
 function actionRank(a: string): number {
   const i = ACTION_ORDER.indexOf(a)
   return i === -1 ? ACTION_ORDER.length : i
@@ -299,7 +309,7 @@ export function ParticipantDetail() {
       {/* Tier filter chips */}
       <TierFilterChips counts={derivedTierCounts} />
 
-      {/* Insights — grouped by pathway */}
+      {/* Insights — behavioural actions first, then load-driven context */}
       <section>
         <div className="flex items-baseline justify-between mb-3">
           <h3 className="text-sm font-semibold text-slate-700">
@@ -312,29 +322,103 @@ export function ParticipantDetail() {
             No insights match the current tier filter.
           </div>
         ) : (
-          <div className="space-y-6">
-            {groupByPathway(insights).map(({ pathway, items }) => (
-              <div key={pathway}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    {PATHWAY_TITLES[pathway]}
-                  </div>
-                  <span className="text-[10px] text-slate-400 tabular-nums">{items.length}</span>
-                </div>
-                <div className={density === 'compact' ? 'space-y-1' : 'space-y-3'}>
-                  {items.map((insight) => (
-                    <InsightRow
-                      key={`${insight.action}_${insight.outcome}`}
-                      insight={insight}
-                      density={density}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <InsightSections insights={insights} density={density} />
         )}
       </section>
+    </div>
+  )
+}
+
+// Top-level split between behavioural and load-driven insights, each of
+// which still gets the wearable/biomarker sub-grouping the pathway header
+// provides. Behavioural comes first because it's the actionable side;
+// load-driven sits below as context — "here's what your rolling state is
+// doing to you" — and is visually softer.
+function InsightSections({
+  insights,
+  density,
+}: {
+  insights: InsightBayesian[]
+  density: 'compact' | 'detailed'
+}) {
+  const behavioural = insights.filter((i) => !isLoadInsight(i))
+  const loadDriven = insights.filter(isLoadInsight)
+
+  return (
+    <div className="space-y-8">
+      {behavioural.length > 0 && (
+        <InsightGroup
+          title="Behavioural actions"
+          hint="What you can do — direct levers"
+          items={behavioural}
+          density={density}
+        />
+      )}
+      {loadDriven.length > 0 && (
+        <InsightGroup
+          title="Context drivers"
+          hint="How today's rolling loads move your outcomes"
+          items={loadDriven}
+          density={density}
+          muted
+        />
+      )}
+    </div>
+  )
+}
+
+function InsightGroup({
+  title,
+  hint,
+  items,
+  density,
+  muted = false,
+}: {
+  title: string
+  hint: string
+  items: InsightBayesian[]
+  density: 'compact' | 'detailed'
+  muted?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-xl border p-3',
+        muted ? 'border-slate-100 bg-slate-50/40' : 'border-transparent bg-transparent p-0',
+      )}
+    >
+      <div className="flex items-baseline justify-between mb-2">
+        <div className="flex items-baseline gap-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+            {title}
+          </h4>
+          <span className="text-[10px] text-slate-400 tabular-nums">{items.length}</span>
+        </div>
+        <span className="text-[10px] text-slate-400">{hint}</span>
+      </div>
+      <div className="space-y-6">
+        {groupByPathway(items).map(({ pathway, items: pathItems }) => (
+          <div key={pathway}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                {PATHWAY_TITLES[pathway]}
+              </div>
+              <span className="text-[10px] text-slate-400 tabular-nums">
+                {pathItems.length}
+              </span>
+            </div>
+            <div className={density === 'compact' ? 'space-y-1' : 'space-y-3'}>
+              {pathItems.map((insight) => (
+                <InsightRow
+                  key={`${insight.action}_${insight.outcome}`}
+                  insight={insight}
+                  density={density}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
