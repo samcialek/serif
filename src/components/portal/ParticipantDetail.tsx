@@ -5,8 +5,6 @@ import {
   Users,
   AlertCircle,
   Loader2,
-  Microscope,
-  Activity,
   ChevronLeft,
   ChevronRight,
   List,
@@ -17,17 +15,17 @@ import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { usePortalStore } from '@/stores/portalStore'
 import { participantLoader } from '@/data/portal/participantLoader'
-import { InsightRow } from './InsightRow'
-import { ProtocolCard } from './ProtocolCard'
+import { InsightRow, feasibleEffectMagnitude } from './InsightRow'
 import { TierFilterChips } from './TierFilterChips'
+import { ContextStrip } from './ContextStrip'
 import {
-  formatActionValue,
   isBelowMinimumDose,
   isBelowMinimumOutcomeEffect,
   isProjectionOutsidePhysiologicalBounds,
+  outcomeIncrement,
 } from '@/utils/rounding'
+import { insightTierCounts, insightTierFor } from '@/utils/insightTier'
 import type {
-  ExplorationRecommendation,
   GateTier,
   InsightBayesian,
   Pathway,
@@ -83,7 +81,7 @@ export function ParticipantDetail() {
   const setActivePid = usePortalStore((s) => s.setActivePid)
   const tierFilter = usePortalStore((s) => s.tierFilter)
   const { participant, isLoading, error } = useParticipant()
-  const { displayName, kind } = useActiveParticipant()
+  const { displayName, kind, persona } = useActiveParticipant()
   const [density, setDensity] = useState<'compact' | 'detailed'>('detailed')
   const [totalParticipants, setTotalParticipants] = useState<number | null>(null)
 
@@ -121,10 +119,24 @@ export function ParticipantDetail() {
     //     14.55 → 22.81 when the implied dose is 10× the participant's
     //     current running volume). These derive from posteriors scaled by
     //     doses the user can't actually reach.
-    // Not_exposed insights are always retained (the tier itself is the
-    // signal that no action is recommended).
+    // Zero-effect rows are hidden everywhere (any tier): if the
+    // feasible-shift effect we render rounds to 0 in the outcome's
+    // native units, the row tells the user nothing actionable.
     const baselines = participant.outcome_baselines ?? {}
+    // Actions must be directly mutable behaviors. training_load (TRIMP) is
+    // a derived metric, not a user-controllable action — hide those rows.
+    const NON_ACTIONABLE = new Set(['training_load'])
     const afterMin = participant.effects_bayesian.filter((i) => {
+      if (NON_ACTIONABLE.has(i.action)) return false
+      // Hide edges whose feasible-shift effect rounds below the outcome's
+      // display increment (e.g. 0.013 bpm resting HR). The user sees "0" —
+      // there is no story to tell.
+      const feasEff = feasibleEffectMagnitude(i.posterior.mean, i.action, i.nominal_step)
+      if (feasEff < outcomeIncrement(i.outcome)) return false
+      // Extra unreachable-protocol gating only applies when the *published*
+      // protocol-side gate already elevated this edge. Insights-tab sign
+      // promotion (below) should not trigger dose/projection filters that
+      // depend on today's operating point.
       if (i.gate.tier !== 'recommended' && i.gate.tier !== 'possible') return true
       if (isBelowMinimumDose(i.dose_multiplier * i.nominal_step, i.action)) return false
       if (isBelowMinimumOutcomeEffect(i.scaled_effect, i.outcome)) return false
@@ -142,29 +154,20 @@ export function ParticipantDetail() {
     const filtered =
       tierFilter.size === 0
         ? afterMin
-        : afterMin.filter((i) => tierFilter.has(i.gate.tier))
+        : afterMin.filter((i) => tierFilter.has(insightTierFor(i)))
     return [...filtered].sort((a, b) => {
-      const t = TIER_RANK[a.gate.tier] - TIER_RANK[b.gate.tier]
+      const t = TIER_RANK[insightTierFor(a)] - TIER_RANK[insightTierFor(b)]
       if (t !== 0) return t
       return actionRank(a.action) - actionRank(b.action)
     })
   }, [participant, tierFilter])
 
-  const protocolsByAction = useMemo(() => {
-    if (!participant) return [] as { action: string; protocols: typeof participant.protocols }[]
-    const groups = new Map<string, typeof participant.protocols>()
-    for (const p of participant.protocols) {
-      const arr = groups.get(p.action) ?? []
-      arr.push(p)
-      groups.set(p.action, arr)
-    }
-    return Array.from(groups.entries())
-      .map(([action, protocols]) => ({
-        action,
-        protocols: [...protocols].sort((a, b) => a.option_index - b.option_index),
-      }))
-      .sort((a, b) => actionRank(a.action) - actionRank(b.action))
-  }, [participant])
+  // Counts the chip row displays. Derived from the same sign-probability
+  // rule used for filtering, not the published protocol-side gate.tier.
+  const derivedTierCounts = useMemo(
+    () => (participant ? insightTierCounts(participant.effects_bayesian) : undefined),
+    [participant],
+  )
 
   if (activePid == null) {
     return (
@@ -207,11 +210,8 @@ export function ParticipantDetail() {
     cohort,
     age,
     is_female,
-    tier_counts,
     exposed_count,
-    protocols,
     current_values,
-    behavioral_sds,
     outcome_baselines,
   } = participant
 
@@ -221,9 +221,17 @@ export function ParticipantDetail() {
       <div className="p-5 bg-white border border-slate-200 rounded-xl">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center">
-              <User className="w-6 h-6 text-primary-500" />
-            </div>
+            {persona?.avatar ? (
+              <img
+                src={persona.avatar}
+                alt={persona.name}
+                className="w-12 h-12 rounded-xl object-cover border border-primary-100"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center">
+                <User className="w-6 h-6 text-primary-500" />
+              </div>
+            )}
             <div>
               <h2 className="text-lg font-semibold text-slate-800">
                 {displayName}
@@ -240,7 +248,6 @@ export function ParticipantDetail() {
               value={exposed_count}
               hint="Recommendations with enough evidence to act on"
             />
-            <SummaryStat label="Plans" value={protocols.length} hint="Concrete action plans" />
             <SummaryStat
               label="Links"
               value={participant.effects_bayesian.length}
@@ -284,47 +291,13 @@ export function ParticipantDetail() {
         </div>
       </div>
 
-      {/* Tier filter chips */}
-      <TierFilterChips counts={tier_counts} />
-
-      {/* Protocols */}
-      {protocolsByAction.length > 0 && (
-        <section>
-          <h3 className="text-sm font-semibold text-slate-700 mb-3">
-            Protocols <span className="text-slate-400 font-normal">({protocols.length})</span>
-          </h3>
-          <div className="space-y-4">
-            {protocolsByAction.map(({ action, protocols: ps }) => (
-              <div key={action}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    {action.replace(/_/g, ' ')}
-                  </div>
-                  {current_values[action] != null && (
-                    <span className="text-[10px] text-slate-400 tabular-nums">
-                      current ~ {formatActionValue(current_values[action], action)}
-                      {behavioral_sds[action] != null && ` (σ ${behavioral_sds[action].toFixed(2)})`}
-                    </span>
-                  )}
-                </div>
-                <div className={ps.length > 1 ? 'grid md:grid-cols-2 gap-3' : ''}>
-                  {ps.map((p) => (
-                    <ProtocolCard key={p.protocol_id} protocol={p} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+      {/* Today's context (rolling loads) */}
+      {participant.loads_today && (
+        <ContextStrip loads={participant.loads_today} />
       )}
 
-      {/* Data Worth Adding — exploration recommendations for not_exposed rows
-          that could be rescued with more data (varying the action, or a second
-          biomarker draw). */}
-      {participant.exploration_recommendations &&
-        participant.exploration_recommendations.length > 0 && (
-          <ExplorationSection items={participant.exploration_recommendations} />
-        )}
+      {/* Tier filter chips */}
+      <TierFilterChips counts={derivedTierCounts} />
 
       {/* Insights — grouped by pathway */}
       <section>
@@ -353,8 +326,6 @@ export function ParticipantDetail() {
                     <InsightRow
                       key={`${insight.action}_${insight.outcome}`}
                       insight={insight}
-                      currentValue={current_values[insight.action]}
-                      outcomeBaseline={outcome_baselines?.[insight.outcome]}
                       density={density}
                     />
                   ))}
@@ -413,72 +384,6 @@ function SummaryStat({ label, value, hint }: { label: string; value: number; hin
       <span className="text-[10px] uppercase tracking-wider text-slate-400">{label}</span>
       <span className="text-lg font-semibold text-slate-800 tabular-nums">{value}</span>
     </div>
-  )
-}
-
-const EXPLORATION_KIND_LABEL: Record<ExplorationRecommendation['kind'], string> = {
-  vary_action: 'Vary this action',
-  repeat_measurement: 'Repeat this biomarker',
-}
-
-const EXPLORATION_VISIBLE_LIMIT = 8
-
-function ExplorationSection({ items }: { items: ExplorationRecommendation[] }) {
-  // Sort: vary_action first (actionable by the participant), then by prior
-  // contraction descending — stronger prior signal = better payoff from
-  // collecting more data.
-  const sorted = [...items].sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === 'vary_action' ? -1 : 1
-    return b.prior_contraction - a.prior_contraction
-  })
-  const visible = sorted.slice(0, EXPLORATION_VISIBLE_LIMIT)
-  const hiddenCount = sorted.length - visible.length
-  return (
-    <section>
-      <h3 className="text-sm font-semibold text-slate-700 mb-1">
-        Data worth adding{' '}
-        <span className="text-slate-400 font-normal">({sorted.length})</span>
-      </h3>
-      <p className="text-xs text-slate-500 mb-3">
-        These action–outcome links fell below the evidence threshold, but the
-        gap is one the participant can close. Not advice — just where more
-        data would unlock insight.
-      </p>
-      <div className="space-y-2">
-        {visible.map((rec) => {
-          const Icon = rec.kind === 'repeat_measurement' ? Microscope : Activity
-          return (
-            <div
-              key={`${rec.action}_${rec.outcome}_${rec.kind}`}
-              className="p-3 bg-sky-50/50 border border-sky-100 rounded-lg flex gap-3"
-            >
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white border border-sky-200 flex items-center justify-center">
-                <Icon className="w-4 h-4 text-sky-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-slate-700">
-                    {rec.action.replace(/_/g, ' ')} → {rec.outcome.replace(/_/g, ' ')}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-wider text-sky-700">
-                    {EXPLORATION_KIND_LABEL[rec.kind]}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  {rec.rationale}
-                </p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      {hiddenCount > 0 && (
-        <p className="mt-2 text-[11px] text-slate-400">
-          +{hiddenCount} more exploration candidates hidden. Showing top{' '}
-          {EXPLORATION_VISIBLE_LIMIT} by signal strength.
-        </p>
-      )}
-    </section>
   )
 }
 

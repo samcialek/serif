@@ -1,0 +1,572 @@
+{
+  "generated_at": "2026-04-20T18:30:36",
+  "engine_version": "v5-biomarker-widened",
+  "n_participants": 3,
+  "supported_pairs": [
+    [
+      "active_energy",
+      "deep_sleep"
+    ],
+    [
+      "bedtime",
+      "deep_sleep"
+    ],
+    [
+      "bedtime",
+      "sleep_quality"
+    ],
+    [
+      "dietary_energy",
+      "body_mass_kg"
+    ],
+    [
+      "dietary_protein",
+      "body_fat_pct"
+    ],
+    [
+      "running_volume",
+      "ferritin"
+    ],
+    [
+      "running_volume",
+      "hemoglobin"
+    ],
+    [
+      "running_volume",
+      "hrv_daily"
+    ],
+    [
+      "running_volume",
+      "iron_total"
+    ],
+    [
+      "running_volume",
+      "magnesium_rbc"
+    ],
+    [
+      "running_volume",
+      "mcv"
+    ],
+    [
+      "running_volume",
+      "rbc"
+    ],
+    [
+      "running_volume",
+      "rdw"
+    ],
+    [
+      "running_volume",
+      "vo2_peak"
+    ],
+    [
+      "running_volume",
+      "zinc"
+    ],
+    [
+      "sleep_duration",
+      "cortisol"
+    ],
+    [
+      "sleep_duration",
+      "glucose"
+    ],
+    [
+      "sleep_duration",
+      "hrv_daily"
+    ],
+    [
+      "sleep_duration",
+      "testosterone"
+    ],
+    [
+      "sleep_duration",
+      "wbc"
+    ],
+    [
+      "steps",
+      "body_mass_kg"
+    ],
+    [
+      "training_load",
+      "hrv_daily"
+    ],
+    [
+      "training_load",
+      "resting_hr"
+    ],
+    [
+      "training_volume",
+      "alt"
+    ],
+    [
+      "training_volume",
+      "ast"
+    ],
+    [
+      "training_volume",
+      "body_fat_pct"
+    ],
+    [
+      "training_volume",
+      "cortisol"
+    ],
+    [
+      "training_volume",
+      "dhea_s"
+    ],
+    [
+      "training_volume",
+      "estradiol"
+    ],
+    [
+      "training_volume",
+      "glucose"
+    ],
+    [
+      "training_volume",
+      "hdl"
+    ],
+    [
+      "training_volume",
+      "homocysteine"
+    ],
+    [
+      "training_volume",
+      "hscrp"
+    ],
+    [
+      "training_volume",
+      "insulin"
+    ],
+    [
+      "training_volume",
+      "platelets"
+    ],
+    [
+      "training_volume",
+      "shbg"
+    ],
+    [
+      "training_volume",
+      "testosterone"
+    ],
+    [
+      "training_volume",
+      "uric_acid"
+    ],
+    [
+      "zone2_volume",
+      "apob"
+    ],
+    [
+      "zone2_volume",
+      "hdl"
+    ],
+    [
+      "zone2_volume",
+      "ldl"
+    ],
+    [
+      "zone2_volume",
+      "non_hdl_cholesterol"
+    ],
+    [
+      "zone2_volume",
+      "total_cholesterol"
+    ],
+    [
+      "zone2_volume",
+      "triglycerides"
+    ]
+  ],
+  "n_supported_pairs": 44,
+  "n_wearable_pairs": 7,
+  "n_biomarker_pairs": 37,
+  "cohort_rename": {
+    "delhi": "cohort_a",
+    "abu_dhabi": "cohort_b",
+    "remote": "cohort_c"
+  },
+  "evidence_tier_thresholds": {
+    "wearable": {
+      "cohort_level": 0.2,
+      "personal_emerging": 0.5
+    },
+    "biomarker": {
+      "cohort_level": 0.1,
+      "personal_emerging": 0.3
+    }
+  },
+  "per_pathway_tier": {
+    "wearable": {
+      "recommended": 2,
+      "possible": 10,
+      "not_exposed": 9,
+      "cohort_level": 6,
+      "personal_emerging": 4,
+      "personal_established": 11
+    },
+    "biomarker": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 111,
+      "cohort_level": 86,
+      "personal_emerging": 25,
+      "personal_established": 0
+    }
+  },
+  "n_priors": 176,
+  "tier_counts": {
+    "recommended": 2,
+    "possible": 10,
+    "not_exposed": 120
+  },
+  "exposed_total": 12,
+  "contraction_p10_p50_p90_mean": [
+    0.0,
+    0.02895109637184279,
+    0.5521110639633122,
+    0.14911954173873898
+  ],
+  "multiplier_p10_p50_p90_mean": [
+    0.08811111111111111,
+    0.5071578476960544,
+    0.6492567448026284,
+    0.45956744724958337
+  ],
+  "direction_conflict_rate": 0.09848484848484848,
+  "gate_thresholds": {
+    "recommended": 0.7,
+    "possible": 0.3
+  },
+  "direction_conflict_discount": 0.5,
+  "variance_floor_mode": "mean_scaled",
+  "mean_scaled_frac": 0.4,
+  "var_inflation": 2.0,
+  "per_edge_tier": {
+    "active_energy->deep_sleep": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "bedtime->deep_sleep": {
+      "recommended": 0,
+      "possible": 3,
+      "not_exposed": 0
+    },
+    "bedtime->sleep_quality": {
+      "recommended": 1,
+      "possible": 2,
+      "not_exposed": 0
+    },
+    "dietary_energy->body_mass_kg": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "dietary_protein->body_fat_pct": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->ferritin": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->hemoglobin": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->hrv_daily": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->iron_total": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->magnesium_rbc": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->mcv": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->rbc": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->rdw": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->vo2_peak": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "running_volume->zinc": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "sleep_duration->cortisol": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "sleep_duration->glucose": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "sleep_duration->hrv_daily": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "sleep_duration->testosterone": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "sleep_duration->wbc": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "steps->body_mass_kg": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_load->hrv_daily": {
+      "recommended": 1,
+      "possible": 2,
+      "not_exposed": 0
+    },
+    "training_load->resting_hr": {
+      "recommended": 0,
+      "possible": 3,
+      "not_exposed": 0
+    },
+    "training_volume->alt": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->ast": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->body_fat_pct": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->cortisol": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->dhea_s": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->estradiol": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->glucose": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->hdl": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->homocysteine": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->hscrp": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->insulin": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->platelets": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->shbg": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->testosterone": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "training_volume->uric_acid": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "zone2_volume->apob": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "zone2_volume->hdl": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "zone2_volume->ldl": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "zone2_volume->non_hdl_cholesterol": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "zone2_volume->total_cholesterol": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    },
+    "zone2_volume->triglycerides": {
+      "recommended": 0,
+      "possible": 0,
+      "not_exposed": 3
+    }
+  },
+  "protocol_count_total": 11,
+  "protocols_per_participant_mean": 3.6666666666666665,
+  "protocols_per_participant_p10_p50_p90": [
+    3,
+    4,
+    4
+  ],
+  "protocol_option_labels": {
+    "conservative": 5,
+    "aggressive": 5,
+    "collapsed": 1
+  },
+  "protocol_action_counts": {
+    "bedtime": 6,
+    "training_load": 5
+  },
+  "release_count_total": 33,
+  "release_count_mean": 11.0,
+  "release_count_p10_p50_p90": [
+    9,
+    12,
+    12
+  ],
+  "release_count_distribution": {
+    "9": 1,
+    "12": 2
+  },
+  "release_framing_counts": {
+    "initial": 11,
+    "adherence-check": 11,
+    "reinforcement": 11
+  },
+  "active_regime_counts": {
+    "sleep_deprivation_state": 3
+  },
+  "positivity": {
+    "flag_counts": {
+      "marginal": 32,
+      "ok": 95,
+      "insufficient": 5
+    },
+    "total_rows": 132,
+    "suppressed_rows": 5,
+    "capped_rows": 32,
+    "per_edge_insufficient_rate": {
+      "active_energy->deep_sleep": 0.0,
+      "bedtime->deep_sleep": 0.0,
+      "bedtime->sleep_quality": 0.0,
+      "dietary_energy->body_mass_kg": 0.0,
+      "dietary_protein->body_fat_pct": 0.0,
+      "running_volume->ferritin": 0.0,
+      "running_volume->hemoglobin": 0.0,
+      "running_volume->hrv_daily": 0.0,
+      "running_volume->iron_total": 0.0,
+      "running_volume->magnesium_rbc": 0.0,
+      "running_volume->mcv": 0.0,
+      "running_volume->rbc": 0.0,
+      "running_volume->rdw": 0.0,
+      "running_volume->vo2_peak": 0.0,
+      "running_volume->zinc": 0.0,
+      "sleep_duration->cortisol": 0.3333333333333333,
+      "sleep_duration->glucose": 0.3333333333333333,
+      "sleep_duration->hrv_daily": 0.3333333333333333,
+      "sleep_duration->testosterone": 0.3333333333333333,
+      "sleep_duration->wbc": 0.3333333333333333,
+      "steps->body_mass_kg": 0.0,
+      "training_load->hrv_daily": 0.0,
+      "training_load->resting_hr": 0.0,
+      "training_volume->alt": 0.0,
+      "training_volume->ast": 0.0,
+      "training_volume->body_fat_pct": 0.0,
+      "training_volume->cortisol": 0.0,
+      "training_volume->dhea_s": 0.0,
+      "training_volume->estradiol": 0.0,
+      "training_volume->glucose": 0.0,
+      "training_volume->hdl": 0.0,
+      "training_volume->homocysteine": 0.0,
+      "training_volume->hscrp": 0.0,
+      "training_volume->insulin": 0.0,
+      "training_volume->platelets": 0.0,
+      "training_volume->shbg": 0.0,
+      "training_volume->testosterone": 0.0,
+      "training_volume->uric_acid": 0.0,
+      "zone2_volume->apob": 0.0,
+      "zone2_volume->hdl": 0.0,
+      "zone2_volume->ldl": 0.0,
+      "zone2_volume->non_hdl_cholesterol": 0.0,
+      "zone2_volume->total_cholesterol": 0.0,
+      "zone2_volume->triglycerides": 0.0
+    }
+  },
+  "regime_boost": {
+    "multiplier": 1.3,
+    "threshold": 0.5,
+    "counts": {
+      "not_applied": 111,
+      "applied": 21,
+      "sleep_deprivation_state": 21
+    }
+  },
+  "warnings": [
+    "exposed_total 12 < 5000"
+  ]
+}

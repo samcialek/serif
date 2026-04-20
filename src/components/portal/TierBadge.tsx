@@ -6,19 +6,19 @@ const tierStyles: Record<GateTier, { bg: string; text: string; border: string; l
     bg: 'bg-emerald-50',
     text: 'text-emerald-700',
     border: 'border-emerald-200',
-    label: 'Recommended',
+    label: 'Actionable',
   },
   possible: {
     bg: 'bg-amber-50',
     text: 'text-amber-700',
     border: 'border-amber-200',
-    label: 'Possible',
+    label: 'Suggested',
   },
   not_exposed: {
     bg: 'bg-slate-100',
     text: 'text-slate-500',
     border: 'border-slate-200',
-    label: 'Not exposed',
+    label: 'Exploratory',
   },
 }
 

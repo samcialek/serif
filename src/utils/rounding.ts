@@ -14,7 +14,7 @@
 // Per-action minimum meaningful increment (also used as the display
 // rounding step). Units match the action's native unit in the portal
 // export: hours for time-of-day, hours for durations, km/day for
-// volumes, TRIMP/day for training load, /day for steps, g/day for
+// volumes, load units/day for training load, /day for steps, g/day for
 // protein, kcal/day for energy.
 const ACTION_INCREMENT: Record<string, number> = {
   bedtime: 0.25,            // 15 min
@@ -24,7 +24,7 @@ const ACTION_INCREMENT: Record<string, number> = {
   training_volume: 0.25,    // hours
   running_volume: 0.25,     // km/day
   zone2_volume: 0.25,       // km/day
-  training_load: 10,        // TRIMP/day
+  training_load: 10,        // load units/day
   steps: 500,
   dietary_protein: 5,       // g/day
   dietary_energy: 100,      // kcal/day
@@ -298,7 +298,7 @@ export function formatActionValue(value: number, action: string): string {
     case 'zone2_volume':
       return `${rounded.toFixed(2)} km/day`
     case 'training_load':
-      return `${rounded.toFixed(0)} TRIMP/day`
+      return `${rounded.toFixed(0)} load units/day`
     case 'steps':
       return `${Math.round(rounded).toLocaleString()}/day`
     case 'dietary_protein':
@@ -389,11 +389,11 @@ export function formatRecommendedAction(
   if (action === 'training_load') {
     if (noCurrent) {
       return raise
-        ? `Add ~${rounded.toFixed(0)} TRIMP/day of training load`
-        : `Reduce training load by ~${rounded.toFixed(0)} TRIMP/day`
+        ? `Add ~${rounded.toFixed(0)} load units/day of training load`
+        : `Reduce training load by ~${rounded.toFixed(0)} load units/day`
     }
     const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
-    return `${verb} training load to ${target.toFixed(0)} TRIMP/day`
+    return `${verb} training load to ${target.toFixed(0)} load units/day`
   }
 
   if (action === 'steps') {

@@ -52,6 +52,7 @@ from .protocols import (
 )
 from .reconcile import compute_regime_activations
 from .transform import compute_acwr, compute_sleep_debt
+from .loads import compute_loads_summary
 from .scheduler import (
     compute_release_schedule, releases_to_dicts,
     release_count_warnings, release_count_distribution,
@@ -485,6 +486,7 @@ def _export_one(
     regime_activations: dict[str, float] | None = None,
     outcome_baselines: dict[str, float] | None = None,
     positivity_map: dict[str, dict] | None = None,
+    loads_summary: dict[str, dict[str, float]] | None = None,
 ) -> dict:
     """Build the full per-participant record.
 
@@ -544,6 +546,7 @@ def _export_one(
         "behavioral_sds": behavioral_sds,
         "outcome_baselines": outcome_baselines or {},
         "regime_activations": regime_activations,
+        "loads_today": loads_summary or {},
         "release_schedule": releases_to_dicts(releases),
         "exploration_recommendations": exploration_recommendations,
     }
@@ -682,8 +685,9 @@ def main():
         if life_pid is not None and len(life_pid) > 0:
             current_vals = compute_current_values(life_pid)
             behavioral_sds = compute_behavioral_sds(life_pid)
+            loads_summary = compute_loads_summary(life_pid)
         else:
-            current_vals, behavioral_sds = {}, {}
+            current_vals, behavioral_sds, loads_summary = {}, {}, {}
 
         # Regime inputs: acwr + sleep_debt from lifestyle, ferritin + hscrp from blood.
         p_blood = blood_df[blood_df["participant_id"] == pid]
@@ -729,6 +733,7 @@ def main():
             regime_activations=regime_activations,
             outcome_baselines=outcome_baselines,
             positivity_map=positivity_map,
+            loads_summary=loads_summary,
         )
         (out_dir / f"participant_{pid:04d}.json").write_text(
             json.dumps(record, indent=2, default=float)

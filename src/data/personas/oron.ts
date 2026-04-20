@@ -25,6 +25,13 @@ export const oronPersona: Persona = {
   ],
   hasBloodwork: true,
   labDraws: 6,
+  residence: {
+    country: 'IL',
+    city: 'Tel Aviv',
+    timezone: 'Asia/Jerusalem',
+    lat: 32.0853,
+    lon: 34.7818,
+  },
   thresholds: {
     caffeineCutoff: '14:00',
     workoutEndTime: '19:00',

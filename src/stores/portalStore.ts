@@ -34,12 +34,15 @@ const TIER_VALUES: ReadonlySet<GateTier> = new Set<GateTier>([
   'not_exposed',
 ])
 
-// Default view hides "not_exposed" so participants land on the 4-11 actionable
-// rows rather than the 40-44 full list. Users can opt into the full list via
-// the "All" chip or ?tier= URL param.
+// Default view shows all real causal edges across all three tiers.
+// "Exploratory" edges are real cohort-level causal links where the user
+// either has insufficient action variation for personal identification or
+// the posterior hasn't tightened enough to gate action — they still carry
+// a meaningful feasible-shift signal and belong in the default view.
 const DEFAULT_TIER_FILTER: ReadonlySet<GateTier> = new Set<GateTier>([
   'recommended',
   'possible',
+  'not_exposed',
 ])
 
 function defaultTierFilter(): Set<GateTier> {

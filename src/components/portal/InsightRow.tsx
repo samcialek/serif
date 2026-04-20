@@ -11,8 +11,11 @@ import {
 import { cn } from '@/utils/classNames'
 import { TierBadge } from './TierBadge'
 import { ResponseCurve } from './ResponseCurve'
+import { InlineShapeGauge } from './InlineShapeGauge'
 import type { EvidenceTier, InsightBayesian, Pathway } from '@/data/portal/types'
-import { formatOutcomeValue, formatRecommendedAction } from '@/utils/rounding'
+import { formatOutcomeValue } from '@/utils/rounding'
+import { shapeFor } from '@/data/scm/doseShapes'
+import { insightTierFor } from '@/utils/insightTier'
 
 const ACTION_LABELS: Record<string, string> = {
   active_energy: 'Active energy',
@@ -25,6 +28,48 @@ const ACTION_LABELS: Record<string, string> = {
   steps: 'Steps',
   dietary_protein: 'Dietary protein',
   dietary_energy: 'Dietary energy',
+}
+
+// Feasible 4–6 week behaviour-change shift per action. Used by the
+// Insights tab to display effects at a realistic dose rather than at
+// the engine's small nominal_step — many per-step effects round to
+// ~0 when rendered in their native outcome unit. `amount` is the
+// magnitude in the same unit as `nominal_step`; `label` is how we
+// render it in copy.
+export const FEASIBLE_SHIFT: Record<string, { amount: number; label: string }> = {
+  active_energy: { amount: 300, label: '+300 kcal/day' },
+  bedtime: { amount: 1, label: '1 hour earlier' },
+  dietary_energy: { amount: 500, label: '500 kcal/day diet shift' },
+  dietary_protein: { amount: 40, label: '+40 g/day protein' },
+  running_volume: { amount: 40, label: '+40 km/week' },
+  sleep_duration: { amount: 1, label: '1 hour more/night' },
+  steps: { amount: 4000, label: '+4,000 steps/day' },
+  training_load: { amount: 150, label: '+150 TRIMP/week' },
+  training_volume: { amount: 300, label: '+5 hours/week' },
+  zone2_volume: { amount: 120, label: '+2 hours/week' },
+}
+
+export function feasibleShiftFor(
+  action: string,
+  nominalStep: number,
+): { amount: number; label: string } {
+  const override = FEASIBLE_SHIFT[action]
+  if (override) return override
+  return { amount: Math.abs(nominalStep), label: `${Math.abs(nominalStep)}` }
+}
+
+// Load-agnostic effect the Insights tab actually renders: cohort-level
+// per-step slope (posterior.mean) scaled to a feasible behaviour shift.
+// Shared with the filter pipeline so "hide zero-effect" matches the
+// number the user sees on the row.
+export function feasibleEffectMagnitude(
+  posteriorMean: number,
+  action: string,
+  nominalStep: number,
+): number {
+  const { amount } = feasibleShiftFor(action, nominalStep)
+  const ratio = amount / Math.max(1e-9, Math.abs(nominalStep))
+  return Math.abs(posteriorMean) * ratio
 }
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -111,6 +156,27 @@ export const OUTCOME_META: Record<string, OutcomeMeta> = {
   uric_acid: { unit: 'mg/dL', noun: 'uric acid', beneficial: 'lower' },
   platelets: { unit: 'K/μL', noun: 'platelets', beneficial: 'neutral' },
   wbc: { unit: 'K/μL', noun: 'WBC', beneficial: 'neutral' },
+  albumin: { unit: 'g/dL', noun: 'albumin', beneficial: 'higher' },
+  creatinine: { unit: 'mg/dL', noun: 'creatinine', beneficial: 'neutral' },
+  nlr: { unit: '', noun: 'NLR', beneficial: 'lower' },
+}
+
+// SCM DAG nodes carry suffixes like `_smoothed`, `_mean`, `_score`, `_pct`,
+// `_min` that the Bayesian posterior export strips. Normalise to the
+// OUTCOME_META key so lookups work for both sources.
+const NODE_ID_ALIASES: Record<string, string> = {
+  hrv_daily_mean: 'hrv_daily',
+  hrv_7d_mean: 'hrv_daily',
+  resting_hr_7d_mean: 'resting_hr',
+  deep_sleep_min: 'deep_sleep',
+  sleep_efficiency_pct: 'sleep_efficiency',
+  sleep_quality_score: 'sleep_quality',
+}
+
+export function canonicalOutcomeKey(nodeId: string): string {
+  if (NODE_ID_ALIASES[nodeId]) return NODE_ID_ALIASES[nodeId]
+  if (nodeId.endsWith('_smoothed')) return nodeId.slice(0, -'_smoothed'.length)
+  return nodeId
 }
 
 const EVIDENCE_TIER_LABELS: Record<EvidenceTier, string> = {
@@ -130,43 +196,37 @@ const PATHWAY_STYLE: Record<Pathway, string> = {
   biomarker: 'text-rose-700 bg-rose-50 border-rose-200',
 }
 
-// Left-border colour scales with personal_weight (how much of the
-// estimate comes from user data) — slate when mostly cohort, emerald
-// when mostly personal. Thickness scales with evidence tier.
-function confidenceBorderColor(personalWeight: number): string {
-  if (personalWeight >= 0.7) return '#059669'
-  if (personalWeight >= 0.4) return '#4f46e5'
-  if (personalWeight >= 0.15) return '#6366f1'
-  return '#94a3b8'
-}
-
+// Left-border thickness scales with evidence tier: thicker = more
+// personal-data-informed edge. Colour is tier-only; we don't encode
+// personalisation-fraction here because the Insights tab is meant to
+// surface causal edges load-agnostically (personalisation/contraction
+// is a Protocol-tab concept).
 const TIER_BORDER_WIDTH: Record<EvidenceTier, string> = {
   cohort_level: '2px',
-  personal_emerging: '4px',
-  personal_established: '6px',
+  personal_emerging: '3px',
+  personal_established: '4px',
+}
+const TIER_BORDER_COLOR: Record<EvidenceTier, string> = {
+  cohort_level: '#cbd5e1',
+  personal_emerging: '#818cf8',
+  personal_established: '#059669',
 }
 
 interface InsightRowProps {
   insight: InsightBayesian
-  currentValue?: number
-  outcomeBaseline?: number
   density?: 'compact' | 'detailed'
 }
 
 export function InsightRow({
   insight,
-  currentValue,
-  outcomeBaseline,
   density = 'detailed',
 }: InsightRowProps) {
   const [expanded, setExpanded] = useState(false)
   const {
     action,
     outcome,
-    dose_multiplier,
     direction_conflict,
     posterior,
-    gate,
     nominal_step,
     scaled_effect,
     horizon_display,
@@ -177,16 +237,8 @@ export function InsightRow({
   const meta = OUTCOME_META[outcome]
   const beneficial: BeneficialDir = meta?.beneficial ?? 'neutral'
 
-  // actionDir: what the user should do (sign of signed dose).
-  // outcomeDir: which way the outcome moves under the recommendation
-  // (always beneficial direction for higher/lower outcomes).
-  const actionDir: 1 | -1 | 0 = (() => {
-    if (!Number.isFinite(scaled_effect) || scaled_effect === 0) return 0
-    const s: 1 | -1 = scaled_effect > 0 ? 1 : -1
-    if (beneficial === 'higher') return s
-    if (beneficial === 'lower') return (s === 1 ? -1 : 1) as 1 | -1
-    return s
-  })()
+  // outcomeDir: which way the outcome moves under the beneficial
+  // direction of this edge. Used for the arrow glyph. Load-agnostic.
   const outcomeDir: 1 | -1 | 0 =
     beneficial === 'higher'
       ? 1
@@ -198,23 +250,54 @@ export function InsightRow({
       ? -1
       : 0
 
-  const signedDose = actionDir * Math.abs(dose_multiplier * nominal_step)
-  const recommendedAction = formatRecommendedAction(
-    action,
-    currentValue ?? null,
-    signedDose,
-  )
-
-  const personalWeight = Math.max(0, Math.min(1, posterior.contraction))
-  const personalPct = Math.round(personalWeight * 100)
-  const cohortPct = 100 - personalPct
-  const borderColor = confidenceBorderColor(personalWeight)
+  const borderColor = TIER_BORDER_COLOR[evidenceTier]
   const borderWidth = TIER_BORDER_WIDTH[evidenceTier]
+
+  // Load-agnostic: the edge strength scaled to a feasible 4–6 week
+  // behaviour-change shift (e.g. +40 km/week running, +1 hour sleep).
+  // This is the population/cohort-level causal effect expressed at a
+  // dose the user could realistically hit, rather than at the engine's
+  // small nominal_step (where many effects round to ~0 in native units).
+  // Protocol-level scaling (scaled_effect at actual dose_multiplier,
+  // conditioned on today's load) belongs on the Protocols tab.
+  const feasible = feasibleShiftFor(action, nominal_step)
+  const feasibleEffect = feasibleEffectMagnitude(posterior.mean, action, nominal_step)
+
+  // Insights tier is sign-probability based: promote an edge whenever
+  // >=80% of posterior mass lies on one side of zero. This differs from
+  // gate.tier, which is the published Protocols-tab rule (contraction ×
+  // personalisation). An insight doesn't need the protocol dose to be
+  // safe; it just needs the direction of the cohort-level effect to be
+  // resolved.
+  const tier = insightTierFor(insight)
+
+  // Shape-aware rendering of the action-side shift. The feasible label
+  // is written "as-if monotonic-up"; plateau_down means pulling *back*
+  // from the action improves the outcome, inverted_u means moving
+  // toward the sweet spot (direction depends on where the user is).
+  const shape = shapeFor(action, outcome, scaled_effect, beneficial).shape
+  const doseShiftText = (() => {
+    const label = feasible.label
+    if (shape === 'plateau_down') {
+      if (label.startsWith('+')) return '−' + label.slice(1)
+      if (/\bearlier\b/i.test(label)) return label.replace(/\bearlier\b/i, 'later')
+      if (/\bmore\/night\b/i.test(label)) return label.replace(/\bmore\/night\b/i, 'less/night')
+      return '−' + label
+    }
+    if (shape === 'inverted_u') {
+      const stripped = label
+        .replace(/^[+−-]\s?/, '')
+        .replace(/\s+(earlier|later)\b/i, '')
+        .replace(/\bmore\/night\b/i, '/night')
+      return '±' + stripped
+    }
+    return label
+  })()
 
   const ArrowIcon = outcomeDir >= 0 ? ArrowUp : ArrowDown
   const arrowColor =
-    actionDir === 0 || beneficial === 'neutral' ? 'text-slate-500' : 'text-emerald-600'
-  const compactMagnitude = `${formatOutcomeValue(Math.abs(scaled_effect), outcome)}${
+    beneficial === 'neutral' || scaled_effect === 0 ? 'text-slate-500' : 'text-emerald-600'
+  const compactMagnitude = `${formatOutcomeValue(feasibleEffect, outcome)}${
     meta?.unit ? ` ${meta.unit}` : ''
   }`
   const PathwayIcon = pathway === 'biomarker' ? FlaskConical : Watch
@@ -230,60 +313,24 @@ export function InsightRow({
           : 'px-4 pb-4 pt-3 border-t border-slate-100',
       )}
     >
-      <ResponseCurve
-        insight={insight}
-        currentValue={currentValue}
-        outcomeBaseline={outcomeBaseline}
-        outcomeUnit={meta?.unit}
-      />
-
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${personalPct}%`, backgroundColor: borderColor }}
-          />
-        </div>
-        <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
-          {personalPct}% personal · {cohortPct}% cohort
-        </span>
-      </div>
+      <ResponseCurve insight={insight} />
 
       <div>
         <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
-          Expected benefit
+          Effect at a feasible shift
         </p>
         <p className="text-sm font-semibold text-slate-800">
-          ~{formatOutcomeValue(Math.abs(scaled_effect), outcome)}
-          {meta?.unit ? ` ${meta.unit}` : ''} improvement in{' '}
-          {meta?.noun ?? outcomeLabel.toLowerCase()}
+          ~{formatOutcomeValue(feasibleEffect, outcome)}
+          {meta?.unit ? ` ${meta.unit}` : ''}{' '}
+          <span className="font-normal text-slate-500">
+            from {doseShiftText} of {actionLabel.toLowerCase()}
+          </span>
+        </p>
+        <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+          Cohort-level slope expressed at a realistic 4–6 week behaviour change,
+          not today's operating point.
         </p>
       </div>
-
-      {recommendedAction && (
-        <div>
-          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
-            Recommended action
-          </p>
-          <p className="text-sm text-slate-700">{recommendedAction}</p>
-        </div>
-      )}
-
-      {outcomeBaseline != null && Number.isFinite(outcomeBaseline) && (
-        <div>
-          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
-            Baseline → projection
-          </p>
-          <p className="text-sm text-slate-700 tabular-nums">
-            {formatOutcomeValue(outcomeBaseline, outcome)} → ~
-            {formatOutcomeValue(
-              outcomeBaseline + Math.abs(scaled_effect) * outcomeDir,
-              outcome,
-            )}
-            {meta?.unit ? ` ${meta.unit}` : ''}
-          </p>
-        </div>
-      )}
 
       {direction_conflict && (
         <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
@@ -300,8 +347,7 @@ export function InsightRow({
       )}
 
       <p className="text-xs text-slate-500">
-        Posterior contraction {(posterior.contraction * 100).toFixed(0)}% · horizon{' '}
-        {horizon_display ?? '—'}
+        Horizon {horizon_display ?? '—'} · per-participant dose targeting lives in the Protocols tab.
       </p>
 
       {supporting_data_description && (
@@ -340,7 +386,8 @@ export function InsightRow({
           >
             {outcomeLabel}
           </span>
-          <TierBadge tier={gate.tier} />
+          <InlineShapeGauge insight={insight} />
+          <TierBadge tier={tier} />
           <span
             className={cn(
               'inline-flex items-center px-1.5 py-0 text-[10px] font-medium border rounded',
@@ -355,22 +402,13 @@ export function InsightRow({
               pathway === 'biomarker' ? 'text-rose-500' : 'text-sky-500',
             )}
           />
-          <span
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: borderColor }}
-            title={`${personalPct}% personal`}
-          />
-          <span className="ml-auto text-[11px] text-slate-500 tabular-nums flex-shrink-0 hidden md:inline">
-            {personalPct}% yours
-          </span>
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 font-semibold tabular-nums text-[12px] flex-shrink-0',
-              arrowColor,
-            )}
-          >
-            <ArrowIcon className="w-3.5 h-3.5" />
-            {compactMagnitude}
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[12px] flex-shrink-0 tabular-nums">
+            <span className="text-slate-500 font-normal">{doseShiftText}</span>
+            <span className="text-slate-300">→</span>
+            <span className={cn('inline-flex items-center gap-0.5 font-semibold', arrowColor)}>
+              <ArrowIcon className="w-3.5 h-3.5" />
+              {compactMagnitude}
+            </span>
           </span>
         </button>
         {expandedBody}
@@ -408,48 +446,49 @@ export function InsightRow({
         >
           {outcomeLabel}
         </span>
+        <InlineShapeGauge insight={insight} />
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <TierBadge tier={gate.tier} />
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium border rounded-full',
-              PATHWAY_STYLE[pathway],
-            )}
-          >
-            <PathwayIcon className="w-3 h-3" />
-            {pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
-          </span>
+          <TierBadge tier={tier} />
           <span
             className={cn(
               'inline-flex items-center px-2 py-0.5 text-[10px] font-medium border rounded-full',
               EVIDENCE_TIER_STYLE[evidenceTier],
             )}
+            title={supporting_data_description ?? undefined}
           >
             {EVIDENCE_TIER_LABELS[evidenceTier]}
           </span>
+          <PathwayIcon
+            className={cn(
+              'w-3.5 h-3.5 flex-shrink-0',
+              pathway === 'biomarker' ? 'text-rose-500' : 'text-sky-500',
+            )}
+            aria-label={pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
+          />
           {horizon_display && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-violet-700 bg-violet-50 border border-violet-200 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
               <Clock className="w-3 h-3" />
               {horizon_display}
             </span>
           )}
         </div>
-        <div className="ml-auto flex items-center gap-3 text-xs flex-shrink-0">
-          <span className="flex items-center gap-1.5 text-slate-500 tabular-nums">
-            <span
-              className="w-2 h-2 rounded-full inline-block"
-              style={{ backgroundColor: borderColor }}
-            />
-            {personalPct}% yours
-          </span>
+        <div className="ml-auto flex items-center gap-2 text-xs flex-shrink-0 tabular-nums">
+          <span className="text-slate-500 font-normal">{doseShiftText}</span>
+          <span className="text-slate-300">→</span>
           <span
-            className={cn('inline-flex items-center gap-1 font-semibold tabular-nums', arrowColor)}
+            className={cn('inline-flex items-center gap-1 font-semibold', arrowColor)}
           >
             <ArrowIcon className="w-3.5 h-3.5" />
             {compactMagnitude}
           </span>
         </div>
       </button>
+
+      {supporting_data_description && (
+        <p className="px-3 pb-2 -mt-1 text-[11px] text-slate-500 italic leading-snug">
+          {supporting_data_description}
+        </p>
+      )}
 
       {expandedBody}
     </div>

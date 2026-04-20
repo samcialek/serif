@@ -31,6 +31,7 @@ import {
   GitBranch,
   Play,
   Loader2,
+  RotateCcw,
   TrendingUp,
   TrendingDown,
   Info,
@@ -42,9 +43,13 @@ import { Card, Button, Slider } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSCM } from '@/hooks/useSCM'
-import type { FullCounterfactualState, NodeEffect } from '@/data/scm/fullCounterfactual'
+import type {
+  FullCounterfactualState,
+  MechanismCategory,
+  NodeEffect,
+} from '@/data/scm/fullCounterfactual'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
-import { OUTCOME_META } from '@/components/portal/InsightRow'
+import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue } from '@/utils/rounding'
 
 // ─── Manipulable DAG nodes ──────────────────────────────────────────
@@ -58,14 +63,17 @@ interface ManipulableNode {
   defaultValue: number
 }
 
+// training_load (TRIMP) is a derived metric, not a user-mutable action —
+// excluded from the manipulable set.
 const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'sleep_duration', label: 'Sleep Duration', unit: 'hrs', step: 0.25, defaultValue: 7 },
-  { id: 'running_volume', label: 'Running Volume', unit: 'km/mo', step: 5, defaultValue: 120 },
-  { id: 'zone2_volume', label: 'Zone 2 Volume', unit: 'min/wk', step: 5, defaultValue: 60 },
-  { id: 'training_load', label: 'Training Load', unit: 'TRIMP', step: 25, defaultValue: 600 },
-  { id: 'training_volume', label: 'Training Volume', unit: 'min/mo', step: 30, defaultValue: 1200 },
+  { id: 'running_volume', label: 'Running Volume', unit: 'km/day', step: 0.5, defaultValue: 6 },
+  { id: 'zone2_volume', label: 'Zone 2 Volume', unit: 'km/day', step: 0.5, defaultValue: 3 },
+  { id: 'training_volume', label: 'Training Volume', unit: 'hrs/day', step: 0.25, defaultValue: 1 },
   { id: 'steps', label: 'Daily Steps', unit: 'steps', step: 500, defaultValue: 8000 },
   { id: 'active_energy', label: 'Active Energy', unit: 'kcal/day', step: 50, defaultValue: 600 },
+  { id: 'dietary_protein', label: 'Dietary Protein', unit: 'g/day', step: 5, defaultValue: 100 },
+  { id: 'dietary_energy', label: 'Dietary Energy', unit: 'kcal/day', step: 100, defaultValue: 2500 },
   { id: 'bedtime', label: 'Bedtime (24h)', unit: 'hr', step: 0.25, defaultValue: 22.5 },
 ]
 
@@ -87,21 +95,24 @@ function formatValue(value: number, unit?: string): string {
   return unit ? `${rounded} ${unit}` : rounded
 }
 
-// Natural-unit formatter for an outcome-node change. Falls back to the
-// generic formatter when we don't have metadata for the node.
+// Natural-unit formatter for an outcome-node change. SCM node IDs carry
+// suffixes (_smoothed, _mean, _score, _min, _pct) — canonicalise to look
+// up metadata + rounding increments in OUTCOME_META / rounding.ts.
 function formatEffectDelta(value: number, outcomeId: string): string {
   if (!Number.isFinite(value)) return '—'
-  const meta = OUTCOME_META[outcomeId]
+  const key = canonicalOutcomeKey(outcomeId)
+  const meta = OUTCOME_META[key]
   const sign = value > 0 ? '+' : value < 0 ? '−' : ''
-  const rounded = formatOutcomeValue(Math.abs(value), outcomeId)
+  const rounded = formatOutcomeValue(Math.abs(value), key)
   if (meta) return `${sign}${rounded} ${meta.unit}`
   return `${sign}${rounded}`
 }
 
 function formatEffectValue(value: number, outcomeId: string): string {
   if (!Number.isFinite(value)) return '—'
-  const meta = OUTCOME_META[outcomeId]
-  const rounded = formatOutcomeValue(value, outcomeId)
+  const key = canonicalOutcomeKey(outcomeId)
+  const meta = OUTCOME_META[key]
+  const rounded = formatOutcomeValue(value, key)
   if (meta) return `${rounded} ${meta.unit}`
   return rounded
 }
@@ -178,92 +189,140 @@ function FactualPanel({ currentValues }: FactualPanelProps) {
   )
 }
 
-interface InterventionPanelProps {
+interface InterventionRow {
   node: ManipulableNode
   currentValue: number
-  proposedValue: number
-  onNodeChange: (id: string) => void
-  onProposedChange: (value: number) => void
-  onRun: () => void
-  isRunning: boolean
+  edgeCount: number
 }
 
-function InterventionPanel({
-  node,
-  currentValue,
-  proposedValue,
-  onNodeChange,
+interface MultiInterventionPanelProps {
+  rows: InterventionRow[]
+  proposedValues: Record<string, number>
+  onProposedChange: (nodeId: string, value: number) => void
+  onResetNode: (nodeId: string) => void
+  onResetAll: () => void
+  onRun: () => void
+  isRunning: boolean
+  anyDelta: boolean
+}
+
+function MultiInterventionPanel({
+  rows,
+  proposedValues,
   onProposedChange,
+  onResetNode,
+  onResetAll,
   onRun,
   isRunning,
-}: InterventionPanelProps) {
-  const range = useMemo(
-    () => rangeFor(currentValue, node.step),
-    [currentValue, node.step],
-  )
-
-  const delta = proposedValue - currentValue
-  const pct = currentValue !== 0 ? (delta / Math.abs(currentValue)) * 100 : 0
-
+  anyDelta,
+}: MultiInterventionPanelProps) {
+  if (rows.length === 0) {
+    return (
+      <Card>
+        <div className="p-6 text-center text-sm text-slate-500">
+          No manipulable actions with causal edges for this member.
+        </div>
+      </Card>
+    )
+  }
   return (
     <Card>
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Intervention
+            Interventions ({rows.length})
           </div>
-          <div className="text-[11px] text-slate-400">do(X := x′)</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onResetAll}
+              disabled={!anyDelta}
+              className={cn(
+                'text-[11px] flex items-center gap-1 px-2 py-1 rounded border transition-colors',
+                anyDelta
+                  ? 'text-slate-600 border-slate-200 hover:bg-slate-50'
+                  : 'text-slate-300 border-slate-100 cursor-not-allowed',
+              )}
+              title="Reset all sliders to current values"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset all
+            </button>
+            <div className="text-[11px] text-slate-400">do(X := x′)</div>
+          </div>
         </div>
 
-        <div>
-          <label className="text-xs text-slate-500 mb-1 block">Node</label>
-          <select
-            value={node.id}
-            onChange={(e) => onNodeChange(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-md px-3 py-2 bg-white"
-          >
-            {MANIPULABLE_NODES.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="text-xs text-slate-500">
-              Current {formatValue(currentValue, node.unit)}
-            </span>
-            <span className="text-xs font-medium text-slate-800">
-              Proposed {formatValue(proposedValue, node.unit)}
-              <span
+        <div className="space-y-3">
+          {rows.map(({ node, currentValue, edgeCount }) => {
+            const proposed = proposedValues[node.id] ?? currentValue
+            const delta = proposed - currentValue
+            const pct = currentValue !== 0 ? (delta / Math.abs(currentValue)) * 100 : 0
+            const range = rangeFor(currentValue, node.step)
+            const changed = Math.abs(delta) > 1e-9
+            return (
+              <div
+                key={node.id}
                 className={cn(
-                  'ml-2',
-                  delta > 0 && 'text-emerald-600',
-                  delta < 0 && 'text-rose-600',
-                  delta === 0 && 'text-slate-400',
+                  'rounded-md p-3 border transition-colors',
+                  changed
+                    ? 'bg-primary-50/40 border-primary-100'
+                    : 'bg-slate-50 border-slate-100',
                 )}
               >
-                ({delta >= 0 ? '+' : ''}
-                {pct.toFixed(0)}%)
-              </span>
-            </span>
-          </div>
-          <Slider
-            min={range.min}
-            max={range.max}
-            step={node.step}
-            value={proposedValue}
-            onChange={onProposedChange}
-          />
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-            <span>{range.min}</span>
-            <span>{range.max}</span>
-          </div>
+                <div className="flex items-baseline justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-slate-700 truncate">
+                      {node.label}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {edgeCount} causal {edgeCount === 1 ? 'edge' : 'edges'}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-[11px] text-slate-500">
+                      {formatValue(currentValue, node.unit)} →{' '}
+                    </span>
+                    <span className="text-xs font-medium text-slate-800 tabular-nums">
+                      {formatValue(proposed, node.unit)}
+                    </span>
+                    {changed && (
+                      <span
+                        className={cn(
+                          'ml-1.5 text-[10px] tabular-nums',
+                          delta > 0 ? 'text-emerald-600' : 'text-rose-600',
+                        )}
+                      >
+                        ({delta >= 0 ? '+' : ''}
+                        {pct.toFixed(0)}%)
+                      </span>
+                    )}
+                    {changed && (
+                      <button
+                        onClick={() => onResetNode(node.id)}
+                        title="Reset to current"
+                        className="ml-2 text-[10px] text-slate-400 hover:text-slate-600"
+                      >
+                        ↺
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <Slider
+                  min={range.min}
+                  max={range.max}
+                  step={node.step}
+                  value={proposed}
+                  onChange={(v) => onProposedChange(node.id, v)}
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                  <span>{range.min}</span>
+                  <span>{range.max}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
-        <Button onClick={onRun} disabled={isRunning || delta === 0} className="w-full">
+        <Button onClick={onRun} disabled={isRunning || !anyDelta} className="w-full">
           {isRunning ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -285,20 +344,109 @@ interface ResultsPanelProps {
   state: FullCounterfactualState
 }
 
-function ResultsPanel({ state }: ResultsPanelProps) {
-  const sortedEffects = useMemo(() => {
-    const arr = Array.from(state.allEffects.values())
-    arr.sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
-    return arr.filter((e) => Math.abs(e.totalEffect) > 1e-6).slice(0, 8)
-  }, [state.allEffects])
+const CATEGORY_ORDER: MechanismCategory[] = ['sleep', 'recovery', 'cardio', 'metabolic']
+const CATEGORY_LABELS: Record<MechanismCategory, string> = {
+  sleep: 'Sleep',
+  recovery: 'Recovery',
+  cardio: 'Cardio',
+  metabolic: 'Metabolic',
+}
 
-  // Top 2 effects with at least one pathway get their own decomposition card.
-  const topDecomposables: NodeEffect[] = useMemo(
-    () => sortedEffects.filter((e) => e.pathways.length > 0).slice(0, 2),
-    [sortedEffects],
+function EffectRow({ effect }: { effect: NodeEffect }) {
+  const key = canonicalOutcomeKey(effect.nodeId)
+  const meta = OUTCOME_META[key]
+  // Beneficial direction is outcome-specific: +ferritin good, +hscrp bad.
+  // Fall back to "up = good" when unknown.
+  const beneficial: 'higher' | 'lower' | 'neutral' = meta?.beneficial ?? 'higher'
+  const isBenefit =
+    beneficial === 'higher'
+      ? effect.totalEffect > 0
+      : beneficial === 'lower'
+        ? effect.totalEffect < 0
+        : false
+  const isNeutralDir = beneficial === 'neutral'
+  const Icon = effect.totalEffect > 0 ? TrendingUp : TrendingDown
+  const toneColor = isNeutralDir
+    ? 'text-slate-500'
+    : isBenefit
+      ? 'text-emerald-600'
+      : 'text-rose-600'
+  const toneIcon = isNeutralDir
+    ? 'text-slate-400'
+    : isBenefit
+      ? 'text-emerald-500'
+      : 'text-rose-500'
+  return (
+    <div className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-slate-50 transition-colors">
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className={cn('w-4 h-4 flex-shrink-0', toneIcon)} />
+        <div className="min-w-0">
+          <div className="text-sm font-medium text-slate-800 truncate">
+            {meta?.noun ?? friendlyName(effect.nodeId)}
+          </div>
+          <div className="text-[11px] text-slate-400">
+            {effect.identification.strategy === 'unidentified'
+              ? 'unidentified — observational only'
+              : `${effect.identification.strategy} identification`}
+          </div>
+        </div>
+      </div>
+      <div className="text-right flex-shrink-0 ml-3">
+        <div className={cn('text-sm font-semibold', toneColor)}>
+          {formatEffectDelta(effect.totalEffect, effect.nodeId)}
+        </div>
+        <div className="text-[11px] text-slate-400">
+          {formatEffectValue(effect.factualValue, effect.nodeId)}
+          {' → '}
+          {formatEffectValue(effect.counterfactualValue, effect.nodeId)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ResultsPanel({ state }: ResultsPanelProps) {
+  // Group by mechanism category so wearable outcomes (sleep/recovery) stay
+  // visible alongside biomarkers (cardio/metabolic) — sorting purely by
+  // absolute effect magnitude buries low-unit daily metrics behind lab
+  // markers that naturally move by larger numeric amounts.
+  const byCategory = useMemo(() => {
+    const seen = new Set<string>()
+    const groups: Array<{ category: MechanismCategory; effects: NodeEffect[] }> = []
+    for (const cat of CATEGORY_ORDER) {
+      const summary = state.categoryEffects[cat]
+      if (!summary) continue
+      const effects = summary.affectedNodes
+        .filter((e) => Math.abs(e.totalEffect) > 1e-6)
+        .filter((e) => {
+          // A node can belong to multiple categories (e.g. hscrp →
+          // metabolic + recovery). Show it under the first category it
+          // appears in, following CATEGORY_ORDER, so users don't see the
+          // same row twice.
+          if (seen.has(e.nodeId)) return false
+          seen.add(e.nodeId)
+          return true
+        })
+        .sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
+      if (effects.length > 0) groups.push({ category: cat, effects })
+    }
+    return groups
+  }, [state.categoryEffects])
+
+  const totalVisible = useMemo(
+    () => byCategory.reduce((n, g) => n + g.effects.length, 0),
+    [byCategory],
   )
 
-  if (sortedEffects.length === 0) {
+  const topDecomposables: NodeEffect[] = useMemo(() => {
+    const all = byCategory.flatMap((g) => g.effects)
+    return all
+      .filter((e) => e.pathways.length > 0)
+      .sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
+      .slice(0, 2)
+  }, [byCategory])
+
+  if (totalVisible === 0) {
     return (
       <Card>
         <div className="p-6 text-center text-sm text-slate-500">
@@ -313,69 +461,33 @@ function ResultsPanel({ state }: ResultsPanelProps) {
     <div className="space-y-4">
       <Card>
         <div className="p-4">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Downstream effects
+          <div className="flex items-baseline justify-between mb-3">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Downstream effects
+            </div>
+            <div className="text-[11px] text-slate-400 tabular-nums">
+              {totalVisible} across {byCategory.length}{' '}
+              {byCategory.length === 1 ? 'domain' : 'domains'}
+            </div>
           </div>
-          <div className="space-y-2">
-            {sortedEffects.map((effect) => {
-              const meta = OUTCOME_META[effect.nodeId]
-              // Beneficial direction is outcome-specific: +ferritin is
-              // good, +hscrp is bad. Fall back to "up = good" when we
-              // don't know.
-              const beneficial: 'higher' | 'lower' | 'neutral' =
-                meta?.beneficial ?? 'higher'
-              const isBenefit =
-                beneficial === 'higher'
-                  ? effect.totalEffect > 0
-                  : beneficial === 'lower'
-                    ? effect.totalEffect < 0
-                    : false
-              const isNeutralDir = beneficial === 'neutral'
-              const Icon = effect.totalEffect > 0 ? TrendingUp : TrendingDown
-              const toneColor = isNeutralDir
-                ? 'text-slate-500'
-                : isBenefit
-                  ? 'text-emerald-600'
-                  : 'text-rose-600'
-              const toneIcon = isNeutralDir
-                ? 'text-slate-400'
-                : isBenefit
-                  ? 'text-emerald-500'
-                  : 'text-rose-500'
-              return (
-                <div
-                  key={effect.nodeId}
-                  className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Icon className={cn('w-4 h-4 flex-shrink-0', toneIcon)} />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-slate-800 truncate">
-                        {meta?.noun ?? friendlyName(effect.nodeId)}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        {effect.identification.strategy === 'unidentified'
-                          ? 'unidentified — observational only'
-                          : `${effect.identification.strategy} identification`}
-                      </div>
-                    </div>
+          <div className="space-y-4">
+            {byCategory.map(({ category, effects }) => (
+              <div key={category}>
+                <div className="flex items-baseline gap-2 px-3 mb-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    {CATEGORY_LABELS[category]}
                   </div>
-                  <div className="text-right flex-shrink-0 ml-3">
-                    <div className={cn('text-sm font-semibold', toneColor)}>
-                      {formatEffectDelta(effect.totalEffect, effect.nodeId)}
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      {formatEffectValue(effect.factualValue, effect.nodeId)}
-                      {' → '}
-                      {formatEffectValue(
-                        effect.counterfactualValue,
-                        effect.nodeId,
-                      )}
-                    </div>
-                  </div>
+                  <span className="text-[10px] text-slate-400 tabular-nums">
+                    {effects.length}
+                  </span>
                 </div>
-              )
-            })}
+                <div className="space-y-1">
+                  {effects.map((effect) => (
+                    <EffectRow key={effect.nodeId} effect={effect} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </Card>
@@ -384,7 +496,7 @@ function ResultsPanel({ state }: ResultsPanelProps) {
         <Card key={`path-${effect.nodeId}`}>
           <div className="p-4">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              Pathways into {OUTCOME_META[effect.nodeId]?.noun ??
+              Pathways into {OUTCOME_META[canonicalOutcomeKey(effect.nodeId)]?.noun ??
                 friendlyName(effect.nodeId)}
             </div>
             <div className="space-y-2">
@@ -442,52 +554,69 @@ export function TwinView() {
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual } = useSCM()
 
-  const [nodeId, setNodeId] = useState<string>(MANIPULABLE_NODES[0].id)
-  const [proposedValue, setProposedValue] = useState<number | null>(null)
+  const [proposedValues, setProposedValues] = useState<Record<string, number>>({})
   const [state, setState] = useState<FullCounterfactualState | null>(null)
   const [isRunning, setIsRunning] = useState(false)
 
-  const selectedNode = useMemo(
-    () => MANIPULABLE_NODES.find((n) => n.id === nodeId) ?? MANIPULABLE_NODES[0],
-    [nodeId],
-  )
+  // Only show sliders for actions that actually have a causal edge for this
+  // member. Everything else would be a no-op intervention.
+  const interventionRows = useMemo<InterventionRow[]>(() => {
+    if (!participant) return []
+    const edgeCounts = new Map<string, number>()
+    for (const e of participant.effects_bayesian) {
+      edgeCounts.set(e.action, (edgeCounts.get(e.action) ?? 0) + 1)
+    }
+    return MANIPULABLE_NODES
+      .filter((n) => edgeCounts.has(n.id))
+      .map((node) => ({
+        node,
+        currentValue: participant.current_values?.[node.id] ?? node.defaultValue,
+        edgeCount: edgeCounts.get(node.id) ?? 0,
+      }))
+      .sort((a, b) => b.edgeCount - a.edgeCount)
+  }, [participant])
 
-  const currentValue = useMemo(() => {
-    const observed = participant?.current_values?.[nodeId]
-    return observed != null ? observed : selectedNode.defaultValue
-  }, [participant, nodeId, selectedNode])
+  const deltas = useMemo(() => {
+    const out: Array<{ nodeId: string; value: number; originalValue: number }> = []
+    for (const { node, currentValue } of interventionRows) {
+      const proposed = proposedValues[node.id]
+      if (proposed != null && Math.abs(proposed - currentValue) > 1e-9) {
+        out.push({ nodeId: node.id, value: proposed, originalValue: currentValue })
+      }
+    }
+    return out
+  }, [interventionRows, proposedValues])
 
-  const effectiveProposed = proposedValue ?? currentValue
+  const handleProposedChange = useCallback((nodeId: string, value: number) => {
+    setProposedValues((prev) => ({ ...prev, [nodeId]: value }))
+  }, [])
 
-  const handleNodeChange = useCallback((id: string) => {
-    setNodeId(id)
-    setProposedValue(null)
+  const handleResetNode = useCallback((nodeId: string) => {
+    setProposedValues((prev) => {
+      const next = { ...prev }
+      delete next[nodeId]
+      return next
+    })
+  }, [])
+
+  const handleResetAll = useCallback(() => {
+    setProposedValues({})
     setState(null)
   }, [])
 
-  const handleProposedChange = useCallback((value: number) => {
-    setProposedValue(value)
-  }, [])
-
   const handleRun = useCallback(() => {
-    if (!participant) return
+    if (!participant || deltas.length === 0) return
     setIsRunning(true)
     try {
       const observedValues: Record<string, number> = {
         ...participant.current_values,
       }
-      const result = runFullCounterfactual(observedValues, [
-        {
-          nodeId,
-          value: effectiveProposed,
-          originalValue: currentValue,
-        },
-      ])
+      const result = runFullCounterfactual(observedValues, deltas)
       setState(result)
     } finally {
       setIsRunning(false)
     }
-  }, [participant, runFullCounterfactual, nodeId, effectiveProposed, currentValue])
+  }, [participant, runFullCounterfactual, deltas])
 
   if (pid == null) return <EmptyState />
 
@@ -531,14 +660,15 @@ export function TwinView() {
         <FactualPanel currentValues={participant.current_values} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <InterventionPanel
-            node={selectedNode}
-            currentValue={currentValue}
-            proposedValue={effectiveProposed}
-            onNodeChange={handleNodeChange}
+          <MultiInterventionPanel
+            rows={interventionRows}
+            proposedValues={proposedValues}
             onProposedChange={handleProposedChange}
+            onResetNode={handleResetNode}
+            onResetAll={handleResetAll}
             onRun={handleRun}
             isRunning={isRunning}
+            anyDelta={deltas.length > 0}
           />
 
           {state ? (
@@ -546,8 +676,8 @@ export function TwinView() {
           ) : (
             <Card>
               <div className="p-6 text-center text-sm text-slate-400">
-                Pick an intervention value and run to see the counterfactual
-                trajectory across all downstream nodes.
+                Adjust any number of sliders and run to see the joint
+                counterfactual across all downstream nodes.
               </div>
             </Card>
           )}

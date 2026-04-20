@@ -96,6 +96,14 @@ export interface PersonaLoad {
   affectedInsightIds?: string[]
 }
 
+export interface PersonaResidence {
+  country: string  // ISO-2 code (e.g. 'IL', 'US')
+  city?: string
+  timezone: string  // IANA zone (e.g. 'Asia/Jerusalem')
+  lat?: number
+  lon?: number
+}
+
 export interface Persona {
   id: string
   name: string
@@ -112,6 +120,9 @@ export interface Persona {
   thresholds: PersonalThresholds
   currentMetrics: CurrentMetrics
   loads?: PersonaLoad[]  // Accumulated stressors on the system
+  // In production this is hydrated from the modal OAuth timezone offset over
+  // the last 30d (e.g. Oura daily summaries). Hard-coded here for the demo.
+  residence?: PersonaResidence
   tags: string[]
   dataContext?: DataContext  // Added for components
 }

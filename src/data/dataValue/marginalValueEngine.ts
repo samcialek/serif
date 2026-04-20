@@ -275,18 +275,24 @@ export function rankCandidates(
 
 // ─── Build existing source roster ────────────────────────────────
 
+// Connection health is demo state — in production we'd derive this from the
+// device's last-refreshed timestamp and a per-device freshness SLA. For Oron
+// we hand-pick two states: Apple Watch is live, AutoSleep went stale in
+// 2023, GPX is live but a recent uploader bug dropped heart-rate streams.
 const EXISTING_SOURCES_META: Array<{
   id: string
   name: string
   icon: string
   category: string
   deviceKey: string
+  status: 'syncing' | 'issue'
+  statusDetail: string
 }> = [
-  { id: 'apple-watch', name: 'Apple Watch', icon: 'Watch', category: 'Wearable', deviceKey: 'apple-watch' },
-  { id: 'autosleep', name: 'AutoSleep', icon: 'Moon', category: 'Sleep', deviceKey: 'autosleep' },
-  { id: 'gpx', name: 'GPX / Training Logs', icon: 'Map', category: 'Training', deviceKey: 'gpx' },
-  { id: 'bloodwork', name: 'Quest / Bloodwork', icon: 'TestTube2', category: 'Biomarkers', deviceKey: 'bloodwork' },
-  { id: 'medix-cpet', name: 'MEDIX CPET', icon: 'Stethoscope', category: 'Clinical', deviceKey: 'medix-cpet' },
+  { id: 'apple-watch', name: 'Apple Watch', icon: 'Watch', category: 'Wearable', deviceKey: 'apple-watch', status: 'syncing', statusDetail: 'Syncing · last packet 2h ago' },
+  { id: 'autosleep', name: 'AutoSleep', icon: 'Moon', category: 'Sleep', deviceKey: 'autosleep', status: 'issue', statusDetail: 'Disconnected since 2023-05-24 — reauth needed' },
+  { id: 'gpx', name: 'GPX / Training Logs', icon: 'Map', category: 'Training', deviceKey: 'gpx', status: 'issue', statusDetail: 'HR stream missing on last 3 uploads — check Strava pairing' },
+  { id: 'bloodwork', name: 'Quest / Bloodwork', icon: 'TestTube2', category: 'Biomarkers', deviceKey: 'bloodwork', status: 'syncing', statusDetail: 'Syncing · last draw 2025-11-22' },
+  { id: 'medix-cpet', name: 'MEDIX CPET', icon: 'Stethoscope', category: 'Clinical', deviceKey: 'medix-cpet', status: 'syncing', statusDetail: 'Syncing · last test 2025-12-10' },
 ]
 
 export function buildExistingSourceRoster(
@@ -325,6 +331,8 @@ export function buildExistingSourceRoster(
       columns: deviceCols,
       avgPersonalPct: count > 0 ? Math.round(totalPersonalPct / count) : 0,
       avgEffN: count > 0 ? Math.round(totalEffN / count) : 0,
+      status: src.status,
+      statusDetail: src.statusDetail,
     }
   })
 }

@@ -79,6 +79,10 @@ export interface ExistingDataSource {
   columns: string[]
   avgPersonalPct: number
   avgEffN: number
+  /** Connection health. 'syncing' = live & recent; 'issue' = stale, disconnected, or other problem. */
+  status: 'syncing' | 'issue'
+  /** Short human-readable status line ('Syncing · 2h ago' / 'Paired but not streaming · 26h since last packet'). */
+  statusDetail?: string
 }
 
 /** A candidate data source to evaluate */

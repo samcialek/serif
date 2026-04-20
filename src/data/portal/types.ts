@@ -106,6 +106,30 @@ export type RegimeKey =
   | 'sleep_deprivation_state'
   | 'inflammation_state'
 
+export type LoadKey =
+  | 'acwr'
+  | 'ctl'
+  | 'atl'
+  | 'tsb'
+  | 'sleep_debt_14d'
+  | 'sri_7d'
+  | 'training_monotony'
+  | 'training_consistency'
+
+export interface LoadValue {
+  /** Most recent value for this load. */
+  value: number
+  /** Personal rolling-mean baseline (default window 28 days). */
+  baseline: number
+  /** SD over the baseline window. */
+  sd: number
+  /** Standardised deviation from baseline ((value - baseline) / sd). */
+  z: number
+  /** value / baseline — stable even when SD is tiny or the load is
+   * naturally ratiometric (ACWR, monotony). */
+  ratio: number
+}
+
 export type ExplorationKind = 'vary_action' | 'repeat_measurement'
 
 export interface ExplorationRecommendation {
@@ -140,6 +164,9 @@ export interface ParticipantPortal {
    * Present only for outcomes with available data. */
   outcome_baselines?: Record<string, number>
   regime_activations?: Partial<Record<RegimeKey, number>>
+  /** Today's rolling-load summary (acwr, ctl, sleep_debt_14d, …) with
+   * personal-baseline deviations. Present when life_df had data. */
+  loads_today?: Partial<Record<LoadKey, LoadValue>>
   release_schedule?: ReleaseEntry[]
   exploration_recommendations?: ExplorationRecommendation[]
 }

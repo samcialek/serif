@@ -1,6 +1,5 @@
-import { Card } from '@/components/common'
 import {
-  Watch, Moon, Map, TestTube2, Stethoscope,
+  Watch, Moon, Map, TestTube2, Stethoscope, AlertTriangle, CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import type { ExistingDataSource } from '@/data/dataValue/types'
@@ -14,18 +13,59 @@ const iconMap: Record<string, React.ElementType> = {
   Watch, Moon, Map, TestTube2, Stethoscope,
 }
 
+// Outline colour = connection health. Blue when the source is live;
+// amber when there's something actionable (disconnected, stale, partial
+// stream). Keeps the panel scannable at a glance.
+const STATUS_STYLE: Record<'syncing' | 'issue', { wrap: string; iconBg: string; icon: string; chipBg: string; chipText: string; label: string }> = {
+  syncing: {
+    wrap: 'border-2 border-blue-300 bg-white',
+    iconBg: 'bg-blue-50',
+    icon: 'text-blue-600',
+    chipBg: 'bg-blue-50 border-blue-200',
+    chipText: 'text-blue-700',
+    label: 'Syncing',
+  },
+  issue: {
+    wrap: 'border-2 border-amber-400 bg-white',
+    iconBg: 'bg-amber-50',
+    icon: 'text-amber-600',
+    chipBg: 'bg-amber-50 border-amber-200',
+    chipText: 'text-amber-700',
+    label: 'Issue',
+  },
+}
+
 export function SourceDetailCard({ source, className }: SourceDetailCardProps) {
   const Icon = iconMap[source.icon] ?? Watch
+  const style = STATUS_STYLE[source.status]
+  const StatusIcon = source.status === 'syncing' ? CheckCircle2 : AlertTriangle
 
   return (
-    <Card variant="outlined" padding="md" className={cn('flex flex-col gap-3', className)}>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-5 h-5 text-primary-600" />
+    <div className={cn('rounded-lg p-4 flex flex-col gap-3', style.wrap, className)}>
+      <div className="flex items-start gap-3">
+        <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', style.iconBg)}>
+          <Icon className={cn('w-5 h-5', style.icon)} />
         </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-slate-800 text-sm">{source.name}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-slate-800 text-sm truncate">{source.name}</p>
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium border rounded-full',
+                style.chipBg,
+                style.chipText,
+              )}
+            >
+              <StatusIcon className="w-3 h-3" />
+              {style.label}
+            </span>
+          </div>
           <p className="text-xs text-slate-500">{source.category}</p>
+          {source.statusDetail && (
+            <p className={cn('text-[11px] mt-1 leading-snug', style.chipText)}>
+              {source.statusDetail}
+            </p>
+          )}
         </div>
       </div>
 
@@ -61,6 +101,6 @@ export function SourceDetailCard({ source, className }: SourceDetailCardProps) {
           )}
         </div>
       </div>
-    </Card>
+    </div>
   )
 }
