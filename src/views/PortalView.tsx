@@ -3,7 +3,11 @@ import { motion } from 'framer-motion'
 import { Activity, AlertCircle, Database, Sparkles } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card } from '@/components/common'
-import { ParticipantBrowser, ParticipantDetail, PortalFilterBar } from '@/components/portal'
+import {
+  ParticipantDetail,
+  ParticipantSelector,
+  PortalFilterBar,
+} from '@/components/portal'
 import { participantLoader } from '@/data/portal/participantLoader'
 import { usePortalStore } from '@/stores/portalStore'
 import type { PortalManifest } from '@/data/portal/types'
@@ -36,15 +40,20 @@ export function PortalView() {
 
   return (
     <PageLayout>
-      {/* Filter bar */}
-      <div className="mb-4 flex items-center gap-3">
+      {/* Top bar: participant selector + filters, all inline */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-medium">
+          Member
+        </span>
+        {manifest && <ParticipantSelector totalParticipants={manifest.n_participants} />}
+        <div className="w-px h-5 bg-slate-200" />
         <span className="text-[11px] uppercase tracking-wider text-slate-400 font-medium">
           Filter
         </span>
         <PortalFilterBar />
       </div>
 
-      {/* Manifest banner */}
+      {/* Manifest banner (condensed) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -70,25 +79,14 @@ export function PortalView() {
         </Card>
       </motion.div>
 
-      {/* Split: browser + detail */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="lg:h-[calc(100vh-20rem)] lg:sticky lg:top-6"
-        >
-          {manifest && (
-            <ParticipantBrowser totalParticipants={manifest.n_participants} />
-          )}
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <ParticipantDetail />
-        </motion.div>
-      </div>
+      {/* Full-width detail */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <ParticipantDetail />
+      </motion.div>
     </PageLayout>
   )
 }
