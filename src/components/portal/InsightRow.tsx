@@ -35,11 +35,6 @@ const ACTION_LABELS: Record<string, string> = {
   travel_load: 'Travel load',
 }
 
-// Load actions are context-level knobs: the Insights tab surfaces their
-// downstream effects, but the Protocols tab never prescribes them because
-// they're rolling aggregates, not single-action levers.
-const LOAD_ACTIONS = new Set(['acwr', 'sleep_debt', 'travel_load'])
-
 // Feasible 4–6 week behaviour-change shift per action. Used by the
 // Insights tab to display effects at a realistic dose rather than at
 // the engine's small nominal_step — many per-step effects round to
