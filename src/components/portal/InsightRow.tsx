@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { TierBadge } from './TierBadge'
+import { ResponseCurve } from './ResponseCurve'
 import type { EvidenceTier, InsightBayesian, Pathway } from '@/data/portal/types'
 import { formatOutcomeValue, formatRecommendedAction } from '@/utils/rounding'
 
@@ -229,6 +230,13 @@ export function InsightRow({
           : 'px-4 pb-4 pt-3 border-t border-slate-100',
       )}
     >
+      <ResponseCurve
+        insight={insight}
+        currentValue={currentValue}
+        outcomeBaseline={outcomeBaseline}
+        outcomeUnit={meta?.unit}
+      />
+
       <div className="flex items-center gap-2">
         <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div

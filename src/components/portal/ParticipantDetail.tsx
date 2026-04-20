@@ -20,8 +20,6 @@ import { participantLoader } from '@/data/portal/participantLoader'
 import { InsightRow } from './InsightRow'
 import { ProtocolCard } from './ProtocolCard'
 import { TierFilterChips } from './TierFilterChips'
-import { DoseGauge, type GaugeVariant } from './DoseGauge'
-import { shapeFor } from '@/data/scm/doseShapes'
 import {
   formatActionValue,
   isBelowMinimumDose,
@@ -328,15 +326,6 @@ export function ParticipantDetail() {
           <ExplorationSection items={participant.exploration_recommendations} />
         )}
 
-      {/* Dose-effect gauge — design exploration. Shows 4 visual candidates
-          on the top recommended insight so we can pick one. */}
-      {insights.length > 0 && (
-        <DoseGaugeExploration
-          insight={insights[0]}
-          currentValue={current_values[insights[0].action] ?? 0}
-        />
-      )}
-
       {/* Insights — grouped by pathway */}
       <section>
         <div className="flex items-baseline justify-between mb-3">
@@ -489,71 +478,6 @@ function ExplorationSection({ items }: { items: ExplorationRecommendation[] }) {
           {EXPLORATION_VISIBLE_LIMIT} by signal strength.
         </p>
       )}
-    </section>
-  )
-}
-
-// ── Dose-effect gauge design exploration ─────────────────────────────────
-// Shows the same insight rendered 4 ways so we can pick the best. The
-// gauge's job is NOT to show uncertainty — it's to show where on the
-// dose-effect curve the user currently sits and where the recommendation
-// lands, relative to the saturation / optimal / threshold edge.
-
-const VARIANTS: Array<{ key: GaugeVariant; label: string; note: string }> = [
-  { key: 'linear', label: 'A. Linear bar', note: 'Clinical · shaded useful zone + past-edge zone' },
-  { key: 'curve', label: 'B. Mini curve', note: 'Shows the actual shape (plateau / peak / threshold)' },
-  { key: 'segmented', label: 'C. Segmented', note: 'Discrete zones · easy to scan in a roster' },
-  { key: 'minimal', label: 'D. Minimal', note: 'Shape icon + one-line text · compact' },
-]
-
-function DoseGaugeExploration({
-  insight,
-  currentValue,
-}: {
-  insight: InsightBayesian
-  currentValue: number
-}) {
-  const info = shapeFor(insight.action)
-  // Signed step in the direction the engine recommends.
-  const signedStep =
-    Math.sign(insight.scaled_effect || 1) * Math.abs(insight.nominal_step * insight.dose_multiplier)
-  return (
-    <section className="p-5 bg-slate-50 border border-slate-200 rounded-xl">
-      <div className="flex items-baseline justify-between gap-3 mb-1">
-        <h3 className="text-sm font-semibold text-slate-700">
-          Dose-effect gauge — design exploration
-        </h3>
-        <span className="text-[10px] uppercase tracking-wider text-slate-400">
-          Shape: {info.shape.replace('_', ' ')}
-        </span>
-      </div>
-      <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-        Same insight (<strong>{insight.action.replace(/_/g, ' ')}</strong> →{' '}
-        <strong>{insight.outcome.replace(/_/g, ' ')}</strong>), rendered four ways.
-        Purpose: show where the user sits on the dose-effect curve and where the
-        recommendation lands — not confidence. {info.description}
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {VARIANTS.map(({ key, label, note }) => (
-          <div
-            key={key}
-            className="p-3 bg-white border border-slate-200 rounded-lg"
-          >
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-700">{label}</span>
-            </div>
-            <DoseGauge
-              action={insight.action}
-              currentValue={currentValue}
-              nominalStep={signedStep}
-              doseMultiplier={insight.dose_multiplier}
-              doseBounded={insight.dose_bounded}
-              variant={key}
-            />
-            <p className="text-[10px] text-slate-400 mt-2 leading-snug">{note}</p>
-          </div>
-        ))}
-      </div>
     </section>
   )
 }
