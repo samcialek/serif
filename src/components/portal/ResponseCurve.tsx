@@ -8,10 +8,9 @@
  * target" overlay layered on top.
  */
 
-import { useMemo } from 'react'
 import { shapeFor, type DoseShape } from '@/data/scm/doseShapes'
 import { OUTCOME_META } from './InsightRow'
-import type { InsightBayesian } from '@/data/portal/types'
+import { isLoadAction, type InsightBayesian } from '@/data/portal/types'
 
 interface ResponseCurveProps {
   insight: InsightBayesian
@@ -64,15 +63,14 @@ const OPTIMUM_LABEL: Record<DoseShape, string> = {
 // Protocols tab won't surface them, so the expanded-curve copy is tweaked
 // to describe steering via upstream behaviours rather than pointing at
 // Protocols for a dose target.
-const LOAD_ACTIONS = new Set(['acwr', 'sleep_debt', 'travel_load'])
-
 export function ResponseCurve({ insight }: ResponseCurveProps) {
   const beneficial = OUTCOME_META[insight.outcome]?.beneficial ?? 'neutral'
   const info = shapeFor(insight.action, insight.outcome, insight.scaled_effect, beneficial)
-  const isLoad = LOAD_ACTIONS.has(insight.action)
+  const isLoad = isLoadAction(insight.action)
 
-  const optFrac = optimumFrac(info.shape)
-  const points = useMemo(() => sampleShape(info.shape), [info.shape])
+  const shape = info.shape
+  const optFrac = optimumFrac(shape)
+  const points = sampleShape(shape)
 
   const xPx = (fx: number) => PAD_X + fx * PLOT_W
   const yPx = (fy: number) => PAD_TOP + (1 - fy) * PLOT_H

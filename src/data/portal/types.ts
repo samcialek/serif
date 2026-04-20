@@ -133,6 +133,17 @@ export interface LoadValue {
   ratio: number
 }
 
+/** Context-driver actions — surfaced as cohort-level priors, not
+ * prescribed directly. Mirrors LOAD_ACTIONS in the backend engine. */
+export type LoadAction = 'acwr' | 'sleep_debt' | 'travel_load'
+export const LOAD_ACTIONS: ReadonlySet<string> = new Set<LoadAction>([
+  'acwr',
+  'sleep_debt',
+  'travel_load',
+])
+export const isLoadAction = (action: string): boolean =>
+  LOAD_ACTIONS.has(action)
+
 export type ExplorationKind = 'vary_action' | 'repeat_measurement'
 
 export interface ExplorationRecommendation {

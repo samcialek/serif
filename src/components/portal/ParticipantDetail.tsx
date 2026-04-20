@@ -25,11 +25,8 @@ import {
   outcomeIncrement,
 } from '@/utils/rounding'
 import { insightTierCounts, insightTierFor } from '@/utils/insightTier'
-import type {
-  GateTier,
-  InsightBayesian,
-  Pathway,
-} from '@/data/portal/types'
+import type { GateTier, InsightBayesian, Pathway } from '@/data/portal/types'
+import { isLoadAction } from '@/data/portal/types'
 
 const ACTION_ORDER = [
   'bedtime',
@@ -48,10 +45,8 @@ const ACTION_ORDER = [
 // prescribable. The Insights tab surfaces their downstream effects in a
 // separate "Context drivers" section so the user doesn't confuse "what
 // can I do?" (behavioural) with "what is my state doing to me?" (load).
-const LOAD_ACTIONS = new Set(['acwr', 'sleep_debt', 'travel_load'])
-
 function isLoadInsight(i: InsightBayesian): boolean {
-  return LOAD_ACTIONS.has(i.action)
+  return isLoadAction(i.action)
 }
 
 function actionRank(a: string): number {
