@@ -63,6 +63,9 @@ export interface InsightBayesian {
   outcome: string
   pathway?: Pathway
   evidence_tier?: EvidenceTier
+  /** Direction of effect supported by established RCT / mechanistic literature,
+   * not just the cohort fit. Rendered as a small "Lit" badge in the UI. */
+  literature_backed?: boolean
   horizon_days?: number
   horizon_display?: string
   supporting_data_description?: string

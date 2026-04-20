@@ -250,6 +250,7 @@ export function InsightRow({
   } = insight
   const pathway: Pathway = insight.pathway ?? 'wearable'
   const evidenceTier: EvidenceTier = insight.evidence_tier ?? 'cohort_level'
+  const literatureBacked = insight.literature_backed === true
   const meta = OUTCOME_META[outcome]
   const beneficial: BeneficialDir = meta?.beneficial ?? 'neutral'
 
@@ -412,6 +413,14 @@ export function InsightRow({
           >
             {EVIDENCE_TIER_LABELS[evidenceTier]}
           </span>
+          {literatureBacked && (
+            <span
+              className="inline-flex items-center px-1.5 py-0 text-[10px] font-medium border rounded border-amber-200 bg-amber-50 text-amber-700"
+              title="Direction of effect supported by established literature (RCTs or mechanistic studies)"
+            >
+              Lit
+            </span>
+          )}
           <PathwayIcon
             className={cn(
               'w-3 h-3 flex-shrink-0',
@@ -474,6 +483,14 @@ export function InsightRow({
           >
             {EVIDENCE_TIER_LABELS[evidenceTier]}
           </span>
+          {literatureBacked && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium border rounded-full border-amber-200 bg-amber-50 text-amber-700"
+              title="Direction of effect supported by established literature (RCTs or mechanistic studies)"
+            >
+              Lit
+            </span>
+          )}
           <PathwayIcon
             className={cn(
               'w-3.5 h-3.5 flex-shrink-0',

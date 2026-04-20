@@ -243,6 +243,44 @@ def supporting_data_description(pathway: str, evidence_tier: str) -> str:
     )
 
 
+# ── Literature-backed mechanism flag ──
+# (action, outcome) pairs where the direction of effect is supported by
+# well-established RCT or mechanistic literature — not just the cohort fit.
+# The UI shows a small badge so users understand this edge isn't inferred
+# purely from the population data. Keep this list conservative: only include
+# pairs where the literature is both strong AND the effect direction matches
+# the fitted prior (no contradictions between lit and fit).
+LITERATURE_BACKED: set[tuple[str, str]] = {
+    # ACWR -> recovery/inflammation: Gabbett 2016, Malone 2017, Hulin 2014
+    ("acwr", "hrv_daily"),
+    ("acwr", "resting_hr"),
+    ("acwr", "hscrp"),
+    ("acwr", "cortisol"),
+    ("acwr", "testosterone"),
+    # Sleep restriction -> HPA/metabolic: Van Cauter 1997, Leproult & Van Cauter 2011
+    ("sleep_debt", "cortisol"),
+    ("sleep_debt", "glucose"),
+    ("sleep_debt", "resting_hr"),
+    ("sleep_debt", "testosterone"),
+    # Circadian misalignment -> sleep/autonomic: Kolla 2016, Burgess 2003
+    ("travel_load", "deep_sleep"),
+    ("travel_load", "hrv_daily"),
+    ("travel_load", "sleep_efficiency"),
+    ("travel_load", "resting_hr"),
+    # Aerobic training -> VO2: decades of exercise physiology (Bassett 2000)
+    ("running_volume", "vo2_peak"),
+    ("zone2_volume", "vo2_peak"),
+    ("training_volume", "vo2_peak"),
+    # Sleep duration -> hormones: well-established restriction studies
+    ("sleep_duration", "cortisol"),
+    ("sleep_duration", "testosterone"),
+}
+
+
+def is_literature_backed(action: str, outcome: str) -> bool:
+    return (action, outcome) in LITERATURE_BACKED
+
+
 # ── Cohort name mapping ──
 # Source CSVs carry geographic names; Serif's canonical cohort vocabulary is
 # cohort_a/b/c. Remap during export only — underlying CSVs untouched.
@@ -350,6 +388,7 @@ def _row(
         "outcome": outcome,
         "pathway": pathway,
         "evidence_tier": evidence_tier,
+        "literature_backed": is_literature_backed(action, outcome),
         "horizon_days": horizon,
         "horizon_display": horizon_display(horizon) if horizon > 0 else "",
         "supporting_data_description": supporting_data_description(pathway, evidence_tier),
