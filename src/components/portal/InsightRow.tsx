@@ -351,7 +351,7 @@ export function InsightRow({
   const actionLabel = ACTION_LABELS[action] ?? action
   const outcomeLabel = OUTCOME_LABELS[outcome] ?? outcome
   const horizonTitle = horizon_display
-    ? `Effect measured at ${horizon_display} after a sustained behaviour change`
+    ? `Time until the cohort effect becomes detectable, assuming ${doseShiftText} is held above baseline throughout`
     : undefined
 
   const expandedBody = expanded ? (
@@ -397,8 +397,10 @@ export function InsightRow({
       )}
 
       <p className="text-xs text-slate-500">
-        Effect measured at {horizon_display ?? '—'} after a sustained behaviour change ·
-        per-participant dose targeting lives in the Protocols tab.
+        {doseShiftText} held above baseline — cohort effect becomes detectable at{' '}
+        {horizon_display ?? '—'}. Longer sustain doesn't add more effect; this is
+        the asymptotic signal. Per-participant dose targeting lives in the
+        Protocols tab.
       </p>
 
       {supporting_data_description && (
@@ -468,12 +470,23 @@ export function InsightRow({
             aria-label={pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
           />
           <span className="ml-auto inline-flex items-center gap-1.5 text-[12px] flex-shrink-0 tabular-nums">
-            <span className="text-slate-500 font-normal">{doseShiftText}</span>
+            <span
+              className="text-slate-500 font-normal"
+              title="Shift from typical baseline, held throughout the horizon"
+            >
+              {doseShiftText}
+              <span className="text-slate-400 ml-1">from baseline</span>
+            </span>
             <span className="text-slate-300">→</span>
             <span className={cn('inline-flex items-center gap-0.5 font-semibold', arrowColor)}>
               <ArrowIcon className="w-3.5 h-3.5" />
               {compactMagnitude}
             </span>
+            {horizon_display && (
+              <span className="text-slate-400 font-normal" title={horizonTitle}>
+                visible by {horizon_display}
+              </span>
+            )}
           </span>
         </button>
         {expandedBody}
@@ -543,18 +556,15 @@ export function InsightRow({
             style={{ color: ACTION_ICON_COLOR }}
             aria-label={pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
           />
-          {horizon_display && (
-            <span
-              className="inline-flex items-center gap-1 text-[10px] text-slate-500 tabular-nums"
-              title={horizonTitle}
-            >
-              <Clock className="w-3 h-3" />
-              at {horizon_display}
-            </span>
-          )}
         </div>
         <div className="ml-auto flex items-center gap-2 text-xs flex-shrink-0 tabular-nums">
-          <span className="text-slate-500 font-normal">{doseShiftText}</span>
+          <span
+            className="text-slate-500 font-normal"
+            title="Shift from typical baseline, held throughout the horizon"
+          >
+            {doseShiftText}
+            <span className="text-slate-400 ml-1">from baseline</span>
+          </span>
           <span className="text-slate-300">→</span>
           <span
             className={cn('inline-flex items-center gap-1 font-semibold', arrowColor)}
@@ -562,6 +572,15 @@ export function InsightRow({
             <ArrowIcon className="w-3.5 h-3.5" />
             {compactMagnitude}
           </span>
+          {horizon_display && (
+            <span
+              className="inline-flex items-center gap-1 text-slate-400 font-normal"
+              title={horizonTitle}
+            >
+              <Clock className="w-3 h-3" />
+              visible by {horizon_display}
+            </span>
+          )}
         </div>
       </button>
 

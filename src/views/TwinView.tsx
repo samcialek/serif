@@ -25,7 +25,7 @@
  * will swap those for posterior means per participant.
  */
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   GitBranch,
@@ -35,6 +35,7 @@ import {
   TrendingUp,
   TrendingDown,
   Info,
+  Sparkles,
   Users as UsersIcon,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
@@ -43,11 +44,13 @@ import { Card, Button, Slider } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSCM } from '@/hooks/useSCM'
+import { useBartTwin } from '@/hooks/useBartTwin'
 import type {
   FullCounterfactualState,
   MechanismCategory,
   NodeEffect,
 } from '@/data/scm/fullCounterfactual'
+import type { MCFullCounterfactualState, MCNodeEffect } from '@/data/scm/bartMonteCarlo'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue } from '@/utils/rounding'
@@ -143,6 +146,87 @@ function MethodBadge() {
     <div className="flex items-center gap-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md p-3">
       <Info className="w-4 h-4 flex-shrink-0 text-amber-500" />
       <span className="font-medium">Model predictions — not medical advice.</span>
+    </div>
+  )
+}
+
+interface BartStatusBadgeProps {
+  status: 'idle' | 'loading' | 'ready' | 'unavailable'
+  coverageCount: number
+  kSamples?: number
+}
+
+function BartStatusBadge({ status, coverageCount, kSamples }: BartStatusBadgeProps) {
+  if (status === 'idle') return null
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+        <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin text-slate-400" />
+        <span>Loading posterior draws…</span>
+      </div>
+    )
+  }
+  if (status === 'unavailable') {
+    return (
+      <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+        <Info className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+        <span>Point estimates only — posterior bands unavailable for this build.</span>
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-center gap-2 text-xs text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2">
+      <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-indigo-500" />
+      <span>
+        Posterior bands ready — {coverageCount} BART outcome
+        {coverageCount === 1 ? '' : 's'}
+        {kSamples ? `, K=${kSamples} draws` : ''}.
+      </span>
+    </div>
+  )
+}
+
+interface PosteriorBandProps {
+  deltaP05: number
+  deltaP50: number
+  deltaP95: number
+  tone: 'benefit' | 'harm' | 'neutral'
+}
+
+// Thin horizontal bar showing the 90% credible interval of the delta.
+// Domain includes zero so the reader can see whether the band crosses it.
+function PosteriorBand({ deltaP05, deltaP50, deltaP95, tone }: PosteriorBandProps) {
+  const lo = Math.min(deltaP05, 0)
+  const hi = Math.max(deltaP95, 0)
+  const span = hi - lo
+  if (!Number.isFinite(span) || span <= 0) return null
+  const pct = (v: number) => ((v - lo) / span) * 100
+  const bar =
+    tone === 'benefit'
+      ? 'bg-emerald-200'
+      : tone === 'harm'
+        ? 'bg-rose-200'
+        : 'bg-slate-200'
+  const tick =
+    tone === 'benefit'
+      ? 'bg-emerald-600'
+      : tone === 'harm'
+        ? 'bg-rose-600'
+        : 'bg-slate-600'
+  return (
+    <div className="relative h-1 w-24 bg-slate-100 rounded-full mt-1 ml-auto">
+      <div
+        className={cn('absolute h-full rounded-full', bar)}
+        style={{ left: `${pct(deltaP05)}%`, width: `${pct(deltaP95) - pct(deltaP05)}%` }}
+      />
+      <div
+        className={cn('absolute w-0.5 h-full', tick)}
+        style={{ left: `${pct(deltaP50)}%` }}
+      />
+      <div
+        className="absolute w-px h-[240%] -top-[70%] bg-slate-300"
+        style={{ left: `${pct(0)}%` }}
+      />
     </div>
   )
 }
@@ -342,6 +426,7 @@ function MultiInterventionPanel({
 
 interface ResultsPanelProps {
   state: FullCounterfactualState
+  mcState?: MCFullCounterfactualState | null
 }
 
 const CATEGORY_ORDER: MechanismCategory[] = ['sleep', 'recovery', 'cardio', 'metabolic']
@@ -352,7 +437,13 @@ const CATEGORY_LABELS: Record<MechanismCategory, string> = {
   metabolic: 'Metabolic',
 }
 
-function EffectRow({ effect }: { effect: NodeEffect }) {
+function EffectRow({
+  effect,
+  mcEffect,
+}: {
+  effect: NodeEffect
+  mcEffect?: MCNodeEffect | null
+}) {
   const key = canonicalOutcomeKey(effect.nodeId)
   const meta = OUTCOME_META[key]
   // Beneficial direction is outcome-specific: +ferritin good, +hscrp bad.
@@ -376,13 +467,34 @@ function EffectRow({ effect }: { effect: NodeEffect }) {
     : isBenefit
       ? 'text-emerald-500'
       : 'text-rose-500'
+  const tone: 'benefit' | 'harm' | 'neutral' = isNeutralDir
+    ? 'neutral'
+    : isBenefit
+      ? 'benefit'
+      : 'harm'
+
+  // When MC-propagated, show the posterior spread on the delta. The
+  // counterfactualSamples are cf values — subtract factual to get delta
+  // quantiles. Only draw the band if this node actually had a BART
+  // ancestor; piecewise-only nodes would collapse to a point.
+  const showBand = mcEffect?.hasBartAncestor === true
+  const deltaP05 = mcEffect ? mcEffect.posteriorSummary.p05 - mcEffect.factualValue : 0
+  const deltaP50 = mcEffect ? mcEffect.posteriorSummary.p50 - mcEffect.factualValue : 0
+  const deltaP95 = mcEffect ? mcEffect.posteriorSummary.p95 - mcEffect.factualValue : 0
+
   return (
     <div className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-slate-50 transition-colors">
       <div className="flex items-center gap-3 min-w-0">
         <Icon className={cn('w-4 h-4 flex-shrink-0', toneIcon)} />
         <div className="min-w-0">
-          <div className="text-sm font-medium text-slate-800 truncate">
+          <div className="text-sm font-medium text-slate-800 truncate flex items-center gap-1.5">
             {meta?.noun ?? friendlyName(effect.nodeId)}
+            {showBand && (
+              <Sparkles
+                className="w-3 h-3 flex-shrink-0 text-indigo-400"
+                aria-label="BART posterior"
+              />
+            )}
           </div>
           <div className="text-[11px] text-slate-400">
             {effect.identification.strategy === 'unidentified'
@@ -400,12 +512,26 @@ function EffectRow({ effect }: { effect: NodeEffect }) {
           {' → '}
           {formatEffectValue(effect.counterfactualValue, effect.nodeId)}
         </div>
+        {showBand && (
+          <>
+            <PosteriorBand
+              deltaP05={deltaP05}
+              deltaP50={deltaP50}
+              deltaP95={deltaP95}
+              tone={tone}
+            />
+            <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">
+              90% CI {formatEffectDelta(deltaP05, effect.nodeId)} …{' '}
+              {formatEffectDelta(deltaP95, effect.nodeId)}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
-function ResultsPanel({ state }: ResultsPanelProps) {
+function ResultsPanel({ state, mcState }: ResultsPanelProps) {
   // Group by mechanism category so wearable outcomes (sleep/recovery) stay
   // visible alongside biomarkers (cardio/metabolic) — sorting purely by
   // absolute effect magnitude buries low-unit daily metrics behind lab
@@ -483,7 +609,11 @@ function ResultsPanel({ state }: ResultsPanelProps) {
                 </div>
                 <div className="space-y-1">
                   {effects.map((effect) => (
-                    <EffectRow key={effect.nodeId} effect={effect} />
+                    <EffectRow
+                      key={effect.nodeId}
+                      effect={effect}
+                      mcEffect={mcState?.allEffects.get(effect.nodeId)}
+                    />
                   ))}
                 </div>
               </div>
@@ -553,10 +683,20 @@ export function TwinView() {
   const { pid, displayName, cohort } = useActiveParticipant()
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual } = useSCM()
+  const { status: bartStatus, runMC, coverage } = useBartTwin()
 
   const [proposedValues, setProposedValues] = useState<Record<string, number>>({})
   const [state, setState] = useState<FullCounterfactualState | null>(null)
+  const [mcState, setMcState] = useState<MCFullCounterfactualState | null>(null)
   const [isRunning, setIsRunning] = useState(false)
+
+  // Invalidate stale MC bands whenever the underlying sliders change. The
+  // posterior bands are snapshotted from the last runMC call; if the user
+  // moves a slider and doesn't re-run, we'd be painting yesterday's draws
+  // onto today's point estimates.
+  useEffect(() => {
+    setMcState(null)
+  }, [proposedValues])
 
   // Only show sliders for actions that actually have a causal edge for this
   // member. Everything else would be a no-op intervention.
@@ -602,21 +742,35 @@ export function TwinView() {
   const handleResetAll = useCallback(() => {
     setProposedValues({})
     setState(null)
+    setMcState(null)
   }, [])
 
   const handleRun = useCallback(() => {
     if (!participant || deltas.length === 0) return
     setIsRunning(true)
+    const observedValues: Record<string, number> = {
+      ...participant.current_values,
+    }
+    // Sync piecewise — cheap, paints immediately.
     try {
-      const observedValues: Record<string, number> = {
-        ...participant.current_values,
-      }
       const result = runFullCounterfactual(observedValues, deltas)
       setState(result)
     } finally {
       setIsRunning(false)
     }
-  }, [participant, runFullCounterfactual, deltas])
+    // Async MC — resolves in ~15-100 ms, upgrades the display with
+    // posterior bands on the BART-covered outcomes. If the BART bundle
+    // never loaded, runMC is a no-op returning null.
+    if (bartStatus === 'ready') {
+      runMC(observedValues, deltas)
+        .then((mc) => {
+          if (mc) setMcState(mc)
+        })
+        .catch((err) => {
+          console.warn('[TwinView] MC run failed:', err)
+        })
+    }
+  }, [participant, runFullCounterfactual, deltas, runMC, bartStatus])
 
   if (pid == null) return <EmptyState />
 
@@ -657,6 +811,12 @@ export function TwinView() {
 
         <MethodBadge />
 
+        <BartStatusBadge
+          status={bartStatus}
+          coverageCount={coverage.length}
+          kSamples={mcState?.kSamples}
+        />
+
         <FactualPanel currentValues={participant.current_values} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -672,7 +832,7 @@ export function TwinView() {
           />
 
           {state ? (
-            <ResultsPanel state={state} />
+            <ResultsPanel state={state} mcState={mcState} />
           ) : (
             <Card>
               <div className="p-6 text-center text-sm text-slate-400">

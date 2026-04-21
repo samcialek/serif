@@ -1,0 +1,194 @@
+# Literature-backed total-effect priors.
+#
+# Each entry is a population prior on the (action, outcome) slope in the
+# outcome's NATURAL UNITS per one `MARGINAL_STEPS[action]` step.
+#
+# Required fields:
+#   action          — matches MARGINAL_STEPS key in point_engine.py
+#   outcome         — matches an engine node target (e.g. ldl_smoothed)
+#   cohort          — "__all__" for population; otherwise cohort_{a,b,c}
+#   mean            — slope in outcome units per one nominal step
+#   se              — standard error of the slope, same units
+#   n               — sample size contributing to the estimate
+#   source          — short citation label
+#   doi             — canonical DOI URL
+#   year            — publication year
+#
+# Optional fields:
+#   reported_units        — as stated in the paper, for auditability
+#   conversion_note       — how we mapped reported units → Serif units
+#   transportability_inflation — factor applied to variance (default 2.0)
+#   notes                 — free-text caveats
+#   citation_status       — "verified" | "needs_verification" | "draft"
+#
+# Citation status on initial seed: most entries are DRAFT — the β and SE
+# were reconstructed from recall + agent research summaries and MUST be
+# verified against the actual paper text before being trusted by the
+# blending pipeline. `literature_priors.py` refuses to load anything with
+# status != "verified" unless --include-drafts is passed.
+
+version: 1
+default_transportability_inflation: 2.0
+
+entries:
+
+  # ————— Activity × Lipids —————
+
+  - action: steps
+    outcome: ldl_smoothed
+    cohort: __all__
+    mean: -0.40          # mg/dL per +2000 steps/day
+    se: 0.08
+    n: 88000
+    source: "Strain 2024 UKB accelerometer"
+    doi: "https://doi.org/10.1016/S2468-2667(24)00022-4"
+    year: 2024
+    reported_units: "mmol/L per 1 SD daily steps"
+    conversion_note: "SD(steps) ≈ 4000/day in UKB; Serif step = 2000 → ×0.5. mmol/L LDL × 38.67 → mg/dL"
+    citation_status: needs_verification
+    notes: "UKB healthy-volunteer bias; inflation 2.0 applied"
+
+  - action: zone2_volume
+    outcome: hdl_smoothed
+    cohort: __all__
+    mean: 0.6            # mg/dL per +60 min/month zone2
+    se: 0.15
+    n: 96000
+    source: "Ekelund 2019 UKB MVPA"
+    doi: "https://doi.org/10.1136/bmj.l4570"
+    year: 2019
+    reported_units: "mmol/L HDL per 10 min/day MVPA"
+    conversion_note: "+60 min/month ≈ +2 min/day MVPA; mmol/L × 38.67 → mg/dL"
+    citation_status: needs_verification
+
+  - action: zone2_volume
+    outcome: triglycerides_smoothed
+    cohort: __all__
+    mean: -1.5           # mg/dL per +60 min/month zone2
+    se: 0.4
+    n: 96000
+    source: "Ekelund 2019 UKB MVPA"
+    doi: "https://doi.org/10.1136/bmj.l4570"
+    year: 2019
+    reported_units: "mmol/L TG per 10 min/day MVPA"
+    conversion_note: "+60 min/month ≈ +2 min/day MVPA; mmol/L × 88.57 → mg/dL"
+    citation_status: needs_verification
+
+  # ————— Activity × Glucose / metabolic —————
+
+  - action: steps
+    outcome: glucose_smoothed
+    cohort: __all__
+    mean: -0.30          # mg/dL per +2000 steps/day
+    se: 0.10
+    n: 96000
+    source: "Dempsey 2022 UKB accelerometer"
+    doi: "https://doi.org/10.1093/eurheartj/ehac613"
+    year: 2022
+    reported_units: "mmol/L glucose per 1 SD steps/day"
+    conversion_note: "SD ≈ 4000 steps; Serif step = 2000 → ×0.5; mmol/L × 18.02 → mg/dL"
+    citation_status: needs_verification
+
+  - action: steps
+    outcome: hscrp_smoothed
+    cohort: __all__
+    mean: -0.08          # mg/L per +2000 steps/day
+    se: 0.02
+    n: 88000
+    source: "Strain 2024 UKB accelerometer"
+    doi: "https://doi.org/10.1016/S2468-2667(24)00022-4"
+    year: 2024
+    reported_units: "log(CRP) per 1 SD steps/day"
+    conversion_note: "median UKB hsCRP ≈ 1.3 mg/L; back-transform at median; SD adj ×0.5"
+    citation_status: needs_verification
+    notes: "Log-outcome; back-transform anchored at cohort median hsCRP"
+
+  # ————— Sleep × inflammation / HR —————
+
+  - action: sleep_duration
+    outcome: hscrp_smoothed
+    cohort: __all__
+    mean: -0.05          # mg/L per +30 min sleep
+    se: 0.015
+    n: 22000
+    source: "Irwin 2016 meta-analysis sleep × inflammation"
+    doi: "https://doi.org/10.1016/j.biopsych.2015.05.014"
+    year: 2016
+    reported_units: "log(CRP) per hour sleep (self-report)"
+    conversion_note: "U-shaped; linear near 7h anchor; +30 min = +0.5h; self-report attenuation factor 0.7 applied"
+    citation_status: needs_verification
+    notes: "Self-report sleep is noisier than accelerometer; variance inflated 3.0 instead of default 2.0"
+    transportability_inflation: 3.0
+
+  - action: sleep_duration
+    outcome: resting_hr
+    cohort: __all__
+    mean: -0.3           # bpm per +30 min sleep
+    se: 0.08
+    n: 103000
+    source: "Jefferis 2019 UKB accelerometer"
+    doi: "https://doi.org/10.1136/bjsports-2018-100237"
+    year: 2019
+    reported_units: "bpm per hour accelerometer-sleep"
+    conversion_note: "+30 min = 0.5 × reported per-hour slope"
+    citation_status: needs_verification
+
+  - action: steps
+    outcome: resting_hr
+    cohort: __all__
+    mean: -0.6           # bpm per +2000 steps/day
+    se: 0.10
+    n: 103000
+    source: "Jefferis 2019 UKB accelerometer"
+    doi: "https://doi.org/10.1136/bjsports-2018-100237"
+    year: 2019
+    reported_units: "bpm per 1 SD daily steps"
+    conversion_note: "SD ≈ 4000 steps; Serif step = 2000 → ×0.5"
+    citation_status: needs_verification
+
+  # ————— Diet × hormones —————
+
+  - action: dietary_protein
+    outcome: testosterone_smoothed
+    cohort: __all__
+    mean: 1.5            # ng/dL per +20 g protein/day
+    se: 0.8
+    n: 3200
+    source: "Whittaker 2023 meta-analysis protein × testosterone"
+    doi: "https://doi.org/10.1016/j.jsbmb.2023.106344"
+    year: 2023
+    reported_units: "nmol/L testosterone per 10 g protein/day"
+    conversion_note: "+20 g = 2× reported; nmol/L × 28.85 → ng/dL"
+    citation_status: needs_verification
+    notes: "Meta FFQ input; measurement error attenuates slope. Variance inflated 3.0"
+    transportability_inflation: 3.0
+
+  - action: dietary_protein
+    outcome: shbg_smoothed
+    cohort: __all__
+    mean: -0.8           # nmol/L per +20 g protein/day
+    se: 0.3
+    n: 4100
+    source: "Allen 2002 EPIC-Oxford protein × SHBG"
+    doi: "https://doi.org/10.1038/sj.bjc.6600159"
+    year: 2002
+    reported_units: "nmol/L SHBG per 10 g protein/day"
+    conversion_note: "+20 g = 2× reported"
+    citation_status: needs_verification
+    transportability_inflation: 3.0
+
+  # ————— Zone2 / activity × VO2 peak —————
+
+  - action: zone2_volume
+    outcome: vo2_peak_smoothed
+    cohort: __all__
+    mean: 0.15           # mL/kg/min per +60 min/month zone2
+    se: 0.05
+    n: 95000
+    source: "Ross 2016 AHA zone2 × CRF; UKB ergometer outputs"
+    doi: "https://doi.org/10.1161/CIR.0000000000000461"
+    year: 2016
+    reported_units: "MET per 10 min/day aerobic"
+    conversion_note: "1 MET ≈ 3.5 mL/kg/min; +60 min/month ≈ +2 min/day"
+    citation_status: needs_verification
+    notes: "Cross-sectional in UKB; longitudinal meta gives steeper slope"

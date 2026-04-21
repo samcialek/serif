@@ -201,7 +201,7 @@ function friendlyName(nodeId: string): string {
 
 // ─── Tradeoff detection ────────────────────────────────────────────
 
-function detectTradeoffs(
+export function detectTradeoffs(
   effects: Map<string, NodeEffect>,
   interventionNames: string[]
 ): Tradeoff[] {
@@ -256,7 +256,7 @@ function detectTradeoffs(
 
 // ─── Category summaries ────────────────────────────────────────────
 
-function buildCategorySummaries(
+export function buildCategorySummaries(
   effects: Map<string, NodeEffect>
 ): Record<MechanismCategory, CategorySummary> {
   const categories: MechanismCategory[] = ['metabolic', 'cardio', 'recovery', 'sleep']

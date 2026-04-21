@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { PageLayout } from '@/components/layout'
 import { Tabs, TabList, TabTrigger, TabContent } from '@/components/common/Tabs'
 import { DataValueSummary, MarginalValuePanel, CurrentSourcesPanel } from '@/components/dataValue'
+import { IntegrationsPanel } from '@/components/integration/IntegrationsPanel'
 import { useDataValue } from '@/hooks/useDataValue'
 import { cn } from '@/utils/classNames'
 import type { MechanismTestability } from '@/data/dataValue/types'
@@ -140,6 +141,7 @@ export function DataValueView() {
           <TabTrigger value="connected">Connected Devices</TabTrigger>
           <TabTrigger value="opportunities">Device Opportunities</TabTrigger>
           <TabTrigger value="coverage">Edge Coverage Map</TabTrigger>
+          <TabTrigger value="integrations">Integrations</TabTrigger>
         </TabList>
 
         <TabContent value="connected">
@@ -172,6 +174,16 @@ export function DataValueView() {
               testableEdges={testableEdges}
               untestableEdges={untestableEdges}
             />
+          </motion.div>
+        </TabContent>
+
+        <TabContent value="integrations">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <IntegrationsPanel />
           </motion.div>
         </TabContent>
       </Tabs>
