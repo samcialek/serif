@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  base: '/',
+  // Subpath for GitHub Pages project-page hosting (samcialek.github.io/serif/).
+  // Switch to '/' if/when a custom domain is attached.
+  base: '/serif/',
   plugins: [react()],
   resolve: {
     alias: {
