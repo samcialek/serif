@@ -53,7 +53,7 @@ import type {
 import type { MCFullCounterfactualState, MCNodeEffect } from '@/data/scm/bartMonteCarlo'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
-import { formatOutcomeValue } from '@/utils/rounding'
+import { formatOutcomeValue, formatClockTime } from '@/utils/rounding'
 
 // ─── Manipulable DAG nodes ──────────────────────────────────────────
 
@@ -77,12 +77,21 @@ const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'active_energy', label: 'Active Energy', unit: 'kcal/day', step: 50, defaultValue: 600 },
   { id: 'dietary_protein', label: 'Dietary Protein', unit: 'g/day', step: 5, defaultValue: 100 },
   { id: 'dietary_energy', label: 'Dietary Energy', unit: 'kcal/day', step: 100, defaultValue: 2500 },
-  { id: 'bedtime', label: 'Bedtime (24h)', unit: 'hr', step: 0.25, defaultValue: 22.5 },
+  { id: 'bedtime', label: 'Bedtime', unit: 'hr', step: 0.25, defaultValue: 22.5 },
 ]
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-function rangeFor(currentValue: number, step: number): { min: number; max: number } {
+// Bedtime is on a clock axis: 20 = 8pm, 24 = midnight, 28 = 4am (next day).
+// Participant data already stores post-midnight bedtimes as 24+ offsets, so
+// no wrap conversion is needed at the SCM boundary.
+const BEDTIME_MIN = 20
+const BEDTIME_MAX = 28
+
+function rangeFor(nodeId: string, currentValue: number, step: number): { min: number; max: number } {
+  if (nodeId === 'bedtime') {
+    return { min: BEDTIME_MIN, max: BEDTIME_MAX }
+  }
   const base = Math.max(currentValue, step * 4)
   const lower = Math.max(0, base * 0.5)
   const upper = base * 1.5
@@ -96,6 +105,11 @@ function formatValue(value: number, unit?: string): string {
   const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2
   const rounded = value.toFixed(digits)
   return unit ? `${rounded} ${unit}` : rounded
+}
+
+function formatNodeValue(value: number, node: { id: string; unit: string }): string {
+  if (node.id === 'bedtime') return formatClockTime(value)
+  return formatValue(value, node.unit)
 }
 
 // Natural-unit formatter for an outcome-node change. SCM node IDs carry
@@ -263,7 +277,7 @@ function FactualPanel({ currentValues }: FactualPanelProps) {
                 {n.label}
               </div>
               <div className="text-sm font-medium text-slate-800">
-                {formatValue(currentValues[n.id], n.unit)}
+                {formatNodeValue(currentValues[n.id], n)}
               </div>
             </div>
           ))}
@@ -340,8 +354,9 @@ function MultiInterventionPanel({
             const proposed = proposedValues[node.id] ?? currentValue
             const delta = proposed - currentValue
             const pct = currentValue !== 0 ? (delta / Math.abs(currentValue)) * 100 : 0
-            const range = rangeFor(currentValue, node.step)
+            const range = rangeFor(node.id, currentValue, node.step)
             const changed = Math.abs(delta) > 1e-9
+            const isBedtime = node.id === 'bedtime'
             return (
               <div
                 key={node.id}
@@ -363,12 +378,12 @@ function MultiInterventionPanel({
                   </div>
                   <div className="text-right flex-shrink-0">
                     <span className="text-[11px] text-slate-500">
-                      {formatValue(currentValue, node.unit)} →{' '}
+                      {formatNodeValue(currentValue, node)} →{' '}
                     </span>
                     <span className="text-xs font-medium text-slate-800 tabular-nums">
-                      {formatValue(proposed, node.unit)}
+                      {formatNodeValue(proposed, node)}
                     </span>
-                    {changed && (
+                    {changed && !isBedtime && (
                       <span
                         className={cn(
                           'ml-1.5 text-[10px] tabular-nums',
@@ -398,8 +413,8 @@ function MultiInterventionPanel({
                   onChange={(v) => onProposedChange(node.id, v)}
                 />
                 <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
-                  <span>{range.min}</span>
-                  <span>{range.max}</span>
+                  <span>{formatNodeValue(range.min, node)}</span>
+                  <span>{formatNodeValue(range.max, node)}</span>
                 </div>
               </div>
             )
