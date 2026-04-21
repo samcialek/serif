@@ -17,7 +17,10 @@ silently kill reasonable insights):
     marginal:      cv < 0.10  AND  range_fraction < 0.4
     ok:            otherwise
 
-Where `cv = std / |mean|` and `range_fraction = (max - min) / |mean|`. Both
+Where `cv = std / |mean - offset|` and `range_fraction = range / |mean - offset|`.
+`offset` is 0 for all actions except shifted-clock units (bedtime_hr lives
+on a 20-25h scale, so offset=20h anchors the denominator near the actual
+behavioural window — see `_DENOMINATOR_OFFSET`). Both cv and range_fraction
 must fail for a flag to fire: a series with tiny cv but wide range (e.g.,
 heavy-tailed occasional spikes) still gives the engine something to fit.
 
@@ -44,15 +47,16 @@ INSUFFICIENT_RANGE_FRAC = 0.20
 MARGINAL_CV = 0.10
 MARGINAL_RANGE_FRAC = 0.40
 
-# Per-action absolute-std thresholds override the cv/range_fraction rule
-# when an action has a shifted-clock or otherwise scale-defective unit —
-# cv and range_fraction are both mean-normalized and break down when the
-# unit's zero is offset from the measurement window (e.g., bedtime_hr on
-# a 21-23h scale gives cv ≈ 0.03 even when the participant's bedtime
-# swings by an hour). Tuple is (insufficient_std, marginal_std): std <
-# insufficient_std -> 'insufficient'; < marginal_std -> 'marginal'.
-_ABSOLUTE_STD_OVERRIDE: dict[str, tuple[float, float]] = {
-    "bedtime": (0.15, 0.30),  # hours; ±9 min / ±18 min of swing
+# Per-action denominator offsets applied before cv / range_fraction
+# are computed. cv = std / |mean - offset|. Used for shifted-clock
+# units where the measurement zero is far from the window being observed:
+# bedtime_hr lives on a 20-25h scale so its raw mean (~22.4) inflates
+# the cv denominator by ~10×, making even a ±1h swing look like cv≈0.02
+# and tripping the 'insufficient' flag for every participant. Anchoring
+# at 20h gives a mean-post-offset of ~2.4, cv≈0.18 — which reflects the
+# actual behavioural variation the causal fit depends on.
+_DENOMINATOR_OFFSET: dict[str, float] = {
+    "bedtime": 20.0,  # hours; bedtime_hr observed in [20, 25]
 }
 
 
@@ -113,11 +117,11 @@ def action_daily_series(action: str, daily_behavior: pd.DataFrame) -> np.ndarray
 def compute_positivity(series: Iterable[float], action: str | None = None) -> dict:
     """Positivity metrics + flag for a single participant/action series.
 
-    If `action` is in `_ABSOLUTE_STD_OVERRIDE`, the flag is assigned from
-    the raw std against the action's (insufficient_std, marginal_std)
-    thresholds; the override takes precedence over the cv/range_fraction
-    rule. This handles shifted-clock units (e.g., bedtime_hr) where
-    mean-normalized metrics don't reflect actual behavioral variation.
+    If `action` is in `_DENOMINATOR_OFFSET`, the offset is subtracted from
+    the mean before computing cv and range_fraction. This handles shifted-
+    clock units (e.g., bedtime_hr on a 20-25h scale) where the raw mean
+    inflates the denominator and makes even meaningful variation look
+    tiny. The reported `mean` stays in original units.
 
     Returns a dict suitable for direct JSON export: all floats, all finite
     (NaN/inf replaced with sentinel values so downstream checks never need
@@ -147,12 +151,12 @@ def compute_positivity(series: Iterable[float], action: str | None = None) -> di
     vmax = float(arr.max())
     rng = vmax - vmin
 
-    # cv: std/|mean|. With zero mean, declare cv = 0 iff there's no variation,
-    # else infinite (any variation over a zero mean is unbounded relative to
-    # its own scale). We clamp "infinite" to a large sentinel so the metric
-    # is JSON-serializable — the flag logic only cares whether cv is below
-    # the threshold, and large sentinels always fail that test.
-    denom = abs(mean)
+    # cv: std/|mean - offset|. Offset is 0 for all actions except those in
+    # _DENOMINATOR_OFFSET (shifted-clock units). With near-zero denominator,
+    # declare cv = 0 iff no variation, else a large sentinel so the flag
+    # logic (cv < threshold) always reads "high variation".
+    offset = _DENOMINATOR_OFFSET.get(action, 0.0) if action else 0.0
+    denom = abs(mean - offset)
     if denom < 1e-12:
         cv = 0.0 if std < 1e-12 else 1e6
         range_fraction = 0.0 if rng < 1e-12 else 1e6
@@ -173,20 +177,12 @@ def compute_positivity(series: Iterable[float], action: str | None = None) -> di
     mode_fraction = float(counts.max() / n)
     n_distinct = int(values.size)
 
-    # Flag: override takes precedence for actions with scale-defective units.
-    # Otherwise both cv/range_fraction metrics must trip for the same severity
-    # level. Using AND (not OR) means heavy-tailed series with a narrow centre
-    # still pass, which is what we want — the rare high days are real
-    # identification.
-    if action is not None and action in _ABSOLUTE_STD_OVERRIDE:
-        insuf_std, marg_std = _ABSOLUTE_STD_OVERRIDE[action]
-        if std < insuf_std:
-            flag = "insufficient"
-        elif std < marg_std:
-            flag = "marginal"
-        else:
-            flag = "ok"
-    elif cv < INSUFFICIENT_CV and range_fraction < INSUFFICIENT_RANGE_FRAC:
+    # Flag: both cv/range_fraction metrics must trip for the same severity
+    # level. AND (not OR) means heavy-tailed series with a narrow centre
+    # still pass — the rare high days are real identification. For actions
+    # with _DENOMINATOR_OFFSET, cv and rf are already computed against the
+    # rescaled denominator, so the same thresholds apply uniformly.
+    if cv < INSUFFICIENT_CV and range_fraction < INSUFFICIENT_RANGE_FRAC:
         flag = "insufficient"
     elif cv < MARGINAL_CV and range_fraction < MARGINAL_RANGE_FRAC:
         flag = "marginal"
