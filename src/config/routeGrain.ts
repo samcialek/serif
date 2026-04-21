@@ -25,6 +25,7 @@ export const PATIENT_LEVEL_PATHS: readonly string[] = [
   '/portal',
   '/protocols',
   '/twin',
+  '/exploration',
 ]
 
 export function isPatientScoped(pathname: string): boolean {

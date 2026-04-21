@@ -14,6 +14,7 @@ import {
   DataValueView,
   PortalView,
   TwinView,
+  ExplorationView,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -31,6 +32,7 @@ function App() {
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/twin" element={<TwinView />} />
           <Route path="/protocols" element={<ProtocolsView />} />
+          <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />
           <Route path="/api" element={<ApiView />} />

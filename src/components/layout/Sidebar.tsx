@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Database,
   GitBranch,
+  Compass,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -46,6 +47,7 @@ const navItems: NavItem[] = [
       { to: '/data', icon: Database, label: 'Data', exact: true },
       { to: '/integration', icon: Link2, label: 'Devices' },
       { to: '/insights', icon: Lightbulb, label: 'Insights' },
+      { to: '/exploration', icon: Compass, label: 'Exploration' },
       { to: '/twin', icon: GitBranch, label: 'Twin' },
       { to: '/protocols', icon: ListChecks, label: 'Protocols' },
     ],

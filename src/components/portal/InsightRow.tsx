@@ -17,7 +17,7 @@ import { formatOutcomeValue } from '@/utils/rounding'
 import { shapeFor } from '@/data/scm/doseShapes'
 import { insightTierFor } from '@/utils/insightTier'
 
-const ACTION_LABELS: Record<string, string> = {
+export const ACTION_LABELS: Record<string, string> = {
   active_energy: 'Active energy',
   bedtime: 'Bedtime',
   running_volume: 'Running volume',
@@ -83,7 +83,7 @@ export function feasibleEffectMagnitude(
   return Math.abs(posteriorMean) * ratio
 }
 
-const OUTCOME_LABELS: Record<string, string> = {
+export const OUTCOME_LABELS: Record<string, string> = {
   deep_sleep: 'Deep sleep',
   sleep_quality: 'Sleep quality',
   sleep_efficiency: 'Sleep efficiency',
@@ -120,6 +120,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   uric_acid: 'Uric acid',
   platelets: 'Platelets',
   wbc: 'WBC',
+  nlr: 'NLR',
 }
 
 type BeneficialDir = 'higher' | 'lower' | 'neutral'
