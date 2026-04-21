@@ -1,13 +1,29 @@
 import { useState } from 'react'
+import type { ComponentType, SVGProps } from 'react'
 import {
   AlertCircle,
   ArrowDown,
   ArrowUp,
+  BatteryLow,
+  Bed,
   ChevronRight,
   Clock,
+  Drumstick,
+  Flame,
   FlaskConical,
+  Footprints,
+  HeartPulse,
+  Moon,
+  PersonStanding,
+  Plane,
+  Scale,
+  Timer,
+  TrendingUp,
+  Utensils,
   Watch,
 } from 'lucide-react'
+
+type LucideIcon = ComponentType<SVGProps<SVGSVGElement>>
 import { cn } from '@/utils/classNames'
 import { TierBadge } from './TierBadge'
 import { ResponseCurve } from './ResponseCurve'
@@ -33,6 +49,28 @@ export const ACTION_LABELS: Record<string, string> = {
   acwr: 'Acute:chronic load',
   sleep_debt: 'Sleep debt',
   travel_load: 'Travel load',
+}
+
+// Per-action glyph so rows are scannable at a glance without reading the
+// label. Tinted with the Serif accent (ACTION_ICON_COLOR) so rows read
+// as visual cards, not text blocks — ACTION_ICON_COLOR is applied at
+// the render site via inline style since it isn't a Tailwind token.
+export const ACTION_ICON_COLOR = '#89CCF0'
+
+export const ACTION_ICONS: Record<string, LucideIcon> = {
+  active_energy: Flame,
+  bedtime: Moon,
+  sleep_duration: Bed,
+  sleep_debt: BatteryLow,
+  running_volume: Footprints,
+  steps: PersonStanding,
+  training_load: TrendingUp,
+  training_volume: Timer,
+  zone2_volume: HeartPulse,
+  dietary_protein: Drumstick,
+  dietary_energy: Utensils,
+  acwr: Scale,
+  travel_load: Plane,
 }
 
 // Feasible 4–6 week behaviour-change shift per action. Used by the
@@ -309,8 +347,12 @@ export function InsightRow({
     meta?.unit ? ` ${meta.unit}` : ''
   }`
   const PathwayIcon = pathway === 'biomarker' ? FlaskConical : Watch
+  const ActionIcon = ACTION_ICONS[action]
   const actionLabel = ACTION_LABELS[action] ?? action
   const outcomeLabel = OUTCOME_LABELS[outcome] ?? outcome
+  const horizonTitle = horizon_display
+    ? `Effect measured at ${horizon_display} after a sustained behaviour change`
+    : undefined
 
   const expandedBody = expanded ? (
     <div
@@ -355,7 +397,8 @@ export function InsightRow({
       )}
 
       <p className="text-xs text-slate-500">
-        Horizon {horizon_display ?? '—'} · per-participant dose targeting lives in the Protocols tab.
+        Effect measured at {horizon_display ?? '—'} after a sustained behaviour change ·
+        per-participant dose targeting lives in the Protocols tab.
       </p>
 
       {supporting_data_description && (
@@ -381,6 +424,13 @@ export function InsightRow({
               expanded && 'rotate-90',
             )}
           />
+          {ActionIcon && (
+            <ActionIcon
+              className="w-3.5 h-3.5 flex-shrink-0"
+              style={{ color: ACTION_ICON_COLOR }}
+              aria-hidden
+            />
+          )}
           <span
             className="text-[13px] font-medium text-slate-800 w-32 flex-shrink-0 truncate"
             title={actionLabel}
@@ -413,10 +463,9 @@ export function InsightRow({
             </span>
           )}
           <PathwayIcon
-            className={cn(
-              'w-3 h-3 flex-shrink-0',
-              pathway === 'biomarker' ? 'text-rose-500' : 'text-sky-500',
-            )}
+            className="w-3 h-3 flex-shrink-0"
+            style={{ color: ACTION_ICON_COLOR }}
+            aria-label={pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
           />
           <span className="ml-auto inline-flex items-center gap-1.5 text-[12px] flex-shrink-0 tabular-nums">
             <span className="text-slate-500 font-normal">{doseShiftText}</span>
@@ -448,6 +497,13 @@ export function InsightRow({
             expanded && 'rotate-90',
           )}
         />
+        {ActionIcon && (
+          <ActionIcon
+            className="w-4 h-4 flex-shrink-0"
+            style={{ color: ACTION_ICON_COLOR }}
+            aria-hidden
+          />
+        )}
         {/* Fixed-width action column so arrows align vertically across rows */}
         <span
           className="text-sm font-semibold text-slate-800 w-40 flex-shrink-0 truncate"
@@ -483,16 +539,17 @@ export function InsightRow({
             </span>
           )}
           <PathwayIcon
-            className={cn(
-              'w-3.5 h-3.5 flex-shrink-0',
-              pathway === 'biomarker' ? 'text-rose-500' : 'text-sky-500',
-            )}
+            className="w-3.5 h-3.5 flex-shrink-0"
+            style={{ color: ACTION_ICON_COLOR }}
             aria-label={pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
           />
           {horizon_display && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+            <span
+              className="inline-flex items-center gap-1 text-[10px] text-slate-500 tabular-nums"
+              title={horizonTitle}
+            >
               <Clock className="w-3 h-3" />
-              {horizon_display}
+              at {horizon_display}
             </span>
           )}
         </div>

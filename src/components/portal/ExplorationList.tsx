@@ -21,7 +21,12 @@ import {
   RotateCw,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
-import { ACTION_LABELS, OUTCOME_LABELS } from './InsightRow'
+import {
+  ACTION_ICON_COLOR,
+  ACTION_ICONS,
+  ACTION_LABELS,
+  OUTCOME_LABELS,
+} from './InsightRow'
 import type {
   ExplorationRecommendation,
   ParticipantPortal,
@@ -61,6 +66,21 @@ const KIND_STYLE: Record<string, string> = {
 const KIND_LABEL: Record<string, string> = {
   vary_action: 'Vary action',
   repeat_measurement: 'Repeat draw',
+}
+
+const KIND_TOOLTIP: Record<string, string> = {
+  vary_action:
+    'Change day-to-day behavior on this action so the engine can see how your personal response differs from the cohort.',
+  repeat_measurement:
+    'Schedule another measurement so the engine has more than one personal observation to work with.',
+}
+
+const FLAG_TOOLTIP: Record<string, string> = {
+  insufficient:
+    'Your behavior on this action has been too flat to separate cause from noise. A test needs real variation.',
+  marginal:
+    'Close to enough variation — a test now would help, but more spread would help more.',
+  ok: 'Enough variation already exists; this test is ready to run.',
 }
 
 function lift(rec: ExplorationRecommendation): number {
@@ -113,9 +133,10 @@ export function ExplorationList({ participant }: ExplorationListProps) {
     <div className="space-y-3">
       <p className="text-xs text-slate-500 leading-relaxed">
         Each row is a test the engine can't answer yet, ranked by how much
-        model lift it would buy. "Lift" is the fraction of posterior variance
-        still sitting at the cohort prior — room for personal data to move
-        the answer.
+        a successful test would personalize the answer. The percentage is
+        how much of the engine's answer is still borrowed from the cohort
+        average — the higher it is, the more room your personal data has
+        to move the result.
       </p>
 
       <div className="flex gap-1.5 text-[11px]">
@@ -178,6 +199,7 @@ function FilterChip({
 function ExplorationRowItem({ row }: { row: ExplorationRow }) {
   const [expanded, setExpanded] = useState(false)
   const PathwayIcon = row.pathway === 'biomarker' ? FlaskConical : Watch
+  const ActionIcon = ACTION_ICONS[row.action]
   const liftPct = Math.round(row.lift * 100)
 
   return (
@@ -193,6 +215,13 @@ function ExplorationRowItem({ row }: { row: ExplorationRow }) {
             expanded && 'rotate-90',
           )}
         />
+        {ActionIcon && (
+          <ActionIcon
+            className="w-3.5 h-3.5 flex-shrink-0"
+            style={{ color: ACTION_ICON_COLOR }}
+            aria-hidden
+          />
+        )}
         <span
           className="text-[13px] font-medium text-slate-800 w-32 flex-shrink-0 truncate"
           title={formatAction(row.action)}
@@ -212,6 +241,7 @@ function ExplorationRowItem({ row }: { row: ExplorationRow }) {
             'inline-flex items-center px-1.5 py-0 text-[10px] font-medium border rounded',
             KIND_STYLE[row.kind],
           )}
+          title={KIND_TOOLTIP[row.kind]}
         >
           {KIND_LABEL[row.kind]}
         </span>
@@ -220,18 +250,20 @@ function ExplorationRowItem({ row }: { row: ExplorationRow }) {
             'inline-flex items-center px-1.5 py-0 text-[10px] font-medium border rounded',
             FLAG_STYLE[row.positivity_flag],
           )}
-          title={`Positivity: ${row.positivity_flag}`}
+          title={FLAG_TOOLTIP[row.positivity_flag]}
         >
           {FLAG_LABEL[row.positivity_flag]}
         </span>
         <PathwayIcon
-          className={cn(
-            'w-3 h-3 flex-shrink-0',
-            row.pathway === 'biomarker' ? 'text-rose-500' : 'text-sky-500',
-          )}
+          className="w-3 h-3 flex-shrink-0"
+          style={{ color: ACTION_ICON_COLOR }}
+          aria-label={row.pathway === 'biomarker' ? 'Biomarker' : 'Wearable'}
         />
 
-        <span className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <span
+          className="ml-auto flex items-center gap-2 flex-shrink-0"
+          title={`${liftPct}% of this answer is still the cohort average — that's the room a successful test has to personalize it.`}
+        >
           <span className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <span
               className="block h-full bg-indigo-500 rounded-full"
@@ -261,10 +293,10 @@ function ExplorationRowItem({ row }: { row: ExplorationRow }) {
             </div>
             <div>
               <span className="block text-slate-400 uppercase tracking-wider text-[10px]">
-                Posterior on prior
+                Already personalized
               </span>
               <span className="text-slate-700 tabular-nums">
-                {Math.round(row.prior_contraction * 100)}% contracted
+                {Math.round(row.prior_contraction * 100)}%
               </span>
             </div>
           </div>
