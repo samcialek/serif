@@ -28,6 +28,26 @@ import { insightTierCounts, insightTierFor } from '@/utils/insightTier'
 import type { GateTier, InsightBayesian, Pathway } from '@/data/portal/types'
 import { isLoadAction } from '@/data/portal/types'
 
+// cohort_a/b/c are internal identifiers; surface them as plain English
+// so member profiles don't leak snake_case into the UI.
+const COHORT_LABELS: Record<string, string> = {
+  cohort_a: 'Cohort A',
+  cohort_b: 'Cohort B',
+  cohort_c: 'Cohort C',
+}
+
+function formatMemberMeta(args: {
+  cohort: string | null | undefined
+  age: number | null | undefined
+  isFemale: boolean | null | undefined
+}): string {
+  const parts: string[] = []
+  if (args.cohort) parts.push(COHORT_LABELS[args.cohort] ?? args.cohort)
+  if (args.age != null) parts.push(`${args.age} yrs`)
+  if (args.isFemale != null) parts.push(args.isFemale ? 'F' : 'M')
+  return parts.join(' · ')
+}
+
 const ACTION_ORDER = [
   'bedtime',
   'sleep_duration',
@@ -235,8 +255,11 @@ export function ParticipantDetail() {
                 {displayName}
               </h2>
               <p className="text-sm text-slate-500">
-                {kind === 'named' ? 'Named persona · ' : ''}
-                {cohort}{age != null ? ` · ${age} yrs` : ''}{is_female ? ' · F' : ' · M'}
+                {formatMemberMeta({
+                  cohort,
+                  age: kind === 'named' && persona?.age != null ? persona.age : age,
+                  isFemale: is_female,
+                })}
               </p>
             </div>
           </div>

@@ -11,7 +11,7 @@ export const oronPersona: Persona = {
   name: 'Oron A.',
   avatar: `${import.meta.env.BASE_URL}OrenA.jpeg`,
   persona: 'Triathlete optimizing iron status & endurance performance',
-  age: 43,
+  age: 38,
   archetype: 'The Iron-Depleted Endurance Athlete',
   narrative: 'Elite-level triathlete with exceptional VO2peak (52 ml/min/kg) but critically low iron status threatening performance. 9+ years of GPS workout data reveal training patterns driving iron depletion.',
   daysOfData: 4012, // 2015-02-13 to 2026-02-07 = 4012 days

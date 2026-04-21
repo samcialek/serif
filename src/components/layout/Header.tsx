@@ -8,6 +8,12 @@ import { useSyncStatus, useTimeSinceSync } from '@/hooks/useSyncStatus'
 import { PatientSwitcher, Tooltip } from '@/components/common'
 import { isPatientScoped } from '@/config/routeGrain'
 
+const COHORT_LABELS: Record<string, string> = {
+  cohort_a: 'Cohort A',
+  cohort_b: 'Cohort B',
+  cohort_c: 'Cohort C',
+}
+
 export type HeaderProps = React.HTMLAttributes<HTMLElement>
 
 export const Header = forwardRef<HTMLElement, HeaderProps>(
@@ -35,7 +41,7 @@ export const Header = forwardRef<HTMLElement, HeaderProps>(
 
             {kind === 'pseudonym' && cohort && (
               <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full font-medium text-slate-600 text-xs">
-                {cohort}
+                {COHORT_LABELS[cohort] ?? cohort}
               </span>
             )}
           </div>
