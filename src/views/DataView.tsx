@@ -20,15 +20,15 @@ import { MetricSparkline } from '@/components/clients/MetricSparkline'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useParticipant } from '@/hooks/useParticipant'
 import {
-  oronTimeSeries,
-  oronLabs,
-  oronPersona,
+  caspianTimeSeries,
+  caspianLabs,
+  caspianPersona,
   LAB_METRICS,
   LAB_SUBCATEGORY_ORDER,
   computeStats,
   type TimeSeriesMetric,
   type LabMetricDef,
-} from '@/data/oronRawData'
+} from '@/data/caspianRawData'
 // LabResult type available from @/types if needed
 
 // ============================================================================
@@ -64,11 +64,11 @@ const CATEGORY_TO_TS: Record<string, TimeSeriesMetric['category']> = {
 // Map heart category to both 'heart' and 'hrv' time series categories
 function getMetricsForCategory(catId: CategoryId): TimeSeriesMetric[] {
   if (catId === 'heart') {
-    return oronTimeSeries.filter((m) => m.category === 'heart' || m.category === 'hrv')
+    return caspianTimeSeries.filter((m) => m.category === 'heart' || m.category === 'hrv')
   }
   const tsCat = CATEGORY_TO_TS[catId]
   if (!tsCat) return []
-  return oronTimeSeries.filter((m) => m.category === tsCat)
+  return caspianTimeSeries.filter((m) => m.category === tsCat)
 }
 
 // ============================================================================
@@ -89,7 +89,7 @@ function CategorySidebar({
     sleep: '',
     activity: '',
     heart: '',
-    labs: oronLabs[0]?.date ?? '',
+    labs: caspianLabs[0]?.date ?? '',
     body: '',
   }
 
@@ -239,8 +239,8 @@ function StatPill({
 // ============================================================================
 
 function LabBiomarkerCard({ def }: { def: LabMetricDef }) {
-  // Gather all values from oronLabs for this key, chronologically
-  const draws = oronLabs
+  // Gather all values from caspianLabs for this key, chronologically
+  const draws = caspianLabs
     .filter((lab) => lab[def.key] != null)
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((lab) => ({ date: lab.date, value: lab[def.key] as number }))
@@ -426,7 +426,7 @@ function ReferenceRangeBar({
 // ============================================================================
 
 function OverviewSection() {
-  const cm = oronPersona.currentMetrics
+  const cm = caspianPersona.currentMetrics
   return (
     <div>
       {/* Summary MetricCards */}
@@ -496,7 +496,7 @@ function DataCoverageCadenceCard() {
           <div>
             <h3 className="text-lg font-semibold">Data Coverage & Cadence</h3>
             <p className="text-sm text-slate-300">
-              Temporal coverage of Oron's connected data sources — 4,000+ days across 7 streams
+              Temporal coverage of Caspian's connected data sources — 4,000+ days across 7 streams
             </p>
           </div>
         </div>
@@ -559,7 +559,7 @@ function LabBiomarkersSection() {
         const metricsInGroup = LAB_METRICS.filter((m) => m.subcategory === subcat.key)
         // Only show groups that have data
         const metricsWithData = metricsInGroup.filter((m) =>
-          oronLabs.some((lab) => lab[m.key] != null)
+          caspianLabs.some((lab) => lab[m.key] != null)
         )
         if (metricsWithData.length === 0) return null
 
@@ -577,7 +577,7 @@ function LabBiomarkersSection() {
 
       {/* Last draw info */}
       <div className="mt-4 px-1 text-[10px] text-slate-400">
-        Last lab draw: {oronLabs[0]?.date ?? 'N/A'} | {oronPersona.labDraws} total draws | Source:
+        Last lab draw: {caspianLabs[0]?.date ?? 'N/A'} | {caspianPersona.labDraws} total draws | Source:
         Quest Labs
       </div>
     </div>
@@ -588,13 +588,13 @@ function LabBiomarkersSection() {
 // MAIN VIEW
 // ============================================================================
 
-function OronDataView() {
+function CaspianDataView() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>('overview')
   const activeDef = CATEGORIES.find((c) => c.id === activeCategory)!
 
   return (
     <PageLayout
-      title="Oron's Raw Data"
+      title="Caspian's Raw Data"
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -703,7 +703,7 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 
 export function DataView() {
   const { namedPersonaId, displayName } = useActiveParticipant()
-  if (namedPersonaId === 'oron') return <OronDataView />
+  if (namedPersonaId === 'caspian') return <CaspianDataView />
   return <SyntheticDataPlaceholder displayName={displayName} />
 }
 

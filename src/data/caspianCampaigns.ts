@@ -1,5 +1,5 @@
 // ============================================================================
-// LOAD LEVERS & CAMPAIGNS — Prescriptive multi-week plans for Oron's loads
+// LOAD LEVERS & CAMPAIGNS — Prescriptive multi-week plans for Caspian's loads
 // ============================================================================
 //
 // Architecture: Campaigns are PEER concepts alongside DerivedProtocols.
@@ -187,11 +187,11 @@ export const allLoadLevers: Record<string, LoadLever[]> = {
 // CAMPAIGNS — Multi-week recovery plans
 // ============================================================================
 
-export const oronCampaigns: Campaign[] = [
+export const caspianCampaigns: Campaign[] = [
   // ── Iron Recovery Campaign ── 12 weeks, 3 phases
   {
     id: 'campaign-iron-recovery',
-    personaId: 'oron',
+    personaId: 'caspian',
     loadId: 'iron-depletion',
     name: 'Iron Recovery',
     status: 'active',
@@ -354,14 +354,14 @@ export const oronCampaigns: Campaign[] = [
     ],
     confidence: 'high',
     reasoning:
-      'Iron bisglycinate at 25 mg/day with vitamin C has shown 0.5% TSAT/week improvement in athletes (Stoffel et al. 2020). Combined with running volume reduction to limit foot-strike hemolysis, trajectory projects TSAT from 9% to 22% over 12 weeks. Confidence is high due to well-established supplementation evidence and Oron\'s rising ferritin trend (24 → 46 ng/mL over past year).',
-    sourceInsightIds: ['oron_insight_1', 'oron_insight_12'],
+      'Iron bisglycinate at 25 mg/day with vitamin C has shown 0.5% TSAT/week improvement in athletes (Stoffel et al. 2020). Combined with running volume reduction to limit foot-strike hemolysis, trajectory projects TSAT from 9% to 22% over 12 weeks. Confidence is high due to well-established supplementation evidence and Caspian\'s rising ferritin trend (24 → 46 ng/mL over past year).',
+    sourceInsightIds: ['caspian_insight_1', 'caspian_insight_12'],
   },
 
   // ── Training Ramp-Up Campaign ── 4 weeks, 2 phases
   {
     id: 'campaign-training-ramp',
-    personaId: 'oron',
+    personaId: 'caspian',
     loadId: 'training-load',
     name: 'Training Ramp-Up',
     status: 'active',
@@ -460,13 +460,13 @@ export const oronCampaigns: Campaign[] = [
     confidence: 'high',
     reasoning:
       'ACWR at 0.69 indicates under-training relative to habitual load. Gradual 10%/week volume increase is the established safe ramp rate (Gabbett 2016). With current CTL at 11.2, adding 3 easy sessions/week moves ACWR toward 0.85 within 2 weeks. Adding a moderate session in week 3-4 should bring ACWR to 1.0. NLR insight caps upper bound at 1.2.',
-    sourceInsightIds: ['oron_insight_10', 'oron_insight_40'],
+    sourceInsightIds: ['caspian_insight_10', 'caspian_insight_40'],
   },
 
   // ── Omega-3 Rebalance Campaign ── 8 weeks, 2 phases
   {
     id: 'campaign-omega3-rebalance',
-    personaId: 'oron',
+    personaId: 'caspian',
     loadId: 'omega3-status',
     name: 'Omega-3 Rebalance',
     status: 'planned',
@@ -568,5 +568,5 @@ export const oronCampaigns: Campaign[] = [
 
 // Helper: get all campaigns for a persona
 export function getCampaignsForLoad(loadId: string): Campaign[] {
-  return oronCampaigns.filter(c => c.loadId === loadId)
+  return caspianCampaigns.filter(c => c.loadId === loadId)
 }

@@ -120,7 +120,7 @@ export function buildDailyProtocol(
   const isInflamed = (regimes.inflammation_state ?? 0) >= 0.3
   const isIronRisk = (regimes.iron_deficiency_state ?? 0) >= 0.2
 
-  // Oron's cohort-level iron panel shows sensitivity to running_volume even
+  // Caspian's cohort-level iron panel shows sensitivity to running_volume even
   // when the regime flag is quiet; fold that in by treating zone2/running days
   // as iron-support days too.
   const session = SESSION_PRESETS[schedule.session]

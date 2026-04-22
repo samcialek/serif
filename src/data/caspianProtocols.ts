@@ -1,5 +1,5 @@
 // ============================================================================
-// DERIVED PROTOCOLS — Synthesized from Oron's 20 Bayesian Insights
+// DERIVED PROTOCOLS — Synthesized from Caspian's 20 Bayesian Insights
 // ============================================================================
 //
 // Architecture: Protocols are DOWNSTREAM of insights. Each protocol:
@@ -7,7 +7,7 @@
 // 2. Resolves conflicts using personalWeight, effectiveN, and evidence tier
 // 3. Outputs actionable recommendations with flexibility ranges
 //
-// All insight IDs reference oronInsights[] from oron.ts
+// All insight IDs reference caspianInsights[] from caspian.ts
 // ============================================================================
 
 // ============================================================================
@@ -98,7 +98,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 7.0, unit: 'hours', range: [6.7, 7.4] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_16',
+        insightId: 'caspian_insight_16',
         title: 'Sleep Duration → Next-Day HRV',
         theta: 6.73,
         thetaUnit: 'hours',
@@ -107,7 +107,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'HRV peaks near 6.7h — more sleep shows diminishing returns for HRV',
       },
       {
-        insightId: 'oron_insight_50',
+        insightId: 'caspian_insight_50',
         title: 'Sleep Duration → Cortisol',
         theta: 7.42,
         thetaUnit: 'hours',
@@ -116,7 +116,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'Cortisol drops sharply below 7.4h — longer sleep stabilizes stress hormones',
       },
       {
-        insightId: 'oron_insight_52',
+        insightId: 'caspian_insight_52',
         title: 'Sleep Duration → Glucose',
         theta: 7.2,
         thetaUnit: 'hours',
@@ -133,25 +133,25 @@ export const derivedProtocols: DerivedProtocol[] = [
         'HRV insight suggests 6.7h optimal, but cortisol and glucose insights suggest 7.2–7.4h. Since HRV has the highest personal data (2,204 days, 100% personal weight) and the other two are primarily population-based (<7% personal), we anchor closer to the HRV threshold while staying conservative for cortisol.',
       insights: [
         {
-          id: 'oron_insight_16',
+          id: 'caspian_insight_16',
           title: 'Sleep Duration → HRV',
           suggests: '6.7 hours',
           weight: 1.0,
         },
         {
-          id: 'oron_insight_50',
+          id: 'caspian_insight_50',
           title: 'Sleep Duration → Cortisol',
           suggests: '7.4 hours',
           weight: 0.06,
         },
         {
-          id: 'oron_insight_52',
+          id: 'caspian_insight_52',
           title: 'Sleep Duration → Glucose',
           suggests: '7.2 hours',
           weight: 0.07,
         },
       ],
-      winner: 'oron_insight_16',
+      winner: 'caspian_insight_16',
       rule: 'Higher personalWeight wins (100% personal vs <7% personal); target shifted conservative toward metabolic safety',
     },
   },
@@ -163,7 +163,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 19.75, unit: 'hour (24h)', range: [17.5, 21.0] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_13',
+        insightId: 'caspian_insight_13',
         title: 'Workout Time → Sleep Efficiency',
         theta: 19.74,
         thetaUnit: 'hour',
@@ -185,7 +185,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 0.57, unit: 'jet lag score', range: [0.0, 0.6] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_23',
+        insightId: 'caspian_insight_23',
         title: 'Travel Load → Sleep Efficiency',
         theta: 0.57,
         thetaUnit: 'jet lag score',
@@ -195,7 +195,7 @@ export const derivedProtocols: DerivedProtocol[] = [
           'Sleep efficiency plummets (-29.5%/unit) above 0.6 jet lag score',
       },
       {
-        insightId: 'oron_insight_62',
+        insightId: 'caspian_insight_62',
         title: 'Travel Load → Deep Sleep',
         theta: 0.57,
         thetaUnit: 'jet lag score',
@@ -219,7 +219,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 25.3, unit: 'km/week', range: [15, 35] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_22',
+        insightId: 'caspian_insight_22',
         title: 'Weekly Volume → HRV Baseline',
         theta: 25.31,
         thetaUnit: 'km/week',
@@ -229,7 +229,7 @@ export const derivedProtocols: DerivedProtocol[] = [
           'HRV improves up to 25.3 km/week, then plateaus — beyond this, diminishing returns',
       },
       {
-        insightId: 'oron_insight_1',
+        insightId: 'caspian_insight_1',
         title: 'Running Volume → Iron',
         theta: 177.17,
         thetaUnit: 'km/month',
@@ -244,22 +244,22 @@ export const derivedProtocols: DerivedProtocol[] = [
       'HRV data strongly supports 25 km/week as optimal (2,401 days personal data). Iron insight warns against exceeding 44 km/week. Current iron at 37 mcg/dL (critically low) means staying at 25 km/week protects both HRV and iron stores.',
     conflictResolution: {
       description:
-        'HRV peaks at 25 km/week, while iron depletion accelerates above 44 km/week. These are complementary — the HRV-optimal volume is safely below the iron danger zone. But given Oron\'s critical iron status (37 mcg/dL), the protocol caps volume at the HRV threshold rather than exploring higher.',
+        'HRV peaks at 25 km/week, while iron depletion accelerates above 44 km/week. These are complementary — the HRV-optimal volume is safely below the iron danger zone. But given Caspian\'s critical iron status (37 mcg/dL), the protocol caps volume at the HRV threshold rather than exploring higher.',
       insights: [
         {
-          id: 'oron_insight_22',
+          id: 'caspian_insight_22',
           title: 'Weekly Volume → HRV',
           suggests: '≤25 km/week',
           weight: 1.0,
         },
         {
-          id: 'oron_insight_1',
+          id: 'caspian_insight_1',
           title: 'Running Volume → Iron',
           suggests: '<44 km/week',
           weight: 0.06,
         },
       ],
-      winner: 'oron_insight_22',
+      winner: 'caspian_insight_22',
       rule: 'Complementary constraints — both satisfied by targeting 25 km/week; iron-critical status makes lower bound preferred',
     },
   },
@@ -271,7 +271,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 1.0, unit: 'ratio', range: [0.8, 1.2] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_40',
+        insightId: 'caspian_insight_40',
         title: 'ACWR → Neutrophil-Lymphocyte Ratio',
         theta: 1.19,
         thetaUnit: 'ratio',
@@ -281,7 +281,7 @@ export const derivedProtocols: DerivedProtocol[] = [
           'NLR spikes (+0.15/0.1 ACWR) above 1.2 — immune suppression risk',
       },
       {
-        insightId: 'oron_insight_10',
+        insightId: 'caspian_insight_10',
         title: 'ACWR → Resting HR Trend',
         theta: 1.8,
         thetaUnit: 'ratio',
@@ -299,19 +299,19 @@ export const derivedProtocols: DerivedProtocol[] = [
         'Resting HR insight suggests ACWR up to 1.8 is beneficial for cardiovascular fitness, but NLR insight shows immune suppression starts at 1.2. The immune constraint takes priority as a safety guardrail.',
       insights: [
         {
-          id: 'oron_insight_10',
+          id: 'caspian_insight_10',
           title: 'ACWR → Resting HR',
           suggests: 'Up to 1.8 ratio',
           weight: 1.0,
         },
         {
-          id: 'oron_insight_40',
+          id: 'caspian_insight_40',
           title: 'ACWR → NLR',
           suggests: 'Stay below 1.2 ratio',
           weight: 0.27,
         },
       ],
-      winner: 'oron_insight_40',
+      winner: 'caspian_insight_40',
       rule: 'Safety constraint wins — immune suppression is a health risk even if cardiovascular adaptation continues; stricter constraint prioritized',
     },
   },
@@ -323,7 +323,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 200, unit: 'min/month', range: [150, 260] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_8',
+        insightId: 'caspian_insight_8',
         title: 'Zone 2 Volume → LDL',
         theta: 201.76,
         thetaUnit: 'min/month',
@@ -332,7 +332,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'LDL drops below 200 min/month; rebounds above it',
       },
       {
-        insightId: 'oron_insight_34',
+        insightId: 'caspian_insight_34',
         title: 'Zone 2 Volume → Non-HDL Cholesterol',
         theta: 202.83,
         thetaUnit: 'min/month',
@@ -341,7 +341,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'Non-HDL drops optimally near 200 min/month',
       },
       {
-        insightId: 'oron_insight_35',
+        insightId: 'caspian_insight_35',
         title: 'Zone 2 Volume → Total Cholesterol',
         theta: 152.11,
         thetaUnit: 'min/month',
@@ -350,7 +350,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'Total cholesterol improves up to ~150 min/month',
       },
       {
-        insightId: 'oron_insight_6',
+        insightId: 'caspian_insight_6',
         title: 'Zone 2 Volume → Triglycerides',
         theta: 208.7,
         thetaUnit: 'min/month',
@@ -371,7 +371,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 80, unit: 'TRIMP', range: [0, 80] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_18',
+        insightId: 'caspian_insight_18',
         title: 'Daily Training Load → Next-Day HRV',
         theta: 80.2,
         thetaUnit: 'TRIMP',
@@ -392,7 +392,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 500, unit: 'kcal', range: [400, 900] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_21',
+        insightId: 'caspian_insight_21',
         title: 'Active Energy → Deep Sleep',
         theta: 504.43,
         thetaUnit: 'kcal',
@@ -415,7 +415,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 50, unit: '% intensity reduction', range: [40, 60] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_23',
+        insightId: 'caspian_insight_23',
         title: 'Travel Load → Sleep Efficiency',
         theta: 0.57,
         thetaUnit: 'jet lag score',
@@ -424,7 +424,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'Sleep efficiency drops 29%/unit above threshold',
       },
       {
-        insightId: 'oron_insight_62',
+        insightId: 'caspian_insight_62',
         title: 'Travel Load → Deep Sleep',
         theta: 0.57,
         thetaUnit: 'jet lag score',
@@ -433,7 +433,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'Deep sleep drops 60 min/unit above threshold',
       },
       {
-        insightId: 'oron_insight_61',
+        insightId: 'caspian_insight_61',
         title: 'Travel Load → NLR',
         theta: 0.53,
         thetaUnit: 'jet lag score',
@@ -454,7 +454,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 35, unit: 'km/week', range: [25, 40] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_1',
+        insightId: 'caspian_insight_1',
         title: 'Running Volume → Iron',
         theta: 177.17,
         thetaUnit: 'km/month',
@@ -463,7 +463,7 @@ export const derivedProtocols: DerivedProtocol[] = [
         contribution: 'Iron depletion accelerates above 177 km/month (~44 km/week)',
       },
       {
-        insightId: 'oron_insight_12',
+        insightId: 'caspian_insight_12',
         title: 'Ferritin → VO2peak',
         theta: 35.65,
         thetaUnit: 'ng/mL',
@@ -484,7 +484,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 50, unit: 'ng/mL ferritin', range: [35, 150] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_12',
+        insightId: 'caspian_insight_12',
         title: 'Ferritin → VO2peak',
         theta: 35.65,
         thetaUnit: 'ng/mL',
@@ -507,7 +507,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 1272, unit: 'min/month', range: [1000, 1500] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_36',
+        insightId: 'caspian_insight_36',
         title: 'Training Hours → Glucose',
         theta: 1272.1,
         thetaUnit: 'min/month',
@@ -528,7 +528,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 7.2, unit: 'hours sleep', range: [6.8, 7.5] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_52',
+        insightId: 'caspian_insight_52',
         title: 'Sleep Duration → Glucose',
         theta: 7.2,
         thetaUnit: 'hours',
@@ -549,7 +549,7 @@ export const derivedProtocols: DerivedProtocol[] = [
     target: { value: 13000, unit: 'steps/day', range: [10000, 15000] },
     sourceInsights: [
       {
-        insightId: 'oron_insight_27',
+        insightId: 'caspian_insight_27',
         title: 'Daily Activity → Body Mass',
         theta: 13004.9,
         thetaUnit: 'steps',
@@ -620,13 +620,13 @@ export const weeklyPlan: DailyProtocol[] = [
     ],
     afternoonBlock: [
       { time: '12:00', action: 'Lunch — protein-rich meal', category: 'nutrition' },
-      { time: '14:00', action: 'Caffeine cutoff', category: 'routine', sourceInsightId: 'oron_insight_13', detail: 'Personalized threshold: 14:00' },
+      { time: '14:00', action: 'Caffeine cutoff', category: 'routine', sourceInsightId: 'caspian_insight_13', detail: 'Personalized threshold: 14:00' },
     ],
     eveningBlock: [
       { time: '18:30', action: 'Dinner — salmon or mackerel', category: 'nutrition', detail: 'AA/EPA ratio at 30.9, target <10' },
       { time: '20:00', action: 'Eating window closes', category: 'nutrition' },
       { time: '21:30', action: 'Screen cutoff & wind-down', category: 'sleep' },
-      { time: '22:30', action: 'Bedtime', category: 'sleep', sourceInsightId: 'oron_insight_16', detail: 'Target 7.0h sleep (range 6.7–7.4h)' },
+      { time: '22:30', action: 'Bedtime', category: 'sleep', sourceInsightId: 'caspian_insight_16', detail: 'Target 7.0h sleep (range 6.7–7.4h)' },
     ],
     campaignActions: [
       {
@@ -679,7 +679,7 @@ export const weeklyPlan: DailyProtocol[] = [
     morningBlock: [
       { time: '06:00', action: 'Wake', category: 'routine' },
       { time: '06:05', action: 'Iron supplement + vitamin C', category: 'nutrition' },
-      { time: '06:15', action: 'Zone 2 Run — 50 min', category: 'training', sourceInsightId: 'oron_insight_8', detail: 'Target 200 min/month Zone 2 for lipids' },
+      { time: '06:15', action: 'Zone 2 Run — 50 min', category: 'training', sourceInsightId: 'caspian_insight_8', detail: 'Target 200 min/month Zone 2 for lipids' },
       { time: '07:10', action: 'Post-run nutrition', category: 'nutrition' },
     ],
     afternoonBlock: [
@@ -690,7 +690,7 @@ export const weeklyPlan: DailyProtocol[] = [
       { time: '19:00', action: 'Dinner', category: 'nutrition' },
       { time: '20:00', action: 'Eating window closes', category: 'nutrition' },
       { time: '21:30', action: 'Wind-down begins', category: 'sleep' },
-      { time: '22:30', action: 'Bedtime', category: 'sleep', sourceInsightId: 'oron_insight_16' },
+      { time: '22:30', action: 'Bedtime', category: 'sleep', sourceInsightId: 'caspian_insight_16' },
     ],
     campaignActions: [
       {
@@ -747,7 +747,7 @@ export const weeklyPlan: DailyProtocol[] = [
     morningBlock: [
       { time: '06:00', action: 'Wake', category: 'routine' },
       { time: '06:05', action: 'Iron supplement + vitamin C', category: 'nutrition' },
-      { time: '06:15', action: 'Zone 2 Bike — 60 min', category: 'training', sourceInsightId: 'oron_insight_8', detail: 'Non-impact aerobic — iron-sparing' },
+      { time: '06:15', action: 'Zone 2 Bike — 60 min', category: 'training', sourceInsightId: 'caspian_insight_8', detail: 'Non-impact aerobic — iron-sparing' },
       { time: '07:20', action: 'Post-ride nutrition', category: 'nutrition' },
     ],
     afternoonBlock: [
@@ -832,7 +832,7 @@ export const weeklyPlan: DailyProtocol[] = [
     morningBlock: [
       { time: '05:45', action: 'Wake', category: 'routine' },
       { time: '05:50', action: 'Iron supplement + vitamin C', category: 'nutrition' },
-      { time: '06:00', action: 'Tempo Run — 40 min', category: 'training', sourceInsightId: 'oron_insight_18', detail: 'Keep TRIMP <80 for HRV protection' },
+      { time: '06:00', action: 'Tempo Run — 40 min', category: 'training', sourceInsightId: 'caspian_insight_18', detail: 'Keep TRIMP <80 for HRV protection' },
       { time: '06:45', action: 'Post-run nutrition', category: 'nutrition' },
     ],
     afternoonBlock: [
@@ -948,7 +948,7 @@ export const weeklyPlan: DailyProtocol[] = [
       { time: '06:30', action: 'Wake', category: 'routine' },
       { time: '06:35', action: 'Iron supplement + vitamin C', category: 'nutrition' },
       { time: '06:50', action: 'Light pre-ride snack', category: 'nutrition' },
-      { time: '07:00', action: 'Zone 2 Bike — 75 min', category: 'training', sourceInsightId: 'oron_insight_8', detail: 'Long Zone 2 — iron-sparing, lipid benefit' },
+      { time: '07:00', action: 'Zone 2 Bike — 75 min', category: 'training', sourceInsightId: 'caspian_insight_8', detail: 'Long Zone 2 — iron-sparing, lipid benefit' },
       { time: '08:20', action: 'Post-ride nutrition', category: 'nutrition' },
     ],
     afternoonBlock: [

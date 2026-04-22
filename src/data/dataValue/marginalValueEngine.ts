@@ -21,7 +21,7 @@ import type {
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
-/** Collect all columns currently available from Oron's devices */
+/** Collect all columns currently available from Caspian's devices */
 export function getAvailableColumns(): Set<string> {
   const cols = new Set<string>()
   for (const deviceCols of Object.values(DEVICE_TO_COLUMNS)) {
@@ -276,7 +276,7 @@ export function rankCandidates(
 // ─── Build existing source roster ────────────────────────────────
 
 // Connection health is demo state — in production we'd derive this from the
-// device's last-refreshed timestamp and a per-device freshness SLA. For Oron
+// device's last-refreshed timestamp and a per-device freshness SLA. For Caspian
 // we hand-pick two states: Apple Watch is live, AutoSleep went stale in
 // 2023, GPX is live but a recent uploader bug dropped heart-rate streams.
 const EXISTING_SOURCES_META: Array<{

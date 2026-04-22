@@ -173,10 +173,10 @@ export const LONGEVITY_INSIGHTS: Record<string, LongevityInsight[]> = {
     },
   ],
 
-  // Oron - Endurance Athlete, 43
-  'oron': [
+  // Caspian - Endurance Athlete, 43
+  'caspian': [
     {
-      id: 'oron-longevity-1',
+      id: 'caspian-longevity-1',
       status: 'critical',
       headline: 'Iron stores critically low despite supplementation',
       explanation: 'Ferritin at 18 ng/mL — well below the 50+ target for endurance athletes. Foot-strike hemolysis from high running volume likely outpacing oral iron absorption. EHR shows "normal range" but misses athletic context.',
@@ -184,7 +184,7 @@ export const LONGEVITY_INSIGHTS: Record<string, LongevityInsight[]> = {
       metric: { value: '18', label: 'ng/mL ferritin', trend: 'down' }
     },
     {
-      id: 'oron-longevity-2',
+      id: 'caspian-longevity-2',
       status: 'warning',
       headline: 'Sleep fragmentation blunting testosterone recovery',
       explanation: 'Nights with >2 wake events correlate with 12% lower morning testosterone. Current sleep efficiency 78% — below the 85% threshold for optimal hormonal recovery.',
@@ -192,7 +192,7 @@ export const LONGEVITY_INSIGHTS: Record<string, LongevityInsight[]> = {
       metric: { value: '78%', label: 'sleep efficiency', trend: 'down' }
     },
     {
-      id: 'oron-longevity-3',
+      id: 'caspian-longevity-3',
       status: 'watch',
       headline: 'Travel load elevating inflammatory markers',
       explanation: 'CRP rises 0.4 mg/L within 48h of international travel. Jet lag disrupts circadian cortisol rhythm for 3+ days, compounding training stress.',
@@ -200,7 +200,7 @@ export const LONGEVITY_INSIGHTS: Record<string, LongevityInsight[]> = {
       metric: { value: '+0.4', label: 'mg/L CRP post-travel', trend: 'up' }
     },
     {
-      id: 'oron-longevity-4',
+      id: 'caspian-longevity-4',
       status: 'optimal',
       headline: 'Zone 2 volume driving metabolic efficiency',
       explanation: 'Fat oxidation rate improving — 0.68 g/min at aerobic threshold, up from 0.52 three months ago. Glucose variability tightening on high-volume weeks.',

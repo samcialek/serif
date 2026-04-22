@@ -680,7 +680,7 @@ export interface LabResult {
   b12?: number
   ferritin?: number
 
-  // Extended iron panel (for Oron and similar)
+  // Extended iron panel (for Caspian and similar)
   iron?: number
   tibc?: number
   ironSaturationPct?: number

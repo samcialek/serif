@@ -11,7 +11,7 @@ export function CurrentSourcesPanel({ sources }: CurrentSourcesPanelProps) {
       <div>
         <h3 className="text-sm font-semibold text-slate-800">Connected Data Sources</h3>
         <p className="text-xs text-slate-500 mt-0.5">
-          These are the data sources currently feeding Oron's causal inference engine.
+          These are the data sources currently feeding Caspian's causal inference engine.
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

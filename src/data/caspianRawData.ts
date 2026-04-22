@@ -1,5 +1,5 @@
 import type { LabResult } from '@/types'
-import { oronLabs, oronPersona } from '@/data/personas/oron'
+import { caspianLabs, caspianPersona } from '@/data/personas/caspian'
 
 // ============================================================================
 // TYPES
@@ -286,13 +286,13 @@ function generateTimeSeries(seed: number = 42): TimeSeriesMetric[] {
       data.push({ date: dateStr, value })
     }
 
-    // Anchor the 30d average toward oronPersona.currentMetrics where applicable
+    // Anchor the 30d average toward caspianPersona.currentMetrics where applicable
     const anchorMap: Record<string, number | undefined> = {
-      deep_sleep: oronPersona.currentMetrics.deepSleepMin,
-      rem_sleep: oronPersona.currentMetrics.remSleepMin,
-      resting_hrv: oronPersona.currentMetrics.hrv,
-      resting_hr: oronPersona.currentMetrics.restingHr,
-      weight: oronPersona.currentMetrics.weight,
+      deep_sleep: caspianPersona.currentMetrics.deepSleepMin,
+      rem_sleep: caspianPersona.currentMetrics.remSleepMin,
+      resting_hrv: caspianPersona.currentMetrics.hrv,
+      resting_hr: caspianPersona.currentMetrics.restingHr,
+      weight: caspianPersona.currentMetrics.weight,
     }
 
     const anchor = anchorMap[cfg.id]
@@ -326,7 +326,7 @@ function generateTimeSeries(seed: number = 42): TimeSeriesMetric[] {
 }
 
 // Singleton — generated once at import time
-export const oronTimeSeries: TimeSeriesMetric[] = generateTimeSeries(42)
+export const caspianTimeSeries: TimeSeriesMetric[] = generateTimeSeries(42)
 
 // ============================================================================
 // LAB METRIC DEFINITIONS — 25 biomarkers with clinical reference ranges
@@ -564,7 +564,7 @@ export function computeStats(data: { date: string; value: number }[]) {
 }
 
 // Re-export for convenience
-export { oronLabs, oronPersona }
+export { caspianLabs, caspianPersona }
 
 // ============================================================================
 // LAB SUBCATEGORY ORDER

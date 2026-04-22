@@ -10,7 +10,7 @@
 import { getPersonaById } from '@/data/personas'
 
 export const NAMED_PERSONA_PIDS: Record<number, string> = {
-  1: 'oron',
+  1: 'caspian',
   2: 'rajan',
   3: 'sarah',
   4: 'marcus',
@@ -18,7 +18,7 @@ export const NAMED_PERSONA_PIDS: Record<number, string> = {
 }
 
 export const PERSONA_ID_TO_PID: Record<string, number> = {
-  oron: 1,
+  caspian: 1,
   rajan: 2,
   sarah: 3,
   marcus: 4,

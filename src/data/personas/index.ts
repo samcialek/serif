@@ -39,15 +39,15 @@ import {
 } from './emma'
 
 import {
-  oronPersona,
-  oronInsights,
-  oronMetrics,
-  oronLabs,
-  oronProtocols,
-  oronDailyPlan,
-} from './oron'
+  caspianPersona,
+  caspianInsights,
+  caspianMetrics,
+  caspianLabs,
+  caspianProtocols,
+  caspianDailyPlan,
+} from './caspian'
 
-import { oronCampaigns } from '@/data/oronCampaigns'
+import { caspianCampaigns } from '@/data/caspianCampaigns'
 
 // Export individual personas
 export {
@@ -75,13 +75,13 @@ export {
   emmaLabs,
   emmaProtocols,
   emmaDailyPlan,
-  oronPersona,
-  oronInsights,
-  oronMetrics,
-  oronLabs,
-  oronProtocols,
-  oronDailyPlan,
-  oronCampaigns,
+  caspianPersona,
+  caspianInsights,
+  caspianMetrics,
+  caspianLabs,
+  caspianProtocols,
+  caspianDailyPlan,
+  caspianCampaigns,
 }
 
 // Aggregated exports
@@ -90,7 +90,7 @@ export const personas: Persona[] = [
   sarahPersona,
   marcusPersona,
   emmaPersona,
-  oronPersona,
+  caspianPersona,
 ]
 
 export const allInsights: Insight[] = [
@@ -98,7 +98,7 @@ export const allInsights: Insight[] = [
   ...sarahInsights,
   ...marcusInsights,
   ...emmaInsights,
-  ...oronInsights,
+  ...caspianInsights,
 ]
 
 export const allProtocols: Protocol[] = [
@@ -106,7 +106,7 @@ export const allProtocols: Protocol[] = [
   ...sarahProtocols,
   ...marcusProtocols,
   ...emmaProtocols,
-  ...oronProtocols,
+  ...caspianProtocols,
 ]
 
 // Complete persona data bundles
@@ -143,14 +143,14 @@ export const personaDataMap: Record<string, PersonaData> = {
     protocols: emmaProtocols,
     dailyPlan: emmaDailyPlan,
   },
-  oron: {
-    persona: oronPersona,
-    insights: oronInsights,
-    metrics: oronMetrics,
-    labs: oronLabs,
-    protocols: oronProtocols,
-    dailyPlan: oronDailyPlan,
-    campaigns: oronCampaigns,
+  caspian: {
+    persona: caspianPersona,
+    insights: caspianInsights,
+    metrics: caspianMetrics,
+    labs: caspianLabs,
+    protocols: caspianProtocols,
+    dailyPlan: caspianDailyPlan,
+    campaigns: caspianCampaigns,
   },
 }
 

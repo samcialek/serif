@@ -121,7 +121,7 @@ export interface ObjectiveOutcome {
   groupLabel?: string
 }
 
-// Load-bearing outcomes for Oron — matches the 6 edges we identified:
+// Load-bearing outcomes for Caspian — matches the 6 edges we identified:
 // sleep_quality, hrv_daily, cortisol, glucose, apob + iron-panel composite.
 // Weights reflect tier × mechanistic relevance for a sleep-deprived
 // endurance athlete.

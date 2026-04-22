@@ -1,15 +1,15 @@
 import type { Persona, Insight, DailyMetrics, LabResult, Protocol, DailyPlan } from '@/types'
 
 // ──────────────────────────────────────────────────────────────
-// ORON AFEK — Real Data Persona
-// Triathlete with iron deficiency, excellent VO2peak, 9+ years GPS data
-// Data: Quest Labs (6 draws), Medix CPET, 679 GPX workout routes
+// CASPIAN R. — Demo Persona (anonymized)
+// Synthetic endurance-athlete archetype: iron deficiency, high VO2peak, multi-year GPS data
+// Modeled from real physiology; all PII removed
 // ──────────────────────────────────────────────────────────────
 
-export const oronPersona: Persona = {
-  id: 'oron',
-  name: 'Oron A.',
-  avatar: `${import.meta.env.BASE_URL}OrenA.jpeg`,
+export const caspianPersona: Persona = {
+  id: 'caspian',
+  name: 'Caspian R.',
+  avatar: `${import.meta.env.BASE_URL}CaspianR.jpeg`,
   persona: 'Triathlete optimizing iron status & endurance performance',
   age: 38,
   archetype: 'The Iron-Depleted Endurance Athlete',
@@ -133,13 +133,13 @@ export const oronPersona: Persona = {
 
 // ──────────────────────────────────────────────────────────────
 // INSIGHTS — Computed by BCEL Bayesian Inference Engine
-// Auto-generated from oron_insights.json — do not edit manually
+// Auto-generated from caspian_insights.json — do not edit manually
 // ──────────────────────────────────────────────────────────────
 
-export const oronInsights: Insight[] = [
+export const caspianInsights: Insight[] = [
   {
-    id: 'oron_insight_28',
-    personaId: 'oron',
+    id: 'caspian_insight_28',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Travel Disrupts Sleep Efficiency',
@@ -284,8 +284,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_67',
-    personaId: 'oron',
+    id: 'caspian_insight_67',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Travel Cuts Deep Sleep',
@@ -432,8 +432,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_10',
-    personaId: 'oron',
+    id: 'caspian_insight_10',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'load',
     title: 'Training Spikes Elevate Resting Heart Rate',
@@ -576,8 +576,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_45',
-    personaId: 'oron',
+    id: 'caspian_insight_45',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'marker',
     title: 'Training Spikes Shift Immune Balance',
@@ -717,8 +717,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_60',
-    personaId: 'oron',
+    id: 'caspian_insight_60',
+    personaId: 'caspian',
     category: 'metabolic',
     variableType: 'marker',
     title: 'Omega-3 Status Lowers Inflammation',
@@ -857,8 +857,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_55',
-    personaId: 'oron',
+    id: 'caspian_insight_55',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'marker',
     title: 'Sleep Duration Influences Cortisol',
@@ -1001,8 +1001,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_13',
-    personaId: 'oron',
+    id: 'caspian_insight_13',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Late Workouts Reduce Sleep Efficiency',
@@ -1148,8 +1148,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_66',
-    personaId: 'oron',
+    id: 'caspian_insight_66',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'load',
     title: 'Travel Shifts Immune Balance',
@@ -1289,8 +1289,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_16',
-    personaId: 'oron',
+    id: 'caspian_insight_16',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'outcome',
     title: 'Sleep Duration Boosts Next-Day HRV',
@@ -1433,8 +1433,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_12',
-    personaId: 'oron',
+    id: 'caspian_insight_12',
+    personaId: 'caspian',
     category: 'metabolic',
     variableType: 'marker',
     title: 'Ferritin Supports Aerobic Capacity',
@@ -1576,8 +1576,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_21',
-    personaId: 'oron',
+    id: 'caspian_insight_21',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Active Energy Increases Deep Sleep',
@@ -1722,8 +1722,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_27',
-    personaId: 'oron',
+    id: 'caspian_insight_27',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'load',
     title: 'Weekly Mileage Shapes HRV Baseline',
@@ -1866,8 +1866,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_18',
-    personaId: 'oron',
+    id: 'caspian_insight_18',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'outcome',
     title: 'Training Load Influences Next-Day HRV',
@@ -2011,8 +2011,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_22',
-    personaId: 'oron',
+    id: 'caspian_insight_22',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Training Duration Improves Sleep Efficiency',
@@ -2156,8 +2156,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_26',
-    personaId: 'oron',
+    id: 'caspian_insight_26',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Running Improves Sleep Efficiency',
@@ -2299,8 +2299,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_23',
-    personaId: 'oron',
+    id: 'caspian_insight_23',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Training Duration Increases Deep Sleep',
@@ -2445,8 +2445,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_17',
-    personaId: 'oron',
+    id: 'caspian_insight_17',
+    personaId: 'caspian',
     category: 'recovery',
     variableType: 'outcome',
     title: 'Sleep Debt Raises Resting Heart Rate',
@@ -2586,8 +2586,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_24',
-    personaId: 'oron',
+    id: 'caspian_insight_24',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Training Load Supports Sleep Efficiency',
@@ -2732,8 +2732,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_25',
-    personaId: 'oron',
+    id: 'caspian_insight_25',
+    personaId: 'caspian',
     category: 'sleep',
     variableType: 'outcome',
     title: 'Training Load Drives Deep Sleep',
@@ -2879,8 +2879,8 @@ export const oronInsights: Insight[] = [
   },
 
   {
-    id: 'oron_insight_1',
-    personaId: 'oron',
+    id: 'caspian_insight_1',
+    personaId: 'caspian',
     category: 'metabolic',
     variableType: 'marker',
     title: 'Running Volume Depletes Iron',
@@ -3033,7 +3033,7 @@ export const oronInsights: Insight[] = [
 // ──────────────────────────────────────────────────────────────
 
 // Lab results from actual Quest Labs draws (6 draws, verified against rebuilt 381-record dataset)
-export const oronLabs: LabResult[] = [
+export const caspianLabs: LabResult[] = [
   {
     // Draw 6: 11/22/2025 — most recent, comprehensive panel
     date: '2025-11-22',
@@ -3125,17 +3125,17 @@ export const oronLabs: LabResult[] = [
 
 // Daily metrics: empty for now — all real data flows through the BCEL pipeline insights.
 // The synthetic generator was removed because it produced fake patterns.
-// To populate: run `python -m inference_engine.output.json_to_oron_metrics` (not yet built).
-export const oronMetrics: DailyMetrics[] = []
+// To populate: run `python -m inference_engine.output.json_to_caspian_metrics` (not yet built).
+export const caspianMetrics: DailyMetrics[] = []
 
 // ──────────────────────────────────────────────────────────────
 // PROTOCOLS
 // ──────────────────────────────────────────────────────────────
 
-export const oronProtocols: Protocol[] = [
+export const caspianProtocols: Protocol[] = [
   {
-    id: 'oron-iron-repletion',
-    personaId: 'oron',
+    id: 'caspian-iron-repletion',
+    personaId: 'caspian',
     name: 'Iron Repletion Protocol',
     title: 'Replete Iron Stores While Maintaining Fitness',
     description: 'Reduce running volume temporarily, add iron supplementation, retest in 8 weeks',
@@ -3144,7 +3144,7 @@ export const oronProtocols: Protocol[] = [
     status: 'suggested',
     baseline: { value: 37, unit: 'mcg/dL' },
     actions: [
-      { id: 'reduce-run-volume', label: 'Reduce weekly running to <35 km', category: 'activity', isActive: true, impact: 8, actionType: 'target', linkedInsightId: 'oron-weekly_run_km-iron_total' },
+      { id: 'reduce-run-volume', label: 'Reduce weekly running to <35 km', category: 'activity', isActive: true, impact: 8, actionType: 'target', linkedInsightId: 'caspian-weekly_run_km-iron_total' },
       { id: 'iron-supplement', label: 'Iron supplementation (physician-guided)', category: 'nutrition', isActive: true, impact: 9, actionType: 'target' },
       { id: 'vitamin-c', label: 'Take vitamin C with iron for absorption', category: 'nutrition', isActive: true, impact: 4, actionType: 'target' },
       { id: 'retest-8wk', label: 'Retest iron panel in 8 weeks', category: 'metabolic', isActive: true, impact: 7, actionType: 'target' },
@@ -3164,8 +3164,8 @@ export const oronProtocols: Protocol[] = [
     simulator: { deltas: { iron_total: 25, ferritin: 30, iron_saturation_pct: 12 } },
   },
   {
-    id: 'oron-omega3-optimize',
-    personaId: 'oron',
+    id: 'caspian-omega3-optimize',
+    personaId: 'caspian',
     name: 'Omega-3 Optimization',
     title: 'Optimize Omega-3 Index & Reduce AA/EPA Ratio',
     description: 'Supplement EPA/DHA to improve omega-3 index and reduce inflammatory ratio',
@@ -3191,8 +3191,8 @@ export const oronProtocols: Protocol[] = [
     simulator: { deltas: { aa_epa_ratio: -15, epa: 1.5, dha: 2.0 } },
   },
   {
-    id: 'oron-zone2-maintain',
-    personaId: 'oron',
+    id: 'caspian-zone2-maintain',
+    personaId: 'caspian',
     name: 'Zone 2 Maintenance',
     title: 'Maintain Zone 2 Volume for Lipid Health',
     description: 'Keep Zone 2 training at 150+ min/week for triglycerides and HDL',
@@ -3223,21 +3223,21 @@ export const oronProtocols: Protocol[] = [
 // DAILY PLAN
 // ──────────────────────────────────────────────────────────────
 
-export const oronDailyPlan: DailyPlan = {
-  personaId: 'oron',
+export const caspianDailyPlan: DailyPlan = {
+  personaId: 'caspian',
   date: new Date().toISOString().split('T')[0],
-  greeting: 'Good morning, Oron. Your iron status remains critical at 37 mcg/dL. Today\'s focus: manage training volume while supporting iron repletion.',
+  greeting: 'Good morning, Caspian. Your iron status remains critical at 37 mcg/dL. Today\'s focus: manage training volume while supporting iron repletion.',
   priorities: {
     high: [],
     moderate: [
       {
-        id: 'plan-oron-weekly_run_km-iron_total',
+        id: 'plan-caspian-weekly_run_km-iron_total',
         text: 'Reduce running volume below 40 km/week or supplement iron (consult physician for IV iron given severity)',
         explanation: 'Foot-strike hemolysis destroys red blood cells during high-volume running. Your iron dropped from 63 to 37 mcg/dL (ref: 50-180), which is critically low. At your current weekly volume, you are losing iron faster than oral supplements can replace it.',
         evidenceWeight: '6% personal, 94% population',
       },
       {
-        id: 'plan-oron-weekly_zone2_min-triglycerides',
+        id: 'plan-caspian-weekly_zone2_min-triglycerides',
         text: 'Maintain 146+ min/week of Zone 2 training to sustain low triglycerides',
         explanation: 'Regular Zone 2 exercise activates lipoprotein lipase, clearing triglycerides. Your TG at 42 mg/dL is excellent (<150 optimal, <100 ideal).',
         evidenceWeight: '12% personal, 88% population',
@@ -3245,19 +3245,19 @@ export const oronDailyPlan: DailyPlan = {
     ],
     maintain: [
       {
-        id: 'plan-oron-weekly_training_hrs-testosterone',
+        id: 'plan-caspian-weekly_training_hrs-testosterone',
         text: 'Keep total training below 12 hours/week; prioritize recovery weeks',
         explanation: 'Overtraining suppresses the HPG axis, lowering testosterone. Your levels (327-444 ng/dL) are lower-normal for age 43. High training volume without adequate recovery exacerbates this.',
         evidenceWeight: '9% personal, 91% population',
       },
       {
-        id: 'plan-oron-weekly_run_km-ferritin',
+        id: 'plan-caspian-weekly_run_km-ferritin',
         text: 'Target ferritin >50 ng/mL. Keep running below 36 km/week while repleting stores',
         explanation: 'Ferritin reflects total body iron stores. Yours hit a critical low of 24 ng/mL (ref: 38-380) and has improved to 46 — still below the 50+ ng/mL target for athletes.',
         evidenceWeight: '6% personal, 94% population',
       },
       {
-        id: 'plan-oron-weekly_zone2_min-hdl',
+        id: 'plan-caspian-weekly_zone2_min-hdl',
         text: 'Target 146+ min/week Zone 2 to raise HDL above 50 mg/dL',
         explanation: 'HDL at 44 mg/dL is adequate but not protective (>50 preferred for men). Consistent Zone 2 training is the most effective non-pharmacological HDL booster.',
         evidenceWeight: '12% personal, 88% population',

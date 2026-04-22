@@ -34,7 +34,7 @@ export interface ShapeInfo {
 
 // Mechanism-prior shape overrides. Sparse per-user data can't identify
 // curvature, and for many edges the measured slope sign is dominated by
-// confounder bias (e.g. Oron's running→VO2 reads negative because iron
+// confounder bias (e.g. Caspian's running→VO2 reads negative because iron
 // depletion masks the aerobic adaptation). Biology wins over the sign.
 //
 // Keyed by action → outcome → shape. Use the literal '*' to apply one

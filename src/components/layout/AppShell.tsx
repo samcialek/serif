@@ -10,7 +10,7 @@ function useSeedActivePid() {
   const activePid = usePortalStore((s) => s.activePid)
   const setActivePid = usePortalStore((s) => s.setActivePid)
 
-  // Cold-start default is pid 1 (Oron). In-session, activePid lives in memory
+  // Cold-start default is pid 1 (Caspian). In-session, activePid lives in memory
   // across route changes, so switching coach → patient → coach preserves
   // whatever patient the user last selected.
   useEffect(() => {

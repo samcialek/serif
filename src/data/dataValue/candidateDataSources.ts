@@ -20,9 +20,9 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'Continuous (288+ readings/day)',
     keyEdgeNarratives: [
-      { edgeTitle: 'Training Hours → Glucose', type: 'boost', narrative: 'Currently eff_n=4 from quarterly labs. CGM would provide daily glucose, boosting personal evidence from 7% to near 100% — revealing whether Oron\'s training volume actually improves his glycemic control.' },
-      { edgeTitle: 'Training Hours → Insulin', type: 'boost', narrative: 'Insulin sensitivity is a latent confounder in Oron\'s metabolic pathway. Daily glucose variability from CGM would serve as a proxy, helping disentangle the training → insulin_sensitivity → glucose chain.' },
-      { edgeTitle: 'Sleep Duration → Glucose', type: 'boost', narrative: 'Oron\'s sleep-glucose edge is prior-dominated (eff_n=4). CGM would capture overnight glucose dips and dawn effects, directly testing whether his 7+ hour sleep target actually lowers fasting glucose.' },
+      { edgeTitle: 'Training Hours → Glucose', type: 'boost', narrative: 'Currently eff_n=4 from quarterly labs. CGM would provide daily glucose, boosting personal evidence from 7% to near 100% — revealing whether Caspian\'s training volume actually improves his glycemic control.' },
+      { edgeTitle: 'Training Hours → Insulin', type: 'boost', narrative: 'Insulin sensitivity is a latent confounder in Caspian\'s metabolic pathway. Daily glucose variability from CGM would serve as a proxy, helping disentangle the training → insulin_sensitivity → glucose chain.' },
+      { edgeTitle: 'Sleep Duration → Glucose', type: 'boost', narrative: 'Caspian\'s sleep-glucose edge is prior-dominated (eff_n=4). CGM would capture overnight glucose dips and dawn effects, directly testing whether his 7+ hour sleep target actually lowers fasting glucose.' },
     ],
   },
   {
@@ -39,8 +39,8 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'Daily logging',
     keyEdgeNarratives: [
-      { edgeTitle: 'Dietary Protein → Body Fat', type: 'boost', narrative: 'Currently only 28 raw observations. Consistent daily logging would dramatically increase eff_n, testing whether Oron\'s protein intake above ~50g/day actually drives the body fat reduction the literature predicts.' },
-      { edgeTitle: 'Dietary Energy → Body Mass', type: 'boost', narrative: 'With 29 raw data points, this edge is 73% population prior. Daily caloric tracking would personalize the energy balance curve — does Oron\'s 75.9kg frame respond to energy surplus the way the Hall et al. Lancet model predicts?' },
+      { edgeTitle: 'Dietary Protein → Body Fat', type: 'boost', narrative: 'Currently only 28 raw observations. Consistent daily logging would dramatically increase eff_n, testing whether Caspian\'s protein intake above ~50g/day actually drives the body fat reduction the literature predicts.' },
+      { edgeTitle: 'Dietary Energy → Body Mass', type: 'boost', narrative: 'With 29 raw data points, this edge is 73% population prior. Daily caloric tracking would personalize the energy balance curve — does Caspian\'s 75.9kg frame respond to energy surplus the way the Hall et al. Lancet model predicts?' },
     ],
   },
   {
@@ -57,9 +57,9 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'Daily (AM/PM)',
     keyEdgeNarratives: [
-      { edgeTitle: 'ACWR → Resting HR Trend', type: 'boost', narrative: 'Oron\'s strongest edge (eff_n=342, 100% personal). Adding daily BP would reveal whether the ACWR → HR elevation also drives blood pressure spikes — a cardiovascular risk signal not currently captured.' },
-      { edgeTitle: 'Travel → Resting HR', type: 'boost', narrative: 'Travel elevates Oron\'s resting HR by +1.09 bpm per 0.2 jet-lag load. BP data would show whether this sympathetic activation also raises blood pressure, distinguishing benign HR elevation from vascular stress.' },
-      { edgeTitle: 'Sleep Debt → Resting HR', type: 'boost', narrative: 'Sleep debt raises Oron\'s HR by +0.19 bpm per hour of deficit. Daily BP would test whether this HR signal propagates to hypertensive risk — critical for a 43-year-old endurance athlete.' },
+      { edgeTitle: 'ACWR → Resting HR Trend', type: 'boost', narrative: 'Caspian\'s strongest edge (eff_n=342, 100% personal). Adding daily BP would reveal whether the ACWR → HR elevation also drives blood pressure spikes — a cardiovascular risk signal not currently captured.' },
+      { edgeTitle: 'Travel → Resting HR', type: 'boost', narrative: 'Travel elevates Caspian\'s resting HR by +1.09 bpm per 0.2 jet-lag load. BP data would show whether this sympathetic activation also raises blood pressure, distinguishing benign HR elevation from vascular stress.' },
+      { edgeTitle: 'Sleep Debt → Resting HR', type: 'boost', narrative: 'Sleep debt raises Caspian\'s HR by +0.19 bpm per hour of deficit. Daily BP would test whether this HR signal propagates to hypertensive risk — critical for a 43-year-old endurance athlete.' },
     ],
   },
   {
@@ -76,7 +76,7 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'Continuous overnight',
     keyEdgeNarratives: [
-      { edgeTitle: 'Workout Time → Sleep Efficiency', type: 'boost', narrative: 'Oron\'s data shows workouts after 8:09 PM drop sleep efficiency by -2.19%/hr. Core temperature is the latent mediator — temperature data would directly test whether post-exercise thermoregulation is the mechanism, not just correlational timing.' },
+      { edgeTitle: 'Workout Time → Sleep Efficiency', type: 'boost', narrative: 'Caspian\'s data shows workouts after 8:09 PM drop sleep efficiency by -2.19%/hr. Core temperature is the latent mediator — temperature data would directly test whether post-exercise thermoregulation is the mechanism, not just correlational timing.' },
       { edgeTitle: 'Bedtime → Deep Sleep', type: 'boost', narrative: 'Deep sleep drops -2.64 min per hour of late bedtime. Nocturnal temperature minimum timing would reveal whether circadian temperature rhythm — not bedtime per se — is the true driver of deep sleep architecture.' },
       { edgeTitle: 'core_temperature (confounder)', type: 'confounder', narrative: 'Resolves the core_temperature latent node in the DAG. Currently unobservable, it sits on the training_load → core_temp → sleep_quality causal chain. Direct measurement eliminates this confounding pathway.' },
     ],
@@ -96,7 +96,7 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'Daily self-report',
     keyEdgeNarratives: [
-      { edgeTitle: 'Training Hours → Testosterone', type: 'boost', narrative: 'Oron\'s testosterone edge (eff_n=3) is 94% population prior. Perceived stress data would help disentangle the cortisol → testosterone suppression pathway — is overtraining or psychological stress driving the inverted-U curve at θ=1354 min/month?' },
+      { edgeTitle: 'Training Hours → Testosterone', type: 'boost', narrative: 'Caspian\'s testosterone edge (eff_n=3) is 94% population prior. Perceived stress data would help disentangle the cortisol → testosterone suppression pathway — is overtraining or psychological stress driving the inverted-U curve at θ=1354 min/month?' },
       { edgeTitle: 'Training Hours → Cortisol', type: 'boost', narrative: 'Cortisol rises above the training threshold (v_min curve). RPE and stress ratings would reveal whether cortisol spikes come from training load itself or from life stress confounding the dose-response relationship.' },
       { edgeTitle: 'energy_expenditure (confounder)', type: 'confounder', narrative: 'Resolves the energy_expenditure latent node. RPE data serves as a proxy for total energy expenditure, helping separate the training → energy_expenditure → body_fat pathway from dietary effects.' },
     ],
@@ -113,9 +113,9 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     newColumns: [],
     frequency: 'Monthly blood draws',
     keyEdgeNarratives: [
-      { edgeTitle: 'Running Volume → Iron', type: 'boost', narrative: 'The most critical edge for Oron — iron depletion from running — currently has eff_n=2 (6% personal). Monthly draws would push eff_n above 30, crossing the sigmoid inflection point where personal data overtakes the Sim et al. 2019 population prior.' },
-      { edgeTitle: 'Running Volume → Ferritin', type: 'boost', narrative: 'Ferritin is Oron\'s primary iron status marker, but at eff_n=2 the posterior is 94% literature. Monthly testing would reveal his personal ferritin depletion rate — critical for calibrating iron supplementation around high-mileage training blocks.' },
-      { edgeTitle: 'Training Hours → Testosterone', type: 'boost', narrative: 'The inverted-U testosterone curve (θ=1354 min/month) is almost entirely population prior. Monthly testosterone draws would test whether Oron\'s specific HPA axis responds to overtraining the way Hackney et al. predict.' },
+      { edgeTitle: 'Running Volume → Iron', type: 'boost', narrative: 'The most critical edge for Caspian — iron depletion from running — currently has eff_n=2 (6% personal). Monthly draws would push eff_n above 30, crossing the sigmoid inflection point where personal data overtakes the Sim et al. 2019 population prior.' },
+      { edgeTitle: 'Running Volume → Ferritin', type: 'boost', narrative: 'Ferritin is Caspian\'s primary iron status marker, but at eff_n=2 the posterior is 94% literature. Monthly testing would reveal his personal ferritin depletion rate — critical for calibrating iron supplementation around high-mileage training blocks.' },
+      { edgeTitle: 'Training Hours → Testosterone', type: 'boost', narrative: 'The inverted-U testosterone curve (θ=1354 min/month) is almost entirely population prior. Monthly testosterone draws would test whether Caspian\'s specific HPA axis responds to overtraining the way Hackney et al. predict.' },
     ],
   },
   {
@@ -132,8 +132,8 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'Daily 2-min morning reading',
     keyEdgeNarratives: [
-      { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'Oron\'s strongest recovery edge (eff_n=797). Chest-strap RMSSD would improve measurement accuracy, potentially revealing the v_max curve\'s true shape — HRV peaks at θ=86 TRIMP then drops -0.06 ms per 50 TRIMP above that.' },
-      { edgeTitle: 'Weekly Volume → HRV Baseline', type: 'boost', narrative: 'Running volume boosts HRV baseline up to 21 km/week, then plateaus. Higher-accuracy HRV data would sharpen the plateau_up curve, helping Oron identify whether additional weekly mileage still provides vagal tone benefit.' },
+      { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'Caspian\'s strongest recovery edge (eff_n=797). Chest-strap RMSSD would improve measurement accuracy, potentially revealing the v_max curve\'s true shape — HRV peaks at θ=86 TRIMP then drops -0.06 ms per 50 TRIMP above that.' },
+      { edgeTitle: 'Weekly Volume → HRV Baseline', type: 'boost', narrative: 'Running volume boosts HRV baseline up to 21 km/week, then plateaus. Higher-accuracy HRV data would sharpen the plateau_up curve, helping Caspian identify whether additional weekly mileage still provides vagal tone benefit.' },
       { edgeTitle: 'Sleep Duration → HRV', type: 'boost', narrative: 'Currently eff_n=745 with wrist-based HRV. A dedicated monitor would reduce measurement noise on this linear edge (+0.41 ms per hour of sleep), giving more precise sleep optimization targets.' },
     ],
   },
@@ -152,8 +152,8 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     ],
     frequency: 'One-time test',
     keyEdgeNarratives: [
-      { edgeTitle: 'Running Volume → Iron (via iron_absorption_prs)', type: 'confounder', narrative: 'Oron\'s iron depletion may partly reflect genetic iron absorption efficiency. An iron absorption PRS would enable Mendelian randomization — separating how much iron loss comes from running hemolysis vs. how much is constitutional poor absorption.' },
-      { edgeTitle: 'Zone 2 → LDL (via ldl_receptor_prs)', type: 'confounder', narrative: 'Oron\'s LDL response to zone 2 exercise (β=-0.075 mg/dL per 120 min/mo) is mostly prior-driven. An LDL receptor PRS would reveal whether his genetic lipid metabolism explains the weak personal signal, resolving the lipoprotein_lipase confounder.' },
+      { edgeTitle: 'Running Volume → Iron (via iron_absorption_prs)', type: 'confounder', narrative: 'Caspian\'s iron depletion may partly reflect genetic iron absorption efficiency. An iron absorption PRS would enable Mendelian randomization — separating how much iron loss comes from running hemolysis vs. how much is constitutional poor absorption.' },
+      { edgeTitle: 'Zone 2 → LDL (via ldl_receptor_prs)', type: 'confounder', narrative: 'Caspian\'s LDL response to zone 2 exercise (β=-0.075 mg/dL per 120 min/mo) is mostly prior-driven. An LDL receptor PRS would reveal whether his genetic lipid metabolism explains the weak personal signal, resolving the lipoprotein_lipase confounder.' },
       { edgeTitle: 'insulin_sensitivity (confounder)', type: 'confounder', narrative: 'Resolves the insulin_sensitivity latent node. Genetic data provides time-invariant instruments for HOMA-IR, disentangling the training → insulin_sensitivity → glucose chain without needing repeated fasting insulin measurements.' },
     ],
   },
@@ -172,7 +172,7 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     frequency: 'Continuous overnight',
     keyEdgeNarratives: [
       { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'Respiratory rate is an independent autonomic stress marker. Combined with HRV, it would disambiguate whether post-training HRV suppression (the v_max curve at θ=86 TRIMP) reflects cardiac autonomic fatigue or respiratory compensation.' },
-      { edgeTitle: 'Travel → Sleep Efficiency', type: 'boost', narrative: 'Oron\'s travel → sleep efficiency edge is strong (β=-8.63%/per 0.2 jet-lag load above θ=0.48). Nocturnal respiratory rate changes during travel would reveal whether the disruption is primarily circadian or stress-mediated.' },
+      { edgeTitle: 'Travel → Sleep Efficiency', type: 'boost', narrative: 'Caspian\'s travel → sleep efficiency edge is strong (β=-8.63%/per 0.2 jet-lag load above θ=0.48). Nocturnal respiratory rate changes during travel would reveal whether the disruption is primarily circadian or stress-mediated.' },
     ],
   },
 ]
