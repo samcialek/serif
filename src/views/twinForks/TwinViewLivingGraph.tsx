@@ -36,6 +36,7 @@ import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRo
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { formatOutcomeValue } from '@/utils/rounding'
 import { leversAvailableAt } from '@/data/scm/leverCredibility'
+import { horizonBandFor } from '@/data/scm/outcomeHorizons'
 import {
   MANIPULABLE_NODES,
   GOAL_CANDIDATES,
@@ -54,9 +55,17 @@ import {
 } from './_graph'
 import { useTwinSolver } from './_solver'
 
-const AT_DAYS = 90
+// Horizon presets per regime. Quotidian ≈ 1 week (wearable-responsive
+// outcomes only); longevity ≈ 6 months (biomarker/lab outcomes that take
+// weeks to months to move). The regime determines *both* the atDays used
+// for effect accrual and the subgraph that's rendered.
+const QUOTIDIAN_AT_DAYS = 7
+const LONGEVITY_AT_DAYS = 180
+
+type Regime = 'quotidian' | 'longevity'
+
 const LEVER_CARD_W = 148
-const LEVER_CARD_H = 120
+const LEVER_CARD_H = 58 // shrunk: horizontal bars are thin, 1 per node
 
 function formatEffectDelta(value: number, outcomeId: string): string {
   if (!Number.isFinite(value)) return '—'
@@ -88,29 +97,56 @@ export function TwinViewLivingGraph() {
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual } = useSCM()
 
+  const [regime, setRegime] = useState<Regime>('quotidian')
   const [proposedValues, setProposedValues] = useState<Record<string, number>>({})
   const [goalOutcomeId, setGoalOutcomeId] = useState<string | null>(null)
   const [activeLever, setActiveLever] = useState<string | null>(null)
   const [targetSize, setTargetSize] = useState(5)
 
+  const atDays = regime === 'quotidian' ? QUOTIDIAN_AT_DAYS : LONGEVITY_AT_DAYS
+
+  // Predicate for which outcomes belong in this regime's subgraph. The
+  // wearable-responsive band ('today', ≤7d) is the only quotidian one; all
+  // biomarker-class outcomes (weeks + months bands) belong to longevity.
+  const outcomeInRegime = useCallback(
+    (outcomeKey: string) => {
+      const band = horizonBandFor(outcomeKey)
+      return regime === 'quotidian' ? band === 'today' : band !== 'today'
+    },
+    [regime],
+  )
+
+  // Clear solver goal when switching regime (the goal may no longer exist
+  // in the subgraph).
+  const switchRegime = useCallback(
+    (next: Regime) => {
+      setRegime(next)
+      setGoalOutcomeId(null)
+    },
+    [],
+  )
+
   const interventionRows = useMemo(() => {
     if (!participant) return []
-    const credible = leversAvailableAt('intervention', AT_DAYS)
+    const credible = leversAvailableAt('intervention', atDays)
     return MANIPULABLE_NODES.filter((n) => credible.has(n.id)).map((node) => {
       const current = participant.current_values?.[node.id] ?? node.defaultValue
       return { node, current, range: rangeFor(node, current) }
     })
-  }, [participant])
+  }, [participant, atDays])
 
   // Compute the layout from intervention row count.
-  const graphHeight = Math.max(480, interventionRows.length * (LEVER_CARD_H + 16) + 80)
+  const graphHeight = Math.max(420, interventionRows.length * (LEVER_CARD_H + 12) + 80)
   const layout = useMemo(() => livingLayout(1100, graphHeight), [graphHeight])
 
   const graph = useMemo(() => {
     if (!participant) return { nodes: [], edges: [] }
-    const credible = leversAvailableAt('intervention', AT_DAYS)
-    return buildGraph(participant.effects_bayesian, credible, layout)
-  }, [participant, layout])
+    const credible = leversAvailableAt('intervention', atDays)
+    const regimeEffects = participant.effects_bayesian.filter((e) =>
+      outcomeInRegime(canonicalOutcomeKey(e.outcome)),
+    )
+    return buildGraph(regimeEffects, credible, layout)
+  }, [participant, layout, atDays, outcomeInRegime])
   const graphOutcomeIds = useMemo(
     () => new Set(graph.nodes.filter((n) => n.kind === 'outcome').map((n) => n.id)),
     [graph],
@@ -143,15 +179,15 @@ export function TwinViewLivingGraph() {
   }, [participant, deltas, runFullCounterfactual])
 
   const outcomeDeltas = useMemo(
-    () => outcomeDeltasAt(state, AT_DAYS, graphOutcomeIds),
-    [state, graphOutcomeIds],
+    () => outcomeDeltasAt(state, atDays, graphOutcomeIds),
+    [state, graphOutcomeIds, atDays],
   )
 
   // Solver
   const solver = useTwinSolver({
     participant,
     rows: interventionRows,
-    atDays: AT_DAYS,
+    atDays,
     runFullCounterfactual,
   })
   const goalCandidate = useMemo(() => {
@@ -220,7 +256,11 @@ export function TwinViewLivingGraph() {
   return (
     <PageLayout
       title="Twin · LivingGraph"
-      subtitle="The DAG is the interface. Levers live on the graph. Click any outcome to flip into solver mode and watch particles reverse."
+      subtitle={
+        regime === 'quotidian'
+          ? 'Quotidian subgraph: levers → wearable-responsive outcomes (day-scale). Toggle to Longevity for biomarker outcomes.'
+          : 'Longevity subgraph: levers → biomarker/lab outcomes (weeks-to-months). Toggle to Quotidian for day-scale wearable outcomes.'
+      }
       maxWidth="full"
       padding="none"
       className="pt-6 pb-6 pr-6 pl-3"
@@ -231,7 +271,7 @@ export function TwinViewLivingGraph() {
         transition={{ duration: 0.2 }}
         className="space-y-3"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <MemberAvatar persona={persona} displayName={displayName} size="md" />
           <div>
             <div className="text-sm font-semibold text-slate-800">{displayName}</div>
@@ -242,6 +282,37 @@ export function TwinViewLivingGraph() {
                 : `Propagation · tweak any inline control`}
             </div>
           </div>
+
+          {/* Regime toggle — determines which outcome subgraph is shown. */}
+          <div className="ml-4 inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+            <button
+              onClick={() => switchRegime('quotidian')}
+              className={cn(
+                'px-3 py-1.5 text-[11px] font-semibold rounded-md transition-colors',
+                regime === 'quotidian'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+              title="Wearable-class outcomes that move within ~1 week"
+            >
+              Quotidian health
+              <span className="ml-1 text-[9px] font-normal text-slate-400">≤ 1 wk</span>
+            </button>
+            <button
+              onClick={() => switchRegime('longevity')}
+              className={cn(
+                'px-3 py-1.5 text-[11px] font-semibold rounded-md transition-colors',
+                regime === 'longevity'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+              title="Biomarker/lab-class outcomes that need weeks to months"
+            >
+              Longevity health
+              <span className="ml-1 text-[9px] font-normal text-slate-400">6 mo</span>
+            </button>
+          </div>
+
           <div className="ml-auto flex items-center gap-2">
             {inSolverMode ? (
               <button
@@ -467,6 +538,7 @@ export function TwinViewLivingGraph() {
                               ? () => {}
                               : (v) => handleLeverChange(n.id, v)
                           }
+                          variant="fader-h"
                           compact
                         />
                       </div>
@@ -488,7 +560,7 @@ export function TwinViewLivingGraph() {
           <Card>
             <div className="p-3">
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                At {formatHorizonShort(AT_DAYS)}
+                At {formatHorizonShort(atDays)}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {Array.from(outcomeDeltas.entries())
