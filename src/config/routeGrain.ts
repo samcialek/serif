@@ -25,6 +25,7 @@ export const PATIENT_LEVEL_PATHS: readonly string[] = [
   '/portal',
   '/protocols',
   '/twin',
+  '/twin-preview',
   '/exploration',
 ]
 
