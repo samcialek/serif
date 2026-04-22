@@ -57,20 +57,66 @@ import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRo
 import { formatOutcomeValue, formatClockTime } from '@/utils/rounding'
 
 // ─── Horizons ───────────────────────────────────────────────────────
+//
+// The horizon control is a faux-continuous slider: position is on a log
+// scale from day 1 to day 365, so the early "Tomorrow → 1 month" range
+// (where most curve dynamics live) gets ~half the track instead of the
+// 8% it would get with linear days. Tick labels mark conventional
+// horizons but the user can land on any whole day.
 
-interface HorizonChoice {
-  id: string
-  label: string
+const MIN_DAYS = 1
+const MAX_DAYS = 365
+
+interface HorizonTick {
   days: number
+  label: string
 }
 
-const HORIZON_CHOICES: HorizonChoice[] = [
-  { id: 'tomorrow', label: 'Tomorrow', days: 1 },
-  { id: 'week', label: 'In 1 week', days: 7 },
-  { id: 'month', label: 'In 1 month', days: 30 },
-  { id: '3mo', label: 'In 3 months', days: 90 },
-  { id: '6mo', label: 'In 6 months', days: 180 },
+const HORIZON_TICKS: HorizonTick[] = [
+  { days: 1, label: 'Today' },
+  { days: 7, label: '1 wk' },
+  { days: 30, label: '1 mo' },
+  { days: 90, label: '3 mo' },
+  { days: 180, label: '6 mo' },
+  { days: 365, label: '1 yr' },
 ]
+
+const POSITION_RESOLUTION = 1000 // sub-percent slider granularity
+
+function daysToPosition(days: number): number {
+  const clamped = Math.min(MAX_DAYS, Math.max(MIN_DAYS, days))
+  return (Math.log(clamped) / Math.log(MAX_DAYS)) * POSITION_RESOLUTION
+}
+
+function positionToDays(pos: number): number {
+  const clamped = Math.min(POSITION_RESOLUTION, Math.max(0, pos))
+  const raw = Math.exp((clamped / POSITION_RESOLUTION) * Math.log(MAX_DAYS))
+  return Math.max(MIN_DAYS, Math.min(MAX_DAYS, Math.round(raw)))
+}
+
+/** Long label, used as the headline value next to "Time horizon". */
+function formatHorizonLong(days: number): string {
+  if (days <= 1) return 'Tomorrow'
+  if (days < 14) return `${days} days from now`
+  if (days < 60) {
+    const w = Math.round(days / 7)
+    return `${w} week${w === 1 ? '' : 's'} from now`
+  }
+  if (days < 320) {
+    const m = Math.round(days / 30)
+    return `${m} month${m === 1 ? '' : 's'} from now`
+  }
+  return '1 year from now'
+}
+
+/** Short inline label (e.g., for results header). */
+function formatHorizonShort(days: number): string {
+  if (days <= 1) return 'tomorrow'
+  if (days < 14) return `${days} days`
+  if (days < 60) return `${Math.round(days / 7)} weeks`
+  if (days < 320) return `${Math.round(days / 30)} months`
+  return '1 year'
+}
 
 type DosingMode = 'cumulative' | 'oneoff'
 
@@ -96,10 +142,6 @@ const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'dietary_protein', label: 'Dietary Protein', unit: 'g/day', step: 5, defaultValue: 100 },
   { id: 'dietary_energy', label: 'Dietary Energy', unit: 'kcal/day', step: 100, defaultValue: 2500 },
   { id: 'bedtime', label: 'Bedtime', unit: 'hr', step: 0.25, defaultValue: 22.5 },
-  { id: 'acwr', label: 'ACWR', unit: 'ratio', step: 0.05, defaultValue: 1.0,
-    fixedRange: { min: 0.8, max: 1.8 }, derived: true },
-  { id: 'training_load', label: 'Training Load', unit: 'TRIMP/day', step: 5, defaultValue: 60,
-    fixedRange: { min: 20, max: 150 }, derived: true },
 ]
 
 // ─── Binary "today only" interventions ──────────────────────────────
@@ -284,15 +326,13 @@ function EmptyState() {
 }
 
 interface HorizonToggleProps {
-  choice: HorizonChoice
-  onChoiceChange: (c: HorizonChoice) => void
+  atDays: number
+  onAtDaysChange: (days: number) => void
   mode: DosingMode
   onModeChange: (m: DosingMode) => void
 }
 
-function HorizonToggle({ choice, onChoiceChange, mode, onModeChange }: HorizonToggleProps) {
-  const idx = HORIZON_CHOICES.findIndex((c) => c.id === choice.id)
-  const safeIdx = idx >= 0 ? idx : 0
+function HorizonToggle({ atDays, onAtDaysChange, mode, onModeChange }: HorizonToggleProps) {
   return (
     <Card>
       <div className="p-3">
@@ -301,7 +341,7 @@ function HorizonToggle({ choice, onChoiceChange, mode, onModeChange }: HorizonTo
             <Clock className="w-3.5 h-3.5" />
             Time horizon
             <span className="normal-case font-medium text-slate-800 ml-1">
-              · {choice.label}
+              · {formatHorizonLong(atDays)}
             </span>
           </div>
           <div className="inline-flex rounded-md border border-slate-200 p-0.5 bg-slate-50">
@@ -330,45 +370,63 @@ function HorizonToggle({ choice, onChoiceChange, mode, onModeChange }: HorizonTo
           </div>
         </div>
 
-        <div className="px-1">
+        <div className="px-1 relative">
+          {/* Tick marks behind the slider */}
+          <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 pointer-events-none">
+            {HORIZON_TICKS.map((t) => {
+              const pct = (daysToPosition(t.days) / POSITION_RESOLUTION) * 100
+              return (
+                <span
+                  key={t.days}
+                  className="absolute w-0.5 h-2.5 bg-slate-300/70"
+                  style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
+                />
+              )
+            })}
+          </div>
           <Slider
             min={0}
-            max={HORIZON_CHOICES.length - 1}
+            max={POSITION_RESOLUTION}
             step={1}
-            value={safeIdx}
-            onChange={(v) => onChoiceChange(HORIZON_CHOICES[Math.round(v)])}
+            value={daysToPosition(atDays)}
+            onChange={(pos) => onAtDaysChange(positionToDays(pos))}
           />
         </div>
 
-        <div className="flex justify-between mt-1 px-1">
-          {HORIZON_CHOICES.map((c, i) => (
-            <button
-              key={c.id}
-              onClick={() => onChoiceChange(c)}
-              className={cn(
-                'text-[10px] transition-colors',
-                i === safeIdx
-                  ? 'text-slate-800 font-semibold'
-                  : 'text-slate-400 hover:text-slate-600',
-              )}
-            >
-              {c.label.replace('In ', '')}
-            </button>
-          ))}
+        <div className="relative h-4 mt-1 mx-1">
+          {HORIZON_TICKS.map((t) => {
+            const pct = (daysToPosition(t.days) / POSITION_RESOLUTION) * 100
+            const isActive = Math.abs(t.days - atDays) <= Math.max(1, t.days * 0.05)
+            return (
+              <button
+                key={t.days}
+                onClick={() => onAtDaysChange(t.days)}
+                className={cn(
+                  'absolute top-0 text-[10px] transition-colors whitespace-nowrap',
+                  isActive
+                    ? 'text-slate-800 font-semibold'
+                    : 'text-slate-400 hover:text-slate-600',
+                )}
+                style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
+              >
+                {t.label}
+              </button>
+            )
+          })}
         </div>
 
         <div className="mt-2 text-[11px] text-slate-500">
           {mode === 'cumulative' ? (
             <>
               How much of each outcome's long-run effect has accrued by{' '}
-              <span className="font-medium">day {choice.days}</span> if
-              the change is sustained from today.
+              <span className="font-medium">{formatHorizonShort(atDays)}</span>{' '}
+              if the change is sustained from today.
             </>
           ) : (
             <>
-              Lingering effect at{' '}
-              <span className="font-medium">day {choice.days}</span> from
-              a single day's change. Most markers decay back to baseline.
+              Lingering effect{' '}
+              <span className="font-medium">{formatHorizonShort(atDays)}</span>{' '}
+              after a single day's change. Most markers decay back to baseline.
             </>
           )}
         </div>
@@ -648,7 +706,7 @@ export function TwinPreviewView() {
   const [binaryOn, setBinaryOn] = useState<Record<string, boolean>>({})
   const [state, setState] = useState<FullCounterfactualState | null>(null)
   const [isRunning, setIsRunning] = useState(false)
-  const [choice, setChoice] = useState<HorizonChoice>(HORIZON_CHOICES[3]) // 3 months
+  const [atDays, setAtDays] = useState<number>(90) // 3 months
   const [mode, setMode] = useState<DosingMode>('cumulative')
 
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -830,8 +888,8 @@ export function TwinPreviewView() {
         </div>
 
         <HorizonToggle
-          choice={choice}
-          onChoiceChange={setChoice}
+          atDays={atDays}
+          onAtDaysChange={setAtDays}
           mode={mode}
           onModeChange={setMode}
         />
@@ -858,8 +916,8 @@ export function TwinPreviewView() {
                     <div>
                       <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                         {mode === 'cumulative'
-                          ? `If you sustain this change, in ${choice.label.toLowerCase()}:`
-                          : `One-off: effect lingering in ${choice.label.toLowerCase()}:`}
+                          ? `If you sustain this change, ${formatHorizonShort(atDays)} from now:`
+                          : `One-off: effect ${formatHorizonShort(atDays)} after a single day:`}
                       </div>
                       <div className="text-[11px] text-slate-400 mt-0.5">
                         Dashed tick = outcome's natural response time · dot = now
@@ -874,7 +932,7 @@ export function TwinPreviewView() {
                       <EffectRow
                         key={effect.nodeId}
                         effect={effect}
-                        atDays={choice.days}
+                        atDays={atDays}
                         mode={mode}
                       />
                     ))}
@@ -885,7 +943,7 @@ export function TwinPreviewView() {
               <Card>
                 <div className="p-6 text-center text-sm text-slate-400">
                   Adjust any slider and run. Use the time horizon above to
-                  scrub from tomorrow to 6 months out.
+                  scrub from tomorrow to a year out.
                 </div>
               </Card>
             )}
