@@ -39,7 +39,7 @@ import {
 } from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue } from '@/utils/rounding'
-import { leversAvailableAt, filterCredibleLevers } from '@/data/scm/leverCredibility'
+import { leversAvailableAt } from '@/data/scm/leverCredibility'
 import {
   MANIPULABLE_NODES,
   type ManipulableNode,
@@ -424,8 +424,7 @@ export function TwinViewDirect() {
   const handleRun = useCallback(() => {
     if (!participant || deltas.length === 0) return
     setIsRunning(true)
-    const credibleOverrides = filterCredibleLevers({}, 'stateOverride', atDays)
-    const observedValues = buildObservedValues(participant, credibleOverrides)
+    const observedValues = buildObservedValues(participant)
     try {
       const result = runFullCounterfactual(observedValues, deltas)
       setState(result)

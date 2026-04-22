@@ -56,7 +56,8 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
 AppShell.displayName = 'AppShell'
 
 // Page Layout wrapper - BRUTALIST VERSION
-export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PageLayoutProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   title?: React.ReactNode
   subtitle?: string
   actions?: React.ReactNode

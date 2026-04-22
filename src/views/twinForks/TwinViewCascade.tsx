@@ -40,7 +40,7 @@ import {
 } from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue } from '@/utils/rounding'
-import { leversAvailableAt, filterCredibleLevers } from '@/data/scm/leverCredibility'
+import { leversAvailableAt } from '@/data/scm/leverCredibility'
 import {
   MANIPULABLE_NODES,
   rangeFor,
@@ -218,8 +218,7 @@ export function TwinViewCascade() {
       setState(null)
       return
     }
-    const credibleOverrides = filterCredibleLevers({}, 'stateOverride', MAX_HORIZON)
-    const observedValues = buildObservedValues(participant, credibleOverrides)
+    const observedValues = buildObservedValues(participant)
     try {
       const result = runFullCounterfactual(observedValues, deltas)
       setState(result)

@@ -39,7 +39,7 @@ import {
 } from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue } from '@/utils/rounding'
-import { leversAvailableAt, filterCredibleLevers } from '@/data/scm/leverCredibility'
+import { leversAvailableAt } from '@/data/scm/leverCredibility'
 import {
   MANIPULABLE_NODES,
   type ManipulableNode,
@@ -365,8 +365,7 @@ export function TwinViewLive() {
     if (ptTimerRef.current != null) window.clearTimeout(ptTimerRef.current)
     setIsRecomputing(true)
     ptTimerRef.current = window.setTimeout(() => {
-      const credibleOverrides = filterCredibleLevers({}, 'stateOverride', atDays)
-      const observedValues = buildObservedValues(participant, credibleOverrides)
+      const observedValues = buildObservedValues(participant)
       try {
         const result = runFullCounterfactual(observedValues, deltas)
         setState(result)
@@ -386,8 +385,7 @@ export function TwinViewLive() {
     if (!participant || deltas.length === 0 || isDragging || bartStatus !== 'ready') return
     const runId = ++mcRunIdRef.current
     mcTimerRef.current = window.setTimeout(() => {
-      const credibleOverrides = filterCredibleLevers({}, 'stateOverride', atDays)
-      const observedValues = buildObservedValues(participant, credibleOverrides)
+      const observedValues = buildObservedValues(participant)
       runMC(observedValues, deltas)
         .then((mc) => {
           if (mc && runId === mcRunIdRef.current) setMcState(mc)

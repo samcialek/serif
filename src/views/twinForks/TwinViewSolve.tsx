@@ -34,7 +34,7 @@ import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
 import { cumulativeEffectFraction, horizonDaysFor } from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue } from '@/utils/rounding'
-import { leversAvailableAt, filterCredibleLevers } from '@/data/scm/leverCredibility'
+import { leversAvailableAt } from '@/data/scm/leverCredibility'
 import {
   MANIPULABLE_NODES,
   GOAL_CANDIDATES,
@@ -184,8 +184,7 @@ export function TwinViewSolve() {
   const runAt = useCallback(
     (vals: Record<string, number>): FullCounterfactualState | null => {
       if (!participant) return null
-      const credibleOverrides = filterCredibleLevers({}, 'stateOverride', AT_DAYS)
-      const observed = buildObservedValues(participant, credibleOverrides)
+      const observed = buildObservedValues(participant)
       const deltas = interventionRows
         .filter(({ node, current }) => Math.abs((vals[node.id] ?? current) - current) > 1e-9)
         .map(({ node, current }) => ({
