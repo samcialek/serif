@@ -45,11 +45,12 @@ import {
   buildObservedValues,
   MethodBadge,
 } from './_shared'
-import { AutoControl } from './_controls'
+import { SleekLeverBar } from './_sleekBar'
 import {
   CausalGraphCanvas,
   buildGraph,
   outcomeDeltasAt,
+  type EdgeStyle,
   type GraphLayout,
 } from './_graph'
 import { useTwinSolver } from './_solver'
@@ -63,8 +64,22 @@ const LONGEVITY_AT_DAYS = 180
 
 type Regime = 'quotidian' | 'longevity'
 
-const LEVER_CARD_W = 148
-const LEVER_CARD_H = 58 // shrunk: horizontal bars are thin, 1 per node
+const LEVER_CARD_W = 220
+const LEVER_CARD_H = 64
+
+// Presets for the edge-style picker. Each chooses an accent used by the
+// sleek lever bar (thumb glow, fill gradient, changed-value highlight) —
+// edges themselves stay sign-colored so benefit/harm reading is preserved.
+const EDGE_STYLE_PRESETS: Record<
+  EdgeStyle,
+  { label: string; accent: string; highlight: string; dark: boolean }
+> = {
+  particles: { label: 'Classic',   accent: '#06b6d4', highlight: '#ffffff', dark: false },
+  circuit:   { label: 'Circuit',   accent: '#06b6d4', highlight: '#ffffff', dark: true  },
+  plasma:    { label: 'Plasma',    accent: '#a855f7', highlight: '#f0abfc', dark: true  },
+  lightning: { label: 'Lightning', accent: '#f59e0b', highlight: '#fef3c7', dark: true  },
+}
+const EDGE_STYLE_ORDER: EdgeStyle[] = ['particles', 'circuit', 'plasma', 'lightning']
 
 function formatEffectDelta(value: number, outcomeId: string): string {
   if (!Number.isFinite(value)) return '—'
@@ -101,6 +116,8 @@ export function TwinViewLivingGraph() {
   const [goalOutcomeId, setGoalOutcomeId] = useState<string | null>(null)
   const [activeLever, setActiveLever] = useState<string | null>(null)
   const [targetSize, setTargetSize] = useState(5)
+  const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('circuit')
+  const stylePreset = EDGE_STYLE_PRESETS[edgeStyle]
 
   const atDays = regime === 'quotidian' ? QUOTIDIAN_AT_DAYS : LONGEVITY_AT_DAYS
 
@@ -320,6 +337,31 @@ export function TwinViewLivingGraph() {
             </button>
           </div>
 
+          {/* Edge-style picker — "particles" is the classic dot-flow, the
+              others render edges as flowing energy with different feel. */}
+          <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+            {EDGE_STYLE_ORDER.map((k) => {
+              const selected = edgeStyle === k
+              const preset = EDGE_STYLE_PRESETS[k]
+              return (
+                <button
+                  key={k}
+                  onClick={() => setEdgeStyle(k)}
+                  className={cn(
+                    'px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-colors',
+                    selected
+                      ? 'bg-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700',
+                  )}
+                  style={selected ? { color: preset.accent } : undefined}
+                  title={`${preset.label} edge style`}
+                >
+                  {preset.label}
+                </button>
+              )
+            })}
+          </div>
+
           <div className="ml-auto flex items-center gap-2">
             {inSolverMode ? (
               <button
@@ -439,7 +481,13 @@ export function TwinViewLivingGraph() {
         {/* The graph. */}
         <Card>
           <div className="p-2 relative">
-            <div className="relative" style={{ height: graphHeight }}>
+            <div
+              className={cn(
+                'relative rounded-md transition-colors',
+                stylePreset.dark && 'bg-slate-950',
+              )}
+              style={{ height: graphHeight }}
+            >
               <CausalGraphCanvas
                 nodes={graph.nodes}
                 edges={graph.edges}
@@ -450,6 +498,8 @@ export function TwinViewLivingGraph() {
                 layout={layout}
                 className="w-full h-full"
                 leverPillHalfWidth={LEVER_CARD_W / 2}
+                outcomeAnchorInset={18}
+                edgeStyle={edgeStyle}
                 dimMode="none"
                 onOutcomeClick={(id) => {
                   setGoalOutcomeId((prev) => (prev === id ? null : id))
@@ -463,6 +513,20 @@ export function TwinViewLivingGraph() {
                         : '#94a3b8'
                   const isGoal = goalOutcomeId != null
                   const baseR = 14
+                  const dark = stylePreset.dark
+                  const labelFill = dark ? '#e2e8f0' : '#1e293b'
+                  const circleFill = dark ? '#0f172a' : '#ffffff'
+                  const deltaFill = dark
+                    ? tone === 'benefit'
+                      ? '#34d399'
+                      : tone === 'harm'
+                        ? '#fb7185'
+                        : '#94a3b8'
+                    : tone === 'benefit'
+                      ? '#059669'
+                      : tone === 'harm'
+                        ? '#e11d48'
+                        : '#64748b'
                   return (
                     <>
                       {deltaNorm > 0.05 && (
@@ -470,7 +534,7 @@ export function TwinViewLivingGraph() {
                       )}
                       <circle
                         r={baseR}
-                        fill="#ffffff"
+                        fill={circleFill}
                         stroke={isGoal ? '#059669' : fill}
                         strokeWidth={isGoal ? 3 : 1.5}
                       />
@@ -480,7 +544,7 @@ export function TwinViewLivingGraph() {
                         textAnchor="start"
                         fontSize={11}
                         fontWeight={600}
-                        fill="#1e293b"
+                        fill={labelFill}
                         style={{ pointerEvents: 'none' }}
                       >
                         {label}
@@ -492,7 +556,7 @@ export function TwinViewLivingGraph() {
                           textAnchor="start"
                           fontSize={9}
                           fontWeight={500}
-                          fill={tone === 'benefit' ? '#059669' : tone === 'harm' ? '#e11d48' : '#64748b'}
+                          fill={deltaFill}
                           style={{ pointerEvents: 'none' }}
                         >
                           {formatEffectDelta(delta, label)}
@@ -529,24 +593,26 @@ export function TwinViewLivingGraph() {
                     >
                       <div
                         className={cn(
-                          'rounded-lg border p-2 bg-white shadow-sm backdrop-blur-sm transition-all',
-                          changed
-                            ? 'border-violet-300 ring-1 ring-violet-200'
-                            : 'border-slate-200',
-                          locked && 'ring-1 ring-emerald-200',
+                          'rounded-xl border px-3 py-2.5 shadow-lg backdrop-blur-md transition-all',
+                          'bg-slate-900/85 border-slate-700/70',
+                          'hover:border-slate-600',
                         )}
+                        style={{
+                          boxShadow: changed
+                            ? `0 0 0 1px ${stylePreset.accent}80, 0 4px 16px ${stylePreset.accent}33, 0 2px 6px rgba(0,0,0,0.35)`
+                            : locked
+                              ? '0 0 0 1px rgba(16,185,129,0.55), 0 2px 8px rgba(0,0,0,0.4)'
+                              : '0 2px 8px rgba(0,0,0,0.35)',
+                        }}
                       >
-                        <AutoControl
+                        <SleekLeverBar
                           node={row.node}
                           current={row.current}
                           value={value}
-                          onChange={
-                            locked
-                              ? () => {}
-                              : (v) => handleLeverChange(n.id, v)
-                          }
-                          variant="fader-h"
-                          compact
+                          accent={stylePreset.accent}
+                          highlight={stylePreset.highlight}
+                          disabled={locked}
+                          onChange={(v) => handleLeverChange(n.id, v)}
                         />
                       </div>
                     </div>

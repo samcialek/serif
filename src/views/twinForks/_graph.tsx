@@ -176,6 +176,15 @@ export interface OutcomeOverlaySlot {
   tone: 'benefit' | 'harm' | 'neutral'
 }
 
+/** How edges visualize energy flow. Each style trades off fidelity, density,
+ *  and perf.
+ *   - 'particles' (classic): discrete dots traveling along bezier.
+ *   - 'circuit': layered glow + bright dashed overlay flowing via
+ *     stroke-dashoffset CSS anim (fast, tech).
+ *   - 'plasma': smooth translating gradient pulse (slow, organic).
+ *   - 'lightning': mostly quiet base with random bright strike flashes. */
+export type EdgeStyle = 'particles' | 'circuit' | 'plasma' | 'lightning'
+
 interface CausalGraphCanvasProps {
   nodes: GraphNode[]
   edges: GraphEdge[]
@@ -189,12 +198,18 @@ interface CausalGraphCanvasProps {
   className?: string
   showHeaders?: boolean
   leverPillHalfWidth?: number
+  /** Horizontal inset from the outcome node where edges terminate. Defaults
+   *  to leverPillHalfWidth (symmetric). Set smaller for wide lever cards
+   *  with narrow outcome circles so edges visually land on the outcome. */
+  outcomeAnchorInset?: number
   renderLeverOverlay?: (slot: LeverOverlaySlot) => ReactNode
   renderOutcomeOverlay?: (slot: OutcomeOverlaySlot) => ReactNode
   proposedLevers?: Set<string>
   /** How the parent wants downstream nodes to appear on goal-set. Defaults
    *  to 'dim-others' (goal mode from TwinViewGraph). 'none' disables it. */
   dimMode?: 'dim-others' | 'none'
+  /** How edges render energy flow. Defaults to 'particles' (classic). */
+  edgeStyle?: EdgeStyle
 }
 
 export function CausalGraphCanvas({
@@ -210,11 +225,14 @@ export function CausalGraphCanvas({
   className,
   showHeaders = true,
   leverPillHalfWidth = 40,
+  outcomeAnchorInset,
   renderLeverOverlay,
   renderOutcomeOverlay,
   proposedLevers,
   dimMode = 'dim-others',
+  edgeStyle = 'particles',
 }: CausalGraphCanvasProps) {
+  const rightInset = outcomeAnchorInset ?? leverPillHalfWidth
   const nodeById = useMemo(() => {
     const m = new Map<string, GraphNode>()
     for (const n of nodes) m.set(n.id, n)
@@ -239,7 +257,7 @@ export function CausalGraphCanvas({
     return reachable
   }, [edges, goalOutcomeId, dimMode])
 
-  // ─── Particle engine ───────────────────────────────────────────
+  // ─── Particle engine (only used when edgeStyle === 'particles') ──
 
   const particlesRef = useRef<Particle[]>([])
   const [, forceRender] = useState(0)
@@ -247,6 +265,7 @@ export function CausalGraphCanvas({
   const nextIdRef = useRef(0)
 
   useEffect(() => {
+    if (edgeStyle !== 'particles') return
     let rafId = 0
     let lastT = performance.now()
     const loop = (now: number) => {
@@ -304,7 +323,45 @@ export function CausalGraphCanvas({
     }
     rafId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafId)
-  }, [activeLever, goalOutcomeId, particleDirection, edges, strengthNorm])
+  }, [edgeStyle, activeLever, goalOutcomeId, particleDirection, edges, strengthNorm])
+
+  // ─── Lightning strike trigger (edgeStyle === 'lightning') ────────
+  // Every ~700ms, pick 2-4 random edges to "strike" — flash bright for
+  // 180ms. Active lever's edges are favored so interaction feels causal.
+
+  const [strikingEdges, setStrikingEdges] = useState<Set<number>>(new Set())
+  useEffect(() => {
+    if (edgeStyle !== 'lightning' || edges.length === 0) {
+      setStrikingEdges(new Set())
+      return
+    }
+    let flashTimeout: number | null = null
+    const fire = () => {
+      const count = Math.min(edges.length, 2 + Math.floor(Math.random() * 3))
+      const ids = new Set<number>()
+      // 50% of picks prefer edges from the active lever / to the goal outcome.
+      const preferred: number[] = []
+      if (activeLever || goalOutcomeId) {
+        edges.forEach((e, idx) => {
+          if (e.from === activeLever || e.to === goalOutcomeId) preferred.push(idx)
+        })
+      }
+      while (ids.size < count) {
+        if (preferred.length > 0 && Math.random() < 0.5) {
+          ids.add(preferred[Math.floor(Math.random() * preferred.length)])
+        } else {
+          ids.add(Math.floor(Math.random() * edges.length))
+        }
+      }
+      setStrikingEdges(ids)
+      flashTimeout = window.setTimeout(() => setStrikingEdges(new Set()), 180)
+    }
+    const interval = window.setInterval(fire, 700)
+    return () => {
+      window.clearInterval(interval)
+      if (flashTimeout) window.clearTimeout(flashTimeout)
+    }
+  }, [edgeStyle, edges, activeLever, goalOutcomeId])
 
   return (
     <svg
@@ -312,28 +369,191 @@ export function CausalGraphCanvas({
       className={className ?? 'w-full h-auto'}
       preserveAspectRatio="xMidYMid meet"
     >
-      {/* Edges */}
+      {/* Shared defs + keyframes. Referenced by non-'particles' styles. */}
+      <defs>
+        <filter
+          id="sf-soft-blur"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+        >
+          <feGaussianBlur stdDeviation="2.5" />
+        </filter>
+        <filter
+          id="sf-lightning-disp"
+          x="-20%"
+          y="-20%"
+          width="140%"
+          height="140%"
+        >
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.8"
+            numOctaves="2"
+            seed="3"
+          />
+          <feDisplacementMap in="SourceGraphic" scale="3" />
+        </filter>
+      </defs>
+      <style>{`
+        @keyframes sf-circuit-flow { to { stroke-dashoffset: -13; } }
+        @keyframes sf-plasma-flow  { to { stroke-dashoffset: -36; } }
+        @keyframes sf-strike-pulse {
+          0%   { opacity: 0.2; }
+          20%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
+
+      {/* Edges — branched on edgeStyle */}
       {edges.map((e, i) => {
         const a = nodeById.get(e.from)
         const b = nodeById.get(e.to)
         if (!a || !b) return null
+        const ax = a.x + leverPillHalfWidth
+        const ay = a.y
+        const bx = b.x - rightInset
+        const by = b.y
+        const d = edgePath(ax, ay, bx, by)
         const dimmed =
           reachableFromGoal != null &&
           !(reachableFromGoal.has(e.from) && reachableFromGoal.has(e.to))
         const isActive = activeLever === e.from || goalOutcomeId === e.to
-        const w = 0.5 + strengthNorm(e.strength) * 3
-        const color =
+        const strength = strengthNorm(e.strength)
+        const w = 0.5 + strength * 3
+        const signColor =
           e.sign > 0 ? COLORS.benefit : e.sign < 0 ? COLORS.harm : COLORS.neutral
-        return (
-          <path
-            key={`edge-${i}`}
-            d={edgePath(a.x + leverPillHalfWidth, a.y, b.x - leverPillHalfWidth, b.y)}
-            stroke={dimmed ? COLORS.dim : color}
-            strokeOpacity={dimmed ? 0.12 : isActive ? 0.75 : 0.35}
-            strokeWidth={w}
-            fill="none"
-          />
-        )
+        const color = dimmed ? COLORS.dim : signColor
+
+        if (edgeStyle === 'particles') {
+          return (
+            <path
+              key={`edge-${i}`}
+              d={d}
+              stroke={color}
+              strokeOpacity={dimmed ? 0.12 : isActive ? 0.75 : 0.35}
+              strokeWidth={w}
+              fill="none"
+            />
+          )
+        }
+
+        if (edgeStyle === 'circuit') {
+          const dur = Math.max(0.5, 2 - strength * 1.2)
+          return (
+            <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
+              {/* Outer soft glow */}
+              <path
+                d={d}
+                stroke={color}
+                strokeOpacity={0.22}
+                strokeWidth={w * 3.5}
+                fill="none"
+                filter="url(#sf-soft-blur)"
+              />
+              {/* Solid middle */}
+              <path
+                d={d}
+                stroke={color}
+                strokeOpacity={0.5}
+                strokeWidth={w}
+                fill="none"
+              />
+              {/* Bright dashed flowing overlay */}
+              <path
+                d={d}
+                stroke="#ffffff"
+                strokeOpacity={isActive ? 1 : 0.85}
+                strokeWidth={Math.max(1, w * 0.6)}
+                fill="none"
+                strokeDasharray="3 10"
+                style={{ animation: `sf-circuit-flow ${dur}s linear infinite` }}
+              />
+            </g>
+          )
+        }
+
+        if (edgeStyle === 'plasma') {
+          const dur = Math.max(1.2, 3 - strength * 1.5)
+          return (
+            <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
+              {/* Wide diffuse glow */}
+              <path
+                d={d}
+                stroke={color}
+                strokeOpacity={0.2}
+                strokeWidth={w * 4.5}
+                fill="none"
+                filter="url(#sf-soft-blur)"
+              />
+              {/* Solid base */}
+              <path
+                d={d}
+                stroke={color}
+                strokeOpacity={0.35}
+                strokeWidth={w * 1.3}
+                fill="none"
+              />
+              {/* Sparse bright pulses sweeping through */}
+              <path
+                d={d}
+                stroke={color}
+                strokeOpacity={isActive ? 1 : 0.9}
+                strokeWidth={Math.max(2, w * 1.4)}
+                fill="none"
+                strokeDasharray="2 34"
+                strokeLinecap="round"
+                style={{
+                  animation: `sf-plasma-flow ${dur}s linear infinite`,
+                  filter: `drop-shadow(0 0 4px ${color})`,
+                }}
+              />
+            </g>
+          )
+        }
+
+        if (edgeStyle === 'lightning') {
+          const striking = strikingEdges.has(i)
+          return (
+            <g key={`edge-${i}`} opacity={dimmed ? 0.25 : 1}>
+              {/* Quiet base stroke */}
+              <path
+                d={d}
+                stroke={color}
+                strokeOpacity={striking ? 0.5 : 0.28}
+                strokeWidth={Math.max(0.5, w * 0.7)}
+                fill="none"
+              />
+              {striking && (
+                <>
+                  {/* Bright halo */}
+                  <path
+                    d={d}
+                    stroke={color}
+                    strokeOpacity={0.7}
+                    strokeWidth={w * 5}
+                    fill="none"
+                    filter="url(#sf-soft-blur)"
+                    style={{ animation: 'sf-strike-pulse 180ms ease-out forwards' }}
+                  />
+                  {/* Jagged bolt core */}
+                  <path
+                    d={d}
+                    stroke="#ffffff"
+                    strokeOpacity={1}
+                    strokeWidth={Math.max(1.2, w * 1.3)}
+                    fill="none"
+                    filter="url(#sf-lightning-disp)"
+                    style={{ animation: 'sf-strike-pulse 180ms ease-out forwards' }}
+                  />
+                </>
+              )}
+            </g>
+          )
+        }
+
+        return null
       })}
 
       {/* Particles */}
@@ -353,7 +573,7 @@ export function CausalGraphCanvas({
         const pt = bezierAt(
           a.x + leverPillHalfWidth,
           a.y,
-          b.x - leverPillHalfWidth,
+          b.x - rightInset,
           b.y,
           t,
         )
