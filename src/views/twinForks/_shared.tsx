@@ -36,6 +36,10 @@ export const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'active_energy', label: 'Active Energy', unit: 'kcal/day', step: 50, defaultValue: 600 },
   { id: 'dietary_protein', label: 'Dietary Protein', unit: 'g/day', step: 5, defaultValue: 100 },
   { id: 'dietary_energy', label: 'Dietary Energy', unit: 'kcal/day', step: 100, defaultValue: 2500 },
+  { id: 'caffeine_mg', label: 'Caffeine', unit: 'mg/day', step: 25, defaultValue: 200, fixedRange: { min: 0, max: 600 } },
+  { id: 'caffeine_timing', label: 'Caffeine Cutoff', unit: 'h pre-bed', step: 0.5, defaultValue: 8, fixedRange: { min: 0, max: 14 } },
+  { id: 'alcohol_units', label: 'Alcohol', unit: 'units/day', step: 0.5, defaultValue: 1, fixedRange: { min: 0, max: 6 } },
+  { id: 'alcohol_timing', label: 'Alcohol Cutoff', unit: 'h pre-bed', step: 0.5, defaultValue: 3, fixedRange: { min: 0, max: 8 } },
   { id: 'bedtime', label: 'Bedtime', unit: 'hr', step: 0.25, defaultValue: 22.5 },
 ]
 
