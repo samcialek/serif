@@ -22,20 +22,23 @@
  *   - confidence band that widens with time-from-now
  */
 
-import { useMemo, useState, useCallback, useLayoutEffect, useRef } from 'react'
+import { useMemo, useState, useCallback, useLayoutEffect, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
+  ChevronDown,
   Clock,
   GitBranch,
   Loader2,
   Play,
   RotateCcw,
   Sparkles,
+  Target,
   TrendingDown,
   TrendingUp,
   Users as UsersIcon,
+  X,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
@@ -119,6 +122,45 @@ function formatHorizonShort(days: number): string {
 }
 
 type DosingMode = 'cumulative' | 'oneoff'
+
+// ─── Goal candidates ────────────────────────────────────────────────
+//
+// Goals are framed as outcome-direction pairs that map onto an entry in
+// OUTCOME_META. The Twin keeps its agency-first model: the user pulls
+// the levers, the goal just reframes which outcome is the headline and
+// which other movements count as "costs". v1 is direction-only — the
+// horizon slider stands in for "by when". A magnitude target ("HRV
+// +10 ms") and composite goals (weight loss) come later.
+//
+// We pre-filter to candidates that have at least one edge in the
+// participant's posterior, so we never offer a goal the SCM can't
+// reason about.
+
+type GoalDirection = 'higher' | 'lower'
+
+interface GoalCandidate {
+  outcomeId: string // canonical OUTCOME_META key
+  label: string // user-facing phrasing
+  group: 'Wearable & sleep' | 'Cardio-metabolic' | 'Iron panel' | 'Performance'
+  direction: GoalDirection
+}
+
+const GOAL_CANDIDATES: GoalCandidate[] = [
+  { outcomeId: 'hrv_daily', label: 'Raise HRV', group: 'Wearable & sleep', direction: 'higher' },
+  { outcomeId: 'resting_hr', label: 'Lower resting heart rate', group: 'Wearable & sleep', direction: 'lower' },
+  { outcomeId: 'sleep_quality', label: 'Improve sleep quality', group: 'Wearable & sleep', direction: 'higher' },
+  { outcomeId: 'deep_sleep', label: 'More deep sleep', group: 'Wearable & sleep', direction: 'higher' },
+  { outcomeId: 'apob', label: 'Lower ApoB', group: 'Cardio-metabolic', direction: 'lower' },
+  { outcomeId: 'ldl', label: 'Lower LDL', group: 'Cardio-metabolic', direction: 'lower' },
+  { outcomeId: 'hdl', label: 'Raise HDL', group: 'Cardio-metabolic', direction: 'higher' },
+  { outcomeId: 'triglycerides', label: 'Lower triglycerides', group: 'Cardio-metabolic', direction: 'lower' },
+  { outcomeId: 'glucose', label: 'Lower fasting glucose', group: 'Cardio-metabolic', direction: 'lower' },
+  { outcomeId: 'hscrp', label: 'Lower hsCRP (inflammation)', group: 'Cardio-metabolic', direction: 'lower' },
+  { outcomeId: 'ferritin', label: 'Raise ferritin', group: 'Iron panel', direction: 'higher' },
+  { outcomeId: 'hemoglobin', label: 'Raise hemoglobin', group: 'Iron panel', direction: 'higher' },
+  { outcomeId: 'iron_total', label: 'Raise serum iron', group: 'Iron panel', direction: 'higher' },
+  { outcomeId: 'vo2_peak', label: 'Raise VO2 peak', group: 'Performance', direction: 'higher' },
+]
 
 // ─── Manipulable nodes (mirrors TwinView) ──────────────────────────
 
@@ -226,6 +268,117 @@ function formatEffectDelta(value: number, outcomeId: string): string {
   return `${sign}${rounded}`
 }
 
+// ─── Goal helpers ───────────────────────────────────────────────────
+
+/**
+ * Find the NodeEffect in the result set that corresponds to a goal's
+ * canonical outcome key. Multiple raw node IDs (`hrv_daily_mean`,
+ * `hrv_daily_smoothed`) can collapse to the same key — pick the one
+ * with the largest absolute effect so the headline number reflects the
+ * strongest channel.
+ */
+function findEffectForGoal(
+  effects: NodeEffect[],
+  goalOutcomeId: string,
+): NodeEffect | null {
+  let best: NodeEffect | null = null
+  for (const e of effects) {
+    if (canonicalOutcomeKey(e.nodeId) !== goalOutcomeId) continue
+    if (!best || Math.abs(e.totalEffect) > Math.abs(best.totalEffect)) {
+      best = e
+    }
+  }
+  return best
+}
+
+/**
+ * "Cost": a non-goal outcome moving in its non-beneficial direction
+ * with a non-trivial magnitude. Neutral-direction outcomes never count
+ * as costs (no objective worse). The same canonical outcome only
+ * appears once, with its largest-magnitude effect.
+ */
+function splitEffectsForGoal(
+  effects: NodeEffect[],
+  goalOutcomeId: string,
+): { goalEffect: NodeEffect | null; costs: NodeEffect[]; others: NodeEffect[] } {
+  const goalEffect = findEffectForGoal(effects, goalOutcomeId)
+  const collapsed = new Map<string, NodeEffect>()
+  for (const e of effects) {
+    const key = canonicalOutcomeKey(e.nodeId)
+    if (key === goalOutcomeId) continue
+    const prev = collapsed.get(key)
+    if (!prev || Math.abs(e.totalEffect) > Math.abs(prev.totalEffect)) {
+      collapsed.set(key, e)
+    }
+  }
+  const costs: NodeEffect[] = []
+  const others: NodeEffect[] = []
+  for (const e of collapsed.values()) {
+    const meta = OUTCOME_META[canonicalOutcomeKey(e.nodeId)]
+    const beneficial = meta?.beneficial ?? 'higher'
+    if (beneficial === 'neutral') {
+      others.push(e)
+      continue
+    }
+    const isHarm =
+      beneficial === 'higher' ? e.totalEffect < 0 : e.totalEffect > 0
+    if (isHarm) costs.push(e)
+    else others.push(e)
+  }
+  costs.sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
+  others.sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
+  return { goalEffect, costs, others }
+}
+
+/** "On track / no movement / wrong direction" framing for the goal banner. */
+function goalProgressLabel(
+  goal: GoalCandidate,
+  effect: NodeEffect | null,
+  atDays: number,
+  mode: DosingMode,
+): { headline: string; tone: 'good' | 'flat' | 'bad'; sub: string } {
+  if (!effect) {
+    return {
+      headline: 'No movement',
+      tone: 'flat',
+      sub: 'Your current changes don\'t reach this outcome.',
+    }
+  }
+  const horizonDays = horizonDaysFor(canonicalOutcomeKey(effect.nodeId)) ?? 30
+  const fn = mode === 'cumulative' ? cumulativeEffectFraction : oneOffEffectFraction
+  const fraction = fn(atDays, horizonDays)
+  const fractionAsymptote = fn(horizonDays * 10, horizonDays)
+  const timed = effect.totalEffect * fraction
+  const isGood =
+    goal.direction === 'higher' ? effect.totalEffect > 0 : effect.totalEffect < 0
+  const pct =
+    mode === 'cumulative' && fractionAsymptote > 0
+      ? Math.round((fraction / fractionAsymptote) * 100)
+      : null
+  const timedStr = formatEffectDelta(timed, effect.nodeId)
+  const maxStr = formatEffectDelta(effect.totalEffect, effect.nodeId)
+  if (Math.abs(effect.totalEffect) < 1e-6) {
+    return {
+      headline: 'No movement',
+      tone: 'flat',
+      sub: 'Your current changes don\'t reach this outcome.',
+    }
+  }
+  if (!isGood) {
+    return {
+      headline: `Wrong direction: ${timedStr} by ${formatHorizonShort(atDays)}`,
+      tone: 'bad',
+      sub: `Long-run: ${maxStr}. Try a different lever.`,
+    }
+  }
+  const pctText = pct != null ? ` · ${pct}% of long-run` : ''
+  return {
+    headline: `On track: ${timedStr} by ${formatHorizonShort(atDays)}`,
+    tone: 'good',
+    sub: `Long-run ceiling: ${maxStr}${pctText}.`,
+  }
+}
+
 // ─── Decay sparkline ────────────────────────────────────────────────
 
 interface DecayCurveProps {
@@ -322,6 +475,191 @@ function EmptyState() {
         </div>
       </Card>
     </PageLayout>
+  )
+}
+
+interface GoalPillProps {
+  goal: GoalCandidate | null
+  candidates: GoalCandidate[]
+  onSelect: (goal: GoalCandidate | null) => void
+}
+
+function GoalPill({ goal, candidates, onSelect }: GoalPillProps) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  // Group candidates for the dropdown.
+  const grouped = useMemo(() => {
+    const out = new Map<string, GoalCandidate[]>()
+    for (const c of candidates) {
+      const arr = out.get(c.group) ?? []
+      arr.push(c)
+      out.set(c.group, arr)
+    }
+    return out
+  }, [candidates])
+
+  const ArrowDirection = goal?.direction === 'higher' ? TrendingUp : TrendingDown
+
+  if (candidates.length === 0) {
+    return null
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      {goal ? (
+        <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full pl-2.5 pr-1 py-1">
+          <Target className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="text-[11px] font-medium text-emerald-900">
+            Goal: {goal.label}
+          </span>
+          <ArrowDirection className="w-3 h-3 text-emerald-700" />
+          <button
+            onClick={() => onSelect(null)}
+            className="ml-0.5 p-0.5 rounded-full text-emerald-600 hover:bg-emerald-100"
+            title="Clear goal"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800"
+        >
+          <Target className="w-3.5 h-3.5 text-slate-500" />
+          Set a goal
+          <ChevronDown
+            className={cn('w-3 h-3 transition-transform', open && 'rotate-180')}
+          />
+        </button>
+      )}
+
+      {open && !goal && (
+        <div className="absolute right-0 mt-1.5 z-20 w-72 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+            <div className="text-[11px] font-semibold text-slate-700">
+              Pick a goal
+            </div>
+            <div className="text-[10px] text-slate-500">
+              The Twin reframes results around this outcome and flags the cost on others.
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto py-1">
+            {Array.from(grouped.entries()).map(([group, items]) => (
+              <div key={group} className="py-1">
+                <div className="px-3 py-1 text-[10px] uppercase tracking-wide text-slate-400 font-semibold">
+                  {group}
+                </div>
+                {items.map((c) => {
+                  const Arrow = c.direction === 'higher' ? TrendingUp : TrendingDown
+                  return (
+                    <button
+                      key={c.outcomeId}
+                      onClick={() => {
+                        onSelect(c)
+                        setOpen(false)
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-[12px] text-slate-700 hover:bg-emerald-50 flex items-center gap-2"
+                    >
+                      <Arrow
+                        className={cn(
+                          'w-3.5 h-3.5',
+                          c.direction === 'higher'
+                            ? 'text-emerald-600'
+                            : 'text-rose-600',
+                        )}
+                      />
+                      {c.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface SectionLabelProps {
+  text: string
+  count: number
+  tone?: 'default' | 'bad'
+}
+
+function SectionLabel({ text, count, tone = 'default' }: SectionLabelProps) {
+  const color =
+    tone === 'bad'
+      ? 'text-rose-700'
+      : 'text-slate-500'
+  return (
+    <div className="flex items-baseline justify-between mb-1.5">
+      <div
+        className={cn(
+          'text-[10px] uppercase tracking-wide font-semibold',
+          color,
+        )}
+      >
+        {text}
+      </div>
+      <div className="text-[10px] text-slate-400 tabular-nums">
+        {count} outcome{count === 1 ? '' : 's'}
+      </div>
+    </div>
+  )
+}
+
+interface GoalBannerProps {
+  goal: GoalCandidate
+  goalEffect: NodeEffect | null
+  atDays: number
+  mode: DosingMode
+  costsCount: number
+}
+
+function GoalBanner({ goal, goalEffect, atDays, mode, costsCount }: GoalBannerProps) {
+  const { headline, tone, sub } = goalProgressLabel(goal, goalEffect, atDays, mode)
+  const toneClasses = {
+    good: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    flat: 'bg-slate-50 border-slate-200 text-slate-700',
+    bad: 'bg-rose-50 border-rose-200 text-rose-900',
+  }[tone]
+  const Arrow = goal.direction === 'higher' ? TrendingUp : TrendingDown
+  return (
+    <div className={cn('flex items-start gap-2.5 p-3 rounded-md border', toneClasses)}>
+      <Target className="w-4 h-4 mt-0.5 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[10px] uppercase tracking-wide font-semibold opacity-70">
+            Goal
+          </span>
+          <span className="text-xs font-semibold flex items-center gap-1">
+            {goal.label} <Arrow className="w-3 h-3" />
+          </span>
+        </div>
+        <div className="text-sm font-semibold mt-0.5">{headline}</div>
+        <div className="text-[11px] opacity-80 mt-0.5">{sub}</div>
+      </div>
+      {costsCount > 0 && (
+        <div className="text-right flex-shrink-0">
+          <div className="text-[10px] uppercase tracking-wide opacity-70">Costs</div>
+          <div className="text-sm font-semibold">{costsCount}</div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -708,6 +1046,7 @@ export function TwinPreviewView() {
   const [isRunning, setIsRunning] = useState(false)
   const [atDays, setAtDays] = useState<number>(90) // 3 months
   const [mode, setMode] = useState<DosingMode>('cumulative')
+  const [goal, setGoal] = useState<GoalCandidate | null>(null)
 
   const resultsRef = useRef<HTMLDivElement>(null)
 
@@ -824,6 +1163,23 @@ export function TwinPreviewView() {
     })
   }, [state])
 
+  // Goal candidates filtered to outcomes the participant's posterior
+  // can actually move (otherwise we'd be offering goals the SCM can't
+  // reason about and the user would always see "no movement").
+  const availableGoalCandidates = useMemo(() => {
+    if (!participant) return []
+    const reachable = new Set<string>()
+    for (const e of participant.effects_bayesian) {
+      reachable.add(canonicalOutcomeKey(e.outcome))
+    }
+    return GOAL_CANDIDATES.filter((c) => reachable.has(c.outcomeId))
+  }, [participant])
+
+  const goalSplit = useMemo(() => {
+    if (!goal || !state) return null
+    return splitEffectsForGoal(sortedEffects, goal.outcomeId)
+  }, [goal, state, sortedEffects])
+
   if (pid == null) return <EmptyState />
   if (isLoading || !participant) {
     return (
@@ -868,13 +1224,20 @@ export function TwinPreviewView() {
               </div>
             </div>
           </div>
-          <Link
-            to="/twin"
-            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Twin
-          </Link>
+          <div className="flex items-center gap-3">
+            <GoalPill
+              goal={goal}
+              candidates={availableGoalCandidates}
+              onSelect={setGoal}
+            />
+            <Link
+              to="/twin"
+              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to Twin
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-md p-3">
@@ -911,39 +1274,106 @@ export function TwinPreviewView() {
           <div ref={resultsRef}>
             {state ? (
               <Card>
-                <div className="p-4">
-                  <div className="flex items-baseline justify-between mb-3">
-                    <div>
-                      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                        {mode === 'cumulative'
-                          ? `If you sustain this change, ${formatHorizonShort(atDays)} from now:`
-                          : `One-off: effect ${formatHorizonShort(atDays)} after a single day:`}
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        Dashed tick = outcome's natural response time · dot = now
-                      </div>
-                    </div>
-                    <div className="text-[11px] text-slate-400 tabular-nums">
-                      {sortedEffects.length} outcome{sortedEffects.length === 1 ? '' : 's'}
-                    </div>
-                  </div>
-                  <div className="space-y-0.5">
-                    {sortedEffects.map((effect) => (
-                      <EffectRow
-                        key={effect.nodeId}
-                        effect={effect}
+                <div className="p-4 space-y-3">
+                  {goal && goalSplit ? (
+                    <>
+                      <GoalBanner
+                        goal={goal}
+                        goalEffect={goalSplit.goalEffect}
                         atDays={atDays}
                         mode={mode}
+                        costsCount={goalSplit.costs.length}
                       />
-                    ))}
-                  </div>
+                      {goalSplit.goalEffect && (
+                        <div>
+                          <SectionLabel
+                            text="Goal outcome"
+                            count={1}
+                          />
+                          <div className="rounded-md ring-1 ring-emerald-200 bg-emerald-50/30">
+                            <EffectRow
+                              effect={goalSplit.goalEffect}
+                              atDays={atDays}
+                              mode={mode}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {goalSplit.costs.length > 0 && (
+                        <div>
+                          <SectionLabel
+                            text="What this costs you"
+                            count={goalSplit.costs.length}
+                            tone="bad"
+                          />
+                          <div className="space-y-0.5">
+                            {goalSplit.costs.map((effect) => (
+                              <EffectRow
+                                key={effect.nodeId}
+                                effect={effect}
+                                atDays={atDays}
+                                mode={mode}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {goalSplit.others.length > 0 && (
+                        <div>
+                          <SectionLabel
+                            text="Other movements"
+                            count={goalSplit.others.length}
+                          />
+                          <div className="space-y-0.5">
+                            {goalSplit.others.map((effect) => (
+                              <EffectRow
+                                key={effect.nodeId}
+                                effect={effect}
+                                atDays={atDays}
+                                mode={mode}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-between">
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                            {mode === 'cumulative'
+                              ? `If you sustain this change, ${formatHorizonShort(atDays)} from now:`
+                              : `One-off: effect ${formatHorizonShort(atDays)} after a single day:`}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            Dashed tick = outcome's natural response time · dot = now
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-slate-400 tabular-nums">
+                          {sortedEffects.length} outcome{sortedEffects.length === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        {sortedEffects.map((effect) => (
+                          <EffectRow
+                            key={effect.nodeId}
+                            effect={effect}
+                            atDays={atDays}
+                            mode={mode}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </Card>
             ) : (
               <Card>
                 <div className="p-6 text-center text-sm text-slate-400">
-                  Adjust any slider and run. Use the time horizon above to
-                  scrub from tomorrow to a year out.
+                  {goal
+                    ? `Goal set: ${goal.label.toLowerCase()}. Pull the levers and run to see how close you get and what it costs.`
+                    : 'Adjust any slider and run. Use the time horizon above to scrub from tomorrow to a year out. Optional: set a goal to reframe results.'}
                 </div>
               </Card>
             )}
