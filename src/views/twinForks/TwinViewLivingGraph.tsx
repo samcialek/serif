@@ -36,6 +36,7 @@ import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRo
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { formatOutcomeValue } from '@/utils/rounding'
 import { horizonBandFor } from '@/data/scm/outcomeHorizons'
+import { buildPhase1SyntheticEdges } from '@/data/scm/syntheticEdges'
 import {
   MANIPULABLE_NODES,
   GOAL_CANDIDATES,
@@ -166,7 +167,19 @@ export function TwinViewLivingGraph() {
 
   const graph = useMemo(() => {
     if (!participant) return { nodes: [], edges: [] }
-    const regimeEffects = participant.effects_bayesian.filter((e) =>
+    // Merge real Bayesian effects with Phase 1 synthetic textbook arrows
+    // (frontend-only density fill). Real edges win on (action, outcome)
+    // collisions so synthetic data never overrides actual cohort signal.
+    const realKeys = new Set(
+      participant.effects_bayesian.map(
+        (e) => `${e.action}|${canonicalOutcomeKey(e.outcome)}`,
+      ),
+    )
+    const syntheticEdges = buildPhase1SyntheticEdges().filter(
+      (e) => !realKeys.has(`${e.action}|${canonicalOutcomeKey(e.outcome)}`),
+    )
+    const allEffects = [...participant.effects_bayesian, ...syntheticEdges]
+    const regimeEffects = allEffects.filter((e) =>
       outcomeInRegime(canonicalOutcomeKey(e.outcome)),
     )
     return buildGraph(regimeEffects, manipulableIds, layout)
