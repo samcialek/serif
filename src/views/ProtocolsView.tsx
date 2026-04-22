@@ -94,7 +94,7 @@ export function ProtocolsView() {
   return (
     <PageLayout
       title={`${displayName} — today's plan`}
-      subtitle="Twin-SEM picks the best daily schedule by scoring candidates against the member's causal edges, regime state, and current loads"
+      subtitle="Today's schedule, chosen for this member's current loads and regime state."
     >
       <motion.div
         initial={{ opacity: 0, y: 8 }}
