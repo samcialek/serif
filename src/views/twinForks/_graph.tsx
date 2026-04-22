@@ -205,6 +205,12 @@ interface CausalGraphCanvasProps {
   renderLeverOverlay?: (slot: LeverOverlaySlot) => ReactNode
   renderOutcomeOverlay?: (slot: OutcomeOverlaySlot) => ReactNode
   proposedLevers?: Set<string>
+  /** Per-lever normalized delta in [0,1]. Used by Plasma (and any other
+   *  edge style that wants persistent width modulation) so edges from a
+   *  moved lever get visibly thicker proportional to how far it's been
+   *  moved from baseline. Independent of `activeLever`, which is a
+   *  transient "just-touched" flag for triggering directional flow. */
+  leverDeltas?: Map<string, number>
   /** How the parent wants downstream nodes to appear on goal-set. Defaults
    *  to 'dim-others' (goal mode from TwinViewGraph). 'none' disables it. */
   dimMode?: 'dim-others' | 'none'
@@ -229,6 +235,7 @@ export function CausalGraphCanvas({
   renderLeverOverlay,
   renderOutcomeOverlay,
   proposedLevers,
+  leverDeltas,
   dimMode = 'dim-others',
   edgeStyle = 'particles',
 }: CausalGraphCanvasProps) {
@@ -398,18 +405,7 @@ export function CausalGraphCanvas({
       </defs>
       <style>{`
         @keyframes sf-circuit-flow { to { stroke-dashoffset: -13; } }
-        @keyframes sf-shimmer {
-          0%, 100% { stroke-opacity: 0.18; }
-          50%      { stroke-opacity: 0.42; }
-        }
-        @keyframes sf-shimmer-active {
-          0%, 100% { stroke-opacity: 0.55; }
-          50%      { stroke-opacity: 1; }
-        }
-        @keyframes sf-shimmer-solid {
-          0%, 100% { stroke-opacity: 0.6; }
-          50%      { stroke-opacity: 0.95; }
-        }
+        @keyframes sf-plasma-flow  { to { stroke-dashoffset: -30; } }
         @keyframes sf-strike-pulse {
           0%   { opacity: 0.2; }
           20%  { opacity: 1; }
@@ -486,39 +482,53 @@ export function CausalGraphCanvas({
         }
 
         if (edgeStyle === 'plasma') {
-          // No directional flow. Ambient = slow opacity breathing on the
-          // glow. Active (source lever just touched) = faster, brighter
-          // breathing on the same glow. No traveling dashes anywhere.
-          const shimmerDelay = ((i * 0.41) % 1) * 3
+          // Persistent (no animation while at rest): thin static lines.
+          // Source-lever delta: width swells ~3x at full deflection, so
+          // scrubbing a lever visibly thickens its outgoing edges.
+          // Active (source lever was just touched): bright dashed flow
+          // travels along the path, speed scales with how big the move is.
+          const leverDelta = leverDeltas?.get(e.from) ?? 0
+          const moved = leverDelta > 0.01
+          const widthBoost = 1 + leverDelta * 2.2
+          const baseW = (0.6 + strength * 1.4) * widthBoost
+          const flowDur = Math.max(0.6, 1.6 - leverDelta * 0.8)
           return (
             <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
-              {/* Wide diffuse glow — shimmer on a slow cycle, faster when active */}
+              {/* Soft glow grows with delta so a moved lever's edges feel hot */}
+              {moved && (
+                <path
+                  d={d}
+                  stroke={color}
+                  strokeOpacity={0.18 + leverDelta * 0.25}
+                  strokeWidth={baseW * 4}
+                  fill="none"
+                  filter="url(#sf-soft-blur)"
+                />
+              )}
+              {/* Solid base — opacity grows with delta */}
               <path
                 d={d}
                 stroke={color}
-                strokeWidth={w * 4.5}
+                strokeOpacity={0.32 + leverDelta * 0.4}
+                strokeWidth={baseW}
                 fill="none"
-                filter="url(#sf-soft-blur)"
-                style={{
-                  animation: isActive
-                    ? 'sf-shimmer-active 1.2s ease-in-out infinite'
-                    : 'sf-shimmer 3s ease-in-out infinite',
-                  animationDelay: isActive ? '0s' : `${shimmerDelay}s`,
-                }}
               />
-              {/* Solid base — subtle shimmer so the line itself breathes too */}
-              <path
-                d={d}
-                stroke={color}
-                strokeWidth={w * 1.2}
-                fill="none"
-                style={{
-                  animation: isActive
-                    ? 'sf-shimmer-active 1.2s ease-in-out infinite'
-                    : 'sf-shimmer-solid 3s ease-in-out infinite',
-                  animationDelay: isActive ? '0s' : `${shimmerDelay}s`,
-                }}
-              />
+              {/* Electricity flow — ONLY when source lever is active */}
+              {isActive && (
+                <path
+                  d={d}
+                  stroke={color}
+                  strokeOpacity={0.95}
+                  strokeWidth={Math.max(2, baseW * 1.3)}
+                  fill="none"
+                  strokeDasharray="6 24"
+                  strokeLinecap="round"
+                  style={{
+                    animation: `sf-plasma-flow ${flowDur}s linear infinite`,
+                    filter: `drop-shadow(0 0 6px ${color})`,
+                  }}
+                />
+              )}
             </g>
           )
         }

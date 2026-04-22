@@ -61,13 +61,13 @@ export function SleekLeverBar({
   return (
     <div className="w-full select-none">
       {/* Header: label + value */}
-      <div className="flex items-baseline justify-between mb-1.5 px-0.5">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+      <div className="flex items-baseline justify-between mb-1.5 px-0.5 gap-2">
+        <div className="text-[12px] font-bold uppercase tracking-wider text-slate-200 truncate">
           {node.label}
         </div>
         <div
-          className="text-[13px] font-bold tabular-nums"
-          style={{ color: changed ? accent : '#e2e8f0', textShadow: changed ? `0 0 8px ${accent}80` : 'none' }}
+          className="text-[15px] font-bold tabular-nums whitespace-nowrap"
+          style={{ color: changed ? accent : '#f1f5f9', textShadow: changed ? `0 0 10px ${accent}99` : 'none' }}
         >
           {formatValue(value)}
         </div>

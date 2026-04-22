@@ -65,8 +65,8 @@ const LONGEVITY_AT_DAYS = 180
 
 type Regime = 'quotidian' | 'longevity'
 
-const LEVER_CARD_W = 220
-const LEVER_CARD_H = 64
+const LEVER_CARD_W = 240
+const LEVER_CARD_H = 78
 
 // Presets for the edge-style picker. Each chooses an accent used by the
 // sleek lever bar (thumb glow, fill gradient, changed-value highlight) —
@@ -243,6 +243,27 @@ export function TwinViewLivingGraph() {
   // inline widgets animate to the plan.
   const inSolverMode = goalOutcomeId != null
   const effectiveValues = inSolverMode ? solver.values : proposedValues
+
+  // Persistent per-lever delta in [0,1] — how far each lever has been
+  // moved from its baseline relative to its asymmetric reachable range.
+  // Used by Plasma to thicken outgoing edges proportional to the move,
+  // independent of the transient activeLever (which only triggers the
+  // electricity flow animation right after a touch).
+  const leverDeltas = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const row of interventionRows) {
+      const value = effectiveValues[row.node.id] ?? row.current
+      const halfSpan = Math.max(
+        Math.abs(row.range.max - row.current),
+        Math.abs(row.current - row.range.min),
+      )
+      if (halfSpan > 0) {
+        const norm = Math.min(1, Math.abs(value - row.current) / halfSpan)
+        m.set(row.node.id, norm)
+      }
+    }
+    return m
+  }, [interventionRows, effectiveValues])
 
   // Debounced clear timer so the active surge keeps flowing during a drag
   // and lingers ~1.4s after the user releases (long enough for pulses to
@@ -525,9 +546,11 @@ export function TwinViewLivingGraph() {
                 layout={layout}
                 className="w-full h-full"
                 leverPillHalfWidth={LEVER_CARD_W / 2}
-                outcomeAnchorInset={18}
+                outcomeAnchorInset={22}
                 edgeStyle={edgeStyle}
                 dimMode="none"
+                leverDeltas={leverDeltas}
+                renderLeverOverlay={() => null}
                 onOutcomeClick={(id) => {
                   setGoalOutcomeId((prev) => (prev === id ? null : id))
                 }}
@@ -539,9 +562,9 @@ export function TwinViewLivingGraph() {
                         ? '#f43f5e'
                         : '#94a3b8'
                   const isGoal = goalOutcomeId != null
-                  const baseR = 14
+                  const baseR = 18
                   const dark = stylePreset.dark
-                  const labelFill = dark ? '#e2e8f0' : '#1e293b'
+                  const labelFill = dark ? '#f1f5f9' : '#0f172a'
                   const circleFill = dark ? '#0f172a' : '#ffffff'
                   const deltaFill = dark
                     ? tone === 'benefit'
@@ -557,32 +580,32 @@ export function TwinViewLivingGraph() {
                   return (
                     <>
                       {deltaNorm > 0.05 && (
-                        <circle r={baseR + deltaNorm * 12} fill={fill} opacity={0.18 * deltaNorm} />
+                        <circle r={baseR + deltaNorm * 14} fill={fill} opacity={0.22 * deltaNorm} />
                       )}
                       <circle
                         r={baseR}
                         fill={circleFill}
                         stroke={isGoal ? '#059669' : fill}
-                        strokeWidth={isGoal ? 3 : 1.5}
+                        strokeWidth={isGoal ? 3.5 : 2.25}
                       />
                       <text
-                        x={baseR + 8}
+                        x={baseR + 10}
                         y={2}
                         textAnchor="start"
-                        fontSize={11}
-                        fontWeight={600}
+                        fontSize={14}
+                        fontWeight={700}
                         fill={labelFill}
-                        style={{ pointerEvents: 'none' }}
+                        style={{ pointerEvents: 'none', letterSpacing: '0.01em' }}
                       >
                         {label}
                       </text>
                       {Math.abs(delta) > 1e-6 && (
                         <text
-                          x={baseR + 8}
-                          y={16}
+                          x={baseR + 10}
+                          y={19}
                           textAnchor="start"
-                          fontSize={9}
-                          fontWeight={500}
+                          fontSize={11}
+                          fontWeight={600}
                           fill={deltaFill}
                           style={{ pointerEvents: 'none' }}
                         >
@@ -620,16 +643,16 @@ export function TwinViewLivingGraph() {
                     >
                       <div
                         className={cn(
-                          'rounded-xl border px-3 py-2.5 shadow-lg backdrop-blur-md transition-all',
-                          'bg-slate-900/85 border-slate-700/70',
-                          'hover:border-slate-600',
+                          'rounded-xl border-2 px-4 py-3 shadow-xl backdrop-blur-md transition-all',
+                          'bg-slate-900/90 border-slate-600/80',
+                          'hover:border-slate-500',
                         )}
                         style={{
                           boxShadow: changed
-                            ? `0 0 0 1px ${stylePreset.accent}80, 0 4px 16px ${stylePreset.accent}33, 0 2px 6px rgba(0,0,0,0.35)`
+                            ? `0 0 0 2px ${stylePreset.accent}AA, 0 6px 24px ${stylePreset.accent}55, 0 3px 10px rgba(0,0,0,0.5)`
                             : locked
-                              ? '0 0 0 1px rgba(16,185,129,0.55), 0 2px 8px rgba(0,0,0,0.4)'
-                              : '0 2px 8px rgba(0,0,0,0.35)',
+                              ? '0 0 0 2px rgba(16,185,129,0.7), 0 3px 12px rgba(0,0,0,0.5)'
+                              : '0 4px 14px rgba(0,0,0,0.5)',
                         }}
                       >
                         <SleekLeverBar
