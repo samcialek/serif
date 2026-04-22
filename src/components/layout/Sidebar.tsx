@@ -25,6 +25,9 @@ import {
   ArrowLeftRight,
   Wand2,
   Map,
+  LayoutDashboard,
+  Network,
+  SplitSquareHorizontal,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -67,6 +70,9 @@ const navItems: NavItem[] = [
       { to: '/twin-compare', icon: ArrowLeftRight, label: 'Twin · Compare' },
       { to: '/twin-solve', icon: Wand2, label: 'Twin · Solve' },
       { to: '/twin-spatial', icon: Map, label: 'Twin · Spatial' },
+      { to: '/twin-deck', icon: LayoutDashboard, label: 'Twin · Deck' },
+      { to: '/twin-living', icon: Network, label: 'Twin · LivingGraph' },
+      { to: '/twin-workspace', icon: SplitSquareHorizontal, label: 'Twin · Workspace' },
       { to: '/protocols', icon: ListChecks, label: 'Protocols' },
     ],
   },

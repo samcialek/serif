@@ -22,6 +22,9 @@ import {
   TwinViewCompare,
   TwinViewSolve,
   TwinViewSpatial,
+  TwinViewDeck,
+  TwinViewLivingGraph,
+  TwinViewWorkspace,
   BaselineView,
   ExplorationView,
 } from '@/views'
@@ -50,6 +53,9 @@ function App() {
           <Route path="/twin-compare" element={<TwinViewCompare />} />
           <Route path="/twin-solve" element={<TwinViewSolve />} />
           <Route path="/twin-spatial" element={<TwinViewSpatial />} />
+          <Route path="/twin-deck" element={<TwinViewDeck />} />
+          <Route path="/twin-living" element={<TwinViewLivingGraph />} />
+          <Route path="/twin-workspace" element={<TwinViewWorkspace />} />
           <Route path="/protocols" element={<ProtocolsView />} />
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />
