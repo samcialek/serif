@@ -131,3 +131,57 @@ export function oneOffEffectFraction(t: number, horizonDays: number): number {
   const x = t / tau
   return x * Math.exp(1 - x)
 }
+
+/**
+ * Minimum fraction of asymptotic effect realised before the Twin treats an
+ * outcome as credible to report at a given horizon.
+ *
+ * On the first-order curve `1 - exp(-t/tau)` with `tau = H/3`, the 10%
+ * crossover sits at `t ≈ 0.035·H`. So an outcome with horizon H disappears
+ * from the Twin results when `atDays < 0.035 * H`.
+ *
+ * Rationale (per Sam 2026-04-22): at 1 day of intervention, ferritin /
+ * zinc / vo2_peak have not moved measurably — reporting a non-zero delta
+ * is spurious precision. This mirrors the per-lever credibility layer:
+ * the SCM refuses to answer questions it cannot validate. Raise to
+ * 0.15-0.20 for stricter gating; drop to 0.05 to be more permissive.
+ */
+export const MIN_ACCRUAL_FRACTION = 0.10
+
+/**
+ * True iff, at the given horizon, this outcome has accumulated at least
+ * `MIN_ACCRUAL_FRACTION` of its asymptotic response. Outcomes without a
+ * registered horizon default to visible with a dev-mode console.warn so
+ * a newly added outcome doesn't silently disappear before review.
+ */
+export function isOutcomeCredibleAt(
+  outcomeKey: string,
+  atDays: number,
+): boolean {
+  const horizonDays = OUTCOME_HORIZON_DAYS[outcomeKey]
+  if (horizonDays == null) {
+    if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+      console.warn(
+        `[outcomeHorizons] no horizon for "${outcomeKey}" — defaulting to visible. Add to OUTCOME_HORIZON_DAYS.`,
+      )
+    }
+    return true
+  }
+  return cumulativeEffectFraction(atDays, horizonDays) >= MIN_ACCRUAL_FRACTION
+}
+
+/**
+ * Batch variant: returns the subset of outcome keys credible at the
+ * given horizon. Prefer this when filtering goal candidates or effect
+ * rows over repeated single-key checks.
+ */
+export function outcomesCredibleAt(
+  atDays: number,
+  outcomeKeys: Iterable<string>,
+): Set<string> {
+  const out = new Set<string>()
+  for (const key of outcomeKeys) {
+    if (isOutcomeCredibleAt(key, atDays)) out.add(key)
+  }
+  return out
+}

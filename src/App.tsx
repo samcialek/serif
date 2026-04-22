@@ -14,6 +14,14 @@ import {
   DataValueView,
   PortalView,
   TwinView,
+  TwinViewDirect,
+  TwinViewDragDrop,
+  TwinViewGraph,
+  TwinViewLive,
+  TwinViewCascade,
+  TwinViewCompare,
+  TwinViewSolve,
+  TwinViewSpatial,
   BaselineView,
   ExplorationView,
 } from '@/views'
@@ -34,6 +42,14 @@ function App() {
           <Route path="/baseline" element={<BaselineView />} />
           <Route path="/twin" element={<TwinView />} />
           <Route path="/twin-preview" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-direct" element={<TwinViewDirect />} />
+          <Route path="/twin-dragdrop" element={<TwinViewDragDrop />} />
+          <Route path="/twin-graph" element={<TwinViewGraph />} />
+          <Route path="/twin-live" element={<TwinViewLive />} />
+          <Route path="/twin-cascade" element={<TwinViewCascade />} />
+          <Route path="/twin-compare" element={<TwinViewCompare />} />
+          <Route path="/twin-solve" element={<TwinViewSolve />} />
+          <Route path="/twin-spatial" element={<TwinViewSpatial />} />
           <Route path="/protocols" element={<ProtocolsView />} />
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />

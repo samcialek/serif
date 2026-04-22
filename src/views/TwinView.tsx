@@ -59,6 +59,7 @@ import { friendlyName } from '@/data/scm/fullCounterfactual'
 import {
   cumulativeEffectFraction,
   horizonDaysFor,
+  isOutcomeCredibleAt,
 } from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue, formatClockTime } from '@/utils/rounding'
@@ -964,7 +965,8 @@ function HorizonToggle({ atDays, onAtDaysChange }: HorizonToggleProps) {
           Each lever you pull is applied{' '}
           <span className="font-medium">every day</span> from now through{' '}
           <span className="font-medium">{formatHorizonShort(atDays)}</span>.
-          Levers the model cannot credibly extend to this horizon are hidden.
+          Levers and outcomes that the model cannot credibly predict at this
+          horizon are hidden.
         </div>
       </div>
     </Card>
@@ -1466,6 +1468,7 @@ export function TwinView() {
     for (const e of state.allEffects.values()) {
       if (Math.abs(e.totalEffect) <= 1e-6) continue
       if (seen.has(e.nodeId)) continue
+      if (!isOutcomeCredibleAt(canonicalOutcomeKey(e.nodeId), atDays)) continue
       seen.add(e.nodeId)
       out.push(e)
     }
@@ -1475,7 +1478,7 @@ export function TwinView() {
       if (ha !== hb) return ha - hb
       return Math.abs(b.totalEffect) - Math.abs(a.totalEffect)
     })
-  }, [state])
+  }, [state, atDays])
 
   const availableGoalCandidates = useMemo(() => {
     if (!participant) return []
@@ -1483,8 +1486,22 @@ export function TwinView() {
     for (const e of participant.effects_bayesian) {
       reachable.add(canonicalOutcomeKey(e.outcome))
     }
-    return GOAL_CANDIDATES.filter((c) => reachable.has(c.outcomeId))
-  }, [participant])
+    return GOAL_CANDIDATES.filter(
+      (c) =>
+        reachable.has(c.outcomeId) && isOutcomeCredibleAt(c.outcomeId, atDays),
+    )
+  }, [participant, atDays])
+
+  // If the user's goal stops being credible after a horizon change (e.g.
+  // scrubbing from 6mo to 1d with ferritin as goal), clear it so the
+  // GoalPill and banner don't cling to a stale target. Mirrors how
+  // filterCredibleLevers drops orphaned state-space overrides.
+  useEffect(() => {
+    if (!goal) return
+    if (!availableGoalCandidates.some((c) => c.outcomeId === goal.outcomeId)) {
+      setGoal(null)
+    }
+  }, [goal, availableGoalCandidates])
 
   const goalSplit = useMemo(() => {
     if (!goal || !state) return null
@@ -1648,16 +1665,29 @@ export function TwinView() {
                           {sortedEffects.length} outcome{sortedEffects.length === 1 ? '' : 's'}
                         </div>
                       </div>
-                      <div className="space-y-0.5">
-                        {sortedEffects.map((effect) => (
-                          <EffectRow
-                            key={effect.nodeId}
-                            effect={effect}
-                            atDays={atDays}
-                            mcEffect={mcState?.allEffects.get(effect.nodeId)}
-                          />
-                        ))}
-                      </div>
+                      {sortedEffects.length === 0 ? (
+                        <div className="py-4 text-center">
+                          <div className="text-sm font-medium text-slate-700 mb-1">
+                            Nothing moves measurably at {formatHorizonShort(atDays)}.
+                          </div>
+                          <div className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                            Outcomes tracked here respond on timescales from
+                            days (sleep, HRV) to months (body composition,
+                            lipids). Extend the horizon to see slower markers.
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-0.5">
+                          {sortedEffects.map((effect) => (
+                            <EffectRow
+                              key={effect.nodeId}
+                              effect={effect}
+                              atDays={atDays}
+                              mcEffect={mcState?.allEffects.get(effect.nodeId)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
