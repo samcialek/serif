@@ -35,7 +35,6 @@ import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { formatOutcomeValue } from '@/utils/rounding'
-import { leversAvailableAt } from '@/data/scm/leverCredibility'
 import { horizonBandFor } from '@/data/scm/outcomeHorizons'
 import {
   MANIPULABLE_NODES,
@@ -126,14 +125,23 @@ export function TwinViewLivingGraph() {
     [],
   )
 
+  // In LivingGraph, lever-side credibility is intentionally dropped: every
+  // intervention lever in MANIPULABLE_NODES is always available. Gating is
+  // purely outcome-side (regime's horizon band). Load accumulators (acwr,
+  // sleep_debt, training_load, travel_load) still don't appear as levers
+  // because they're not user-tunable actions, only derived state.
+  const manipulableIds = useMemo(
+    () => new Set(MANIPULABLE_NODES.map((n) => n.id)),
+    [],
+  )
+
   const interventionRows = useMemo(() => {
     if (!participant) return []
-    const credible = leversAvailableAt('intervention', atDays)
-    return MANIPULABLE_NODES.filter((n) => credible.has(n.id)).map((node) => {
+    return MANIPULABLE_NODES.map((node) => {
       const current = participant.current_values?.[node.id] ?? node.defaultValue
       return { node, current, range: rangeFor(node, current) }
     })
-  }, [participant, atDays])
+  }, [participant])
 
   // Compute the layout from intervention row count.
   const graphHeight = Math.max(420, interventionRows.length * (LEVER_CARD_H + 12) + 80)
@@ -141,12 +149,11 @@ export function TwinViewLivingGraph() {
 
   const graph = useMemo(() => {
     if (!participant) return { nodes: [], edges: [] }
-    const credible = leversAvailableAt('intervention', atDays)
     const regimeEffects = participant.effects_bayesian.filter((e) =>
       outcomeInRegime(canonicalOutcomeKey(e.outcome)),
     )
-    return buildGraph(regimeEffects, credible, layout)
-  }, [participant, layout, atDays, outcomeInRegime])
+    return buildGraph(regimeEffects, manipulableIds, layout)
+  }, [participant, layout, manipulableIds, outcomeInRegime])
   const graphOutcomeIds = useMemo(
     () => new Set(graph.nodes.filter((n) => n.kind === 'outcome').map((n) => n.id)),
     [graph],
