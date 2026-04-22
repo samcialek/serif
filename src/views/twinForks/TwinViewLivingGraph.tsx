@@ -14,7 +14,7 @@
  *     graph to lock it, pinning it during solver runs.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Loader2,
@@ -231,11 +231,25 @@ export function TwinViewLivingGraph() {
   const inSolverMode = goalOutcomeId != null
   const effectiveValues = inSolverMode ? solver.values : proposedValues
 
+  // Debounced clear timer so the active surge keeps flowing during a drag
+  // and lingers ~1.4s after the user releases (long enough for pulses to
+  // traverse even slow edges end-to-end).
+  const clearActiveTimerRef = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (clearActiveTimerRef.current) window.clearTimeout(clearActiveTimerRef.current)
+    },
+    [],
+  )
   const handleLeverChange = useCallback(
     (id: string, v: number) => {
       setActiveLever(id)
       setProposedValues((p) => ({ ...p, [id]: v }))
-      window.setTimeout(() => setActiveLever((cur) => (cur === id ? null : cur)), 500)
+      if (clearActiveTimerRef.current) window.clearTimeout(clearActiveTimerRef.current)
+      clearActiveTimerRef.current = window.setTimeout(() => {
+        setActiveLever((cur) => (cur === id ? null : cur))
+        clearActiveTimerRef.current = null
+      }, 1400)
     },
     [],
   )

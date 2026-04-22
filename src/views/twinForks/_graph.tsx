@@ -399,6 +399,11 @@ export function CausalGraphCanvas({
       <style>{`
         @keyframes sf-circuit-flow { to { stroke-dashoffset: -13; } }
         @keyframes sf-plasma-flow  { to { stroke-dashoffset: -36; } }
+        @keyframes sf-plasma-surge { to { stroke-dashoffset: -18; } }
+        @keyframes sf-surge-fade-in {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
+        }
         @keyframes sf-strike-pulse {
           0%   { opacity: 0.2; }
           20%  { opacity: 1; }
@@ -476,13 +481,18 @@ export function CausalGraphCanvas({
 
         if (edgeStyle === 'plasma') {
           const dur = Math.max(1.2, 3 - strength * 1.5)
+          // Active surge — fast dense bright pulses on edges out of the
+          // dragged lever (or into the goal outcome). Gives "energy just
+          // surged through this edge because you touched something"
+          // without abandoning the ambient breathing flow on the others.
+          const surgeDur = Math.max(0.55, 1.3 - strength * 0.7)
           return (
             <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
               {/* Wide diffuse glow */}
               <path
                 d={d}
                 stroke={color}
-                strokeOpacity={0.2}
+                strokeOpacity={isActive ? 0.35 : 0.2}
                 strokeWidth={w * 4.5}
                 fill="none"
                 filter="url(#sf-soft-blur)"
@@ -491,15 +501,15 @@ export function CausalGraphCanvas({
               <path
                 d={d}
                 stroke={color}
-                strokeOpacity={0.35}
+                strokeOpacity={isActive ? 0.55 : 0.35}
                 strokeWidth={w * 1.3}
                 fill="none"
               />
-              {/* Sparse bright pulses sweeping through */}
+              {/* Ambient sparse pulses (always running, reads as "alive") */}
               <path
                 d={d}
                 stroke={color}
-                strokeOpacity={isActive ? 1 : 0.9}
+                strokeOpacity={isActive ? 0.75 : 0.9}
                 strokeWidth={Math.max(2, w * 1.4)}
                 fill="none"
                 strokeDasharray="2 34"
@@ -509,6 +519,22 @@ export function CausalGraphCanvas({
                   filter: `drop-shadow(0 0 4px ${color})`,
                 }}
               />
+              {/* Surge: dense + fast bright pulse train, active only. */}
+              {isActive && (
+                <path
+                  d={d}
+                  stroke="#ffffff"
+                  strokeOpacity={1}
+                  strokeWidth={Math.max(2.4, w * 1.55)}
+                  fill="none"
+                  strokeDasharray="4 14"
+                  strokeLinecap="round"
+                  style={{
+                    animation: `sf-plasma-surge ${surgeDur}s linear infinite, sf-surge-fade-in 140ms ease-out both`,
+                    filter: `drop-shadow(0 0 7px ${color}) drop-shadow(0 0 2px #ffffff)`,
+                  }}
+                />
+              )}
             </g>
           )
         }
