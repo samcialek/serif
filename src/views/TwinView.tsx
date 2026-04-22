@@ -1,20 +1,25 @@
 /**
  * Twin SCM — per-member counterfactual workspace.
  *
- * The user pulls levers (continuous sliders + "today only" toggles) and
- * runs the counterfactual engine. Asymptotic magnitudes come from the
- * SCM; a log-scale time horizon reshapes them as decay curves so the
- * early dynamics (tomorrow → a month) get proportional real estate.
+ * The user pulls levers (continuous sliders over actions + state-space
+ * overrides for loads and biomarker baselines) and runs the counterfactual
+ * engine. Asymptotic magnitudes come from the SCM; the time horizon
+ * reshapes them as cumulative-accrual curves: every lever is assumed to
+ * be applied every day from now through the chosen horizon.
  *
- * Two modes:
- *   - cumulative ("every day, starting now"): A * (1 - e^(-t/tau))
- *   - one-off   ("today only, then stop"):    A * (t/tau) * e^(1 - t/tau)
+ *   accrued fraction at t:  A * (1 - e^(-t/tau))
+ *
+ * Levers are gated by horizon-specific credibility (see
+ * `src/data/scm/leverCredibility.ts`). If a lever's daily-sustained
+ * intervention or state-override cannot be credibly predicted at the
+ * chosen horizon, it is silently removed from the UI — the SCM does not
+ * answer questions it cannot validate.
  *
  * Posterior bands come from the BART Twin fit when available. Rows
  * without a BART ancestor degrade to point estimates with the same
- * decay shape. A goal overlay (set via the header pill) reframes the
- * results around a headline outcome and flags off-goal movements as
- * costs.
+ * cumulative shape. A goal overlay (set via the header pill) reframes
+ * the results around a headline outcome and flags off-goal movements
+ * as costs.
  *
  * Framing: Twin shows eternal, load-agnostic insights starting from the
  * member's baseline state-space. Today's loads, regime activations, and
@@ -26,7 +31,6 @@ import { motion } from 'framer-motion'
 import {
   ChevronDown,
   Clock,
-  GitBranch,
   Info,
   Loader2,
   Play,
@@ -40,7 +44,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
-import { Card, Button, Slider } from '@/components/common'
+import { Card, Button, Slider, MemberAvatar } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSCM } from '@/hooks/useSCM'
@@ -50,14 +54,18 @@ import type {
   NodeEffect,
 } from '@/data/scm/fullCounterfactual'
 import type { MCFullCounterfactualState, MCNodeEffect } from '@/data/scm/bartMonteCarlo'
+import type { ParticipantPortal } from '@/data/portal/types'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import {
   cumulativeEffectFraction,
-  oneOffEffectFraction,
   horizonDaysFor,
 } from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue, formatClockTime } from '@/utils/rounding'
+import {
+  leversAvailableAt,
+  filterCredibleLevers,
+} from '@/data/scm/leverCredibility'
 
 // ─── Horizons ───────────────────────────────────────────────────────
 //
@@ -86,15 +94,43 @@ const HORIZON_TICKS: HorizonTick[] = [
 
 const POSITION_RESOLUTION = 1000
 
+// Ticks are positioned equidistantly on the track: the i-th tick lives at
+// position (i / (N-1)) * RESOLUTION. Between ticks we interpolate linearly
+// in day-space, so a position halfway between the "1 wk" and "1 mo" ticks
+// resolves to ~18 days (midpoint of 7 and 30).
+const TICK_POSITIONS: number[] = HORIZON_TICKS.map(
+  (_, i) => (i / (HORIZON_TICKS.length - 1)) * POSITION_RESOLUTION,
+)
+
 function daysToPosition(days: number): number {
   const clamped = Math.min(MAX_DAYS, Math.max(MIN_DAYS, days))
-  return (Math.log(clamped) / Math.log(MAX_DAYS)) * POSITION_RESOLUTION
+  for (let i = 0; i < HORIZON_TICKS.length - 1; i++) {
+    const lo = HORIZON_TICKS[i].days
+    const hi = HORIZON_TICKS[i + 1].days
+    if (clamped >= lo && clamped <= hi) {
+      const frac = hi === lo ? 0 : (clamped - lo) / (hi - lo)
+      return TICK_POSITIONS[i] + frac * (TICK_POSITIONS[i + 1] - TICK_POSITIONS[i])
+    }
+  }
+  return clamped <= HORIZON_TICKS[0].days
+    ? TICK_POSITIONS[0]
+    : TICK_POSITIONS[TICK_POSITIONS.length - 1]
 }
 
 function positionToDays(pos: number): number {
   const clamped = Math.min(POSITION_RESOLUTION, Math.max(0, pos))
-  const raw = Math.exp((clamped / POSITION_RESOLUTION) * Math.log(MAX_DAYS))
-  return Math.max(MIN_DAYS, Math.min(MAX_DAYS, Math.round(raw)))
+  for (let i = 0; i < TICK_POSITIONS.length - 1; i++) {
+    const lo = TICK_POSITIONS[i]
+    const hi = TICK_POSITIONS[i + 1]
+    if (clamped >= lo && clamped <= hi) {
+      const frac = hi === lo ? 0 : (clamped - lo) / (hi - lo)
+      const days =
+        HORIZON_TICKS[i].days +
+        frac * (HORIZON_TICKS[i + 1].days - HORIZON_TICKS[i].days)
+      return Math.max(MIN_DAYS, Math.min(MAX_DAYS, Math.round(days)))
+    }
+  }
+  return HORIZON_TICKS[HORIZON_TICKS.length - 1].days
 }
 
 function formatHorizonLong(days: number): string {
@@ -118,8 +154,6 @@ function formatHorizonShort(days: number): string {
   if (days < 320) return `${Math.round(days / 30)} months`
   return '1 year'
 }
-
-type DosingMode = 'cumulative' | 'oneoff'
 
 // ─── Goal candidates ────────────────────────────────────────────────
 //
@@ -181,52 +215,195 @@ const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'bedtime', label: 'Bedtime', unit: 'hr', step: 0.25, defaultValue: 22.5 },
 ]
 
-// ─── Binary "today only" interventions ──────────────────────────────
+// ─── State-space panel ─────────────────────────────────────────────
 //
-// Some interventions are naturally yes/no commitments ("did you travel?",
-// "did you have alcohol?"). These map onto existing SCM continuous nodes
-// via a preset value (set) or an offset on the slider (delta). When ON,
-// the effective value overrides what the slider shows.
+// Loads and biomarker confounders that BART reads as direct parents.
+// The engine only shifts posteriors for variables that appear in a
+// BART surface's `parentNames`; everything in this list has been
+// verified against the manifest. Sliders here re-frame the factual
+// state the MC abducts from — they are NOT interventions.
 
-interface BinaryIntervention {
-  id: string
+interface StateSpaceKnob {
+  /** Key in observedValues (the name BART's parentNames expects). */
+  observedKey: string
   label: string
-  description: string
-  targetNodeId: string
-  mode: 'set' | 'delta'
-  onValue: number
-  hint: string
+  unit: string
+  step: number
+  /** Source for today's value + slider range. */
+  source:
+    | { kind: 'load'; loadKey: 'acwr' | 'sleep_debt_14d' | 'training_consistency' }
+    | { kind: 'action'; actionKey: string }
+    | { kind: 'baseline'; baselineKey: string; fallbackRange: [number, number] }
+  /** Hard bounds; slider clamps even when (baseline ± 2·sd) would blow past them. */
+  hardRange?: { min: number; max: number }
+  /** Used when the source has no baseline/sd so we can't derive a personal range. */
+  defaultRange?: { min: number; max: number }
+  format?: (v: number) => string
 }
 
-const BINARY_INTERVENTIONS: BinaryIntervention[] = [
+const STATE_SPACE_KNOBS: StateSpaceKnob[] = [
   {
-    id: 'travel_today',
-    label: 'Travel today',
-    description: 'A long flight or major time-zone shift today.',
-    targetNodeId: 'travel_load',
-    mode: 'set',
-    onValue: 0.7,
-    hint: 'jet-lag → 0.7',
+    observedKey: 'acwr',
+    label: 'ACWR',
+    unit: '',
+    step: 0.05,
+    source: { kind: 'load', loadKey: 'acwr' },
+    hardRange: { min: 0.5, max: 2.0 },
+    defaultRange: { min: 0.7, max: 1.5 },
+    format: (v) => v.toFixed(2),
   },
   {
-    id: 'late_caffeine',
-    label: 'Caffeine after 2pm',
-    description: 'A coffee or tea late enough to push bedtime back.',
-    targetNodeId: 'bedtime',
-    mode: 'delta',
-    onValue: 0.75,
-    hint: 'bedtime +0:45',
+    observedKey: 'sleep_debt',
+    label: 'Sleep debt (14d)',
+    unit: 'hrs',
+    step: 0.5,
+    source: { kind: 'load', loadKey: 'sleep_debt_14d' },
+    hardRange: { min: 0, max: 20 },
+    defaultRange: { min: 0, max: 12 },
   },
   {
-    id: 'alcohol_tonight',
-    label: 'Alcohol tonight',
-    description: 'A glass or two with dinner; fragments deep sleep.',
-    targetNodeId: 'sleep_duration',
-    mode: 'delta',
-    onValue: -0.5,
-    hint: 'sleep −0.5h',
+    observedKey: 'training_load',
+    label: 'Training load',
+    unit: 'au',
+    step: 5,
+    source: { kind: 'action', actionKey: 'training_load' },
+    hardRange: { min: 0, max: 200 },
+    defaultRange: { min: 0, max: 120 },
+  },
+  {
+    observedKey: 'training_consistency',
+    label: 'Training consistency',
+    unit: '',
+    step: 0.05,
+    source: { kind: 'load', loadKey: 'training_consistency' },
+    hardRange: { min: 0, max: 1 },
+    defaultRange: { min: 0.3, max: 1 },
+    format: (v) => v.toFixed(2),
+  },
+  {
+    observedKey: 'ferritin',
+    label: 'Ferritin',
+    unit: 'ng/mL',
+    step: 5,
+    source: { kind: 'baseline', baselineKey: 'ferritin', fallbackRange: [20, 400] },
+    hardRange: { min: 10, max: 500 },
+  },
+  {
+    observedKey: 'hscrp',
+    label: 'hs-CRP',
+    unit: 'mg/L',
+    step: 0.1,
+    source: { kind: 'baseline', baselineKey: 'hscrp', fallbackRange: [0, 10] },
+    hardRange: { min: 0, max: 15 },
   },
 ]
+
+/** Resolve "today's value" for a state-space knob from the participant JSON. */
+function todayValueForKnob(
+  knob: StateSpaceKnob,
+  participant: ParticipantPortal,
+): number | null {
+  const src = knob.source
+  if (src.kind === 'load') {
+    const load = participant.loads_today?.[src.loadKey]
+    return load ? load.value : null
+  }
+  if (src.kind === 'action') {
+    const v = participant.current_values?.[src.actionKey]
+    return typeof v === 'number' ? v : null
+  }
+  const v = participant.outcome_baselines?.[src.baselineKey]
+  return typeof v === 'number' ? v : null
+}
+
+/** Compute slider range for a knob: personal baseline ± 2σ when available,
+ *  else the defaultRange, clamped by hardRange, and extended to include today. */
+function rangeForKnob(
+  knob: StateSpaceKnob,
+  participant: ParticipantPortal,
+): { min: number; max: number } {
+  const today = todayValueForKnob(knob, participant)
+  let lo: number, hi: number
+
+  const src = knob.source
+  if (src.kind === 'load') {
+    const load = participant.loads_today?.[src.loadKey]
+    if (load && Number.isFinite(load.baseline) && Number.isFinite(load.sd) && load.sd > 0) {
+      lo = load.baseline - 2 * load.sd
+      hi = load.baseline + 2 * load.sd
+    } else {
+      lo = knob.defaultRange?.min ?? 0
+      hi = knob.defaultRange?.max ?? 1
+    }
+  } else if (src.kind === 'action') {
+    const mean = participant.current_values?.[src.actionKey]
+    const sd = participant.behavioral_sds?.[src.actionKey]
+    if (typeof mean === 'number' && typeof sd === 'number' && sd > 0) {
+      lo = mean - 2 * sd
+      hi = mean + 2 * sd
+    } else {
+      lo = knob.defaultRange?.min ?? 0
+      hi = knob.defaultRange?.max ?? 1
+    }
+  } else {
+    lo = src.fallbackRange[0]
+    hi = src.fallbackRange[1]
+  }
+
+  if (today != null) {
+    lo = Math.min(lo, today)
+    hi = Math.max(hi, today)
+  }
+  if (knob.hardRange) {
+    lo = Math.max(lo, knob.hardRange.min)
+    hi = Math.min(hi, knob.hardRange.max)
+  }
+  return { min: lo, max: hi }
+}
+
+/** Build the observedValues record both engines consume — merges current_values
+ *  with loads_today and outcome_baselines under every name the DAG might look
+ *  up (bare BART parentNames AND the load-key variants piecewise edges use),
+ *  then lays state-space overrides on top. Fixes the pre-existing bug where
+ *  loads and biomarker confounders were never populated. */
+function buildObservedValues(
+  participant: ParticipantPortal,
+  stateOverrides: Record<string, number> = {},
+): Record<string, number> {
+  const out: Record<string, number> = {}
+  // Default layer: guarantee every MANIPULABLE_NODES key is present even
+  // when the participant JSON omits it. Without this, BART parent
+  // extraction fails for any outcome whose parents include an action not
+  // persisted in current_values, silently dropping it to piecewise.
+  for (const node of MANIPULABLE_NODES) out[node.id] = node.defaultValue
+  Object.assign(out, participant.current_values)
+
+  const loads = participant.loads_today
+  if (loads) {
+    for (const [rawKey, load] of Object.entries(loads)) {
+      if (load && Number.isFinite(load.value)) out[rawKey] = load.value
+    }
+    // BART manifest parentNames strip the 14d suffix — alias so lookups hit.
+    if (loads.sleep_debt_14d) out.sleep_debt = loads.sleep_debt_14d.value
+  }
+
+  const baselines = participant.outcome_baselines
+  if (baselines) {
+    for (const [key, v] of Object.entries(baselines)) {
+      if (typeof v === 'number' && Number.isFinite(v)) out[key] = v
+    }
+  }
+
+  for (const [k, v] of Object.entries(stateOverrides)) {
+    if (Number.isFinite(v)) out[k] = v
+  }
+  // State-space panel edits the `sleep_debt` alias; mirror it back onto the
+  // `_14d` key so piecewise edges see the same shift.
+  if (stateOverrides.sleep_debt != null) {
+    out.sleep_debt_14d = stateOverrides.sleep_debt
+  }
+  return out
+}
 
 const BEDTIME_MIN = 20
 const BEDTIME_MAX = 28
@@ -315,7 +492,6 @@ function goalProgressLabel(
   goal: GoalCandidate,
   effect: NodeEffect | null,
   atDays: number,
-  mode: DosingMode,
 ): { headline: string; tone: 'good' | 'flat' | 'bad'; sub: string } {
   if (!effect) {
     return {
@@ -325,16 +501,14 @@ function goalProgressLabel(
     }
   }
   const horizonDays = horizonDaysFor(canonicalOutcomeKey(effect.nodeId)) ?? 30
-  const fn = mode === 'cumulative' ? cumulativeEffectFraction : oneOffEffectFraction
-  const fraction = fn(atDays, horizonDays)
-  const fractionAsymptote = fn(horizonDays * 10, horizonDays)
+  const fraction = cumulativeEffectFraction(atDays, horizonDays)
+  const fractionAsymptote = cumulativeEffectFraction(horizonDays * 10, horizonDays)
   const timed = effect.totalEffect * fraction
   const isGood =
     goal.direction === 'higher' ? effect.totalEffect > 0 : effect.totalEffect < 0
-  const pct =
-    mode === 'cumulative' && fractionAsymptote > 0
-      ? Math.round((fraction / fractionAsymptote) * 100)
-      : null
+  const pct = fractionAsymptote > 0
+    ? Math.round((fraction / fractionAsymptote) * 100)
+    : null
   const timedStr = formatEffectDelta(timed, effect.nodeId)
   const maxStr = formatEffectDelta(effect.totalEffect, effect.nodeId)
   if (Math.abs(effect.totalEffect) < 1e-6) {
@@ -364,7 +538,6 @@ function goalProgressLabel(
 interface DecayCurveProps {
   horizonDays: number
   atDays: number
-  mode: DosingMode
   tone: 'benefit' | 'harm' | 'neutral'
   widthPx?: number
   heightPx?: number
@@ -373,7 +546,6 @@ interface DecayCurveProps {
 function DecayCurve({
   horizonDays,
   atDays,
-  mode,
   tone,
   widthPx = 96,
   heightPx = 28,
@@ -381,10 +553,9 @@ function DecayCurve({
   const xMax = Math.max(horizonDays * 3, atDays * 1.1)
   const nSamples = 48
 
-  const fn = mode === 'cumulative' ? cumulativeEffectFraction : oneOffEffectFraction
   const samples = Array.from({ length: nSamples + 1 }, (_, i) => {
     const t = (i / nSamples) * xMax
-    return { t, y: fn(t, horizonDays) }
+    return { t, y: cumulativeEffectFraction(t, horizonDays) }
   })
   const yMax = Math.max(1, ...samples.map((s) => s.y))
   const toX = (t: number) => (t / xMax) * widthPx
@@ -400,7 +571,7 @@ function DecayCurve({
     tone === 'benefit' ? '#6ee7b7' : tone === 'harm' ? '#fda4af' : '#cbd5e1'
 
   const nowX = toX(Math.min(atDays, xMax))
-  const nowY = toY(fn(Math.min(atDays, xMax), horizonDays))
+  const nowY = toY(cumulativeEffectFraction(Math.min(atDays, xMax), horizonDays))
 
   return (
     <svg width={widthPx} height={heightPx} viewBox={`0 0 ${widthPx} ${heightPx}`}>
@@ -690,12 +861,11 @@ interface GoalBannerProps {
   goal: GoalCandidate
   goalEffect: NodeEffect | null
   atDays: number
-  mode: DosingMode
   costsCount: number
 }
 
-function GoalBanner({ goal, goalEffect, atDays, mode, costsCount }: GoalBannerProps) {
-  const { headline, tone, sub } = goalProgressLabel(goal, goalEffect, atDays, mode)
+function GoalBanner({ goal, goalEffect, atDays, costsCount }: GoalBannerProps) {
+  const { headline, tone, sub } = goalProgressLabel(goal, goalEffect, atDays)
   const toneClasses = {
     good: 'bg-emerald-50 border-emerald-200 text-emerald-900',
     flat: 'bg-slate-50 border-slate-200 text-slate-700',
@@ -730,106 +900,71 @@ function GoalBanner({ goal, goalEffect, atDays, mode, costsCount }: GoalBannerPr
 interface HorizonToggleProps {
   atDays: number
   onAtDaysChange: (days: number) => void
-  mode: DosingMode
-  onModeChange: (m: DosingMode) => void
 }
 
-function HorizonToggle({ atDays, onAtDaysChange, mode, onModeChange }: HorizonToggleProps) {
+function HorizonToggle({ atDays, onAtDaysChange }: HorizonToggleProps) {
   return (
     <Card>
       <div className="p-3">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            <Clock className="w-3.5 h-3.5" />
-            Time horizon
-            <span className="normal-case font-medium text-slate-800 ml-1">
-              · {formatHorizonLong(atDays)}
-            </span>
-          </div>
-          <div className="inline-flex rounded-md border border-slate-200 p-0.5 bg-slate-50">
-            <button
-              onClick={() => onModeChange('cumulative')}
-              className={cn(
-                'text-[11px] font-medium px-3 py-1 rounded',
-                mode === 'cumulative'
-                  ? 'bg-white shadow-sm text-slate-800'
-                  : 'text-slate-500 hover:text-slate-700',
-              )}
-            >
-              Every day
-            </button>
-            <button
-              onClick={() => onModeChange('oneoff')}
-              className={cn(
-                'text-[11px] font-medium px-3 py-1 rounded',
-                mode === 'oneoff'
-                  ? 'bg-white shadow-sm text-slate-800'
-                  : 'text-slate-500 hover:text-slate-700',
-              )}
-            >
-              Today only
-            </button>
-          </div>
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <Clock className="w-3.5 h-3.5" />
+          Time horizon
+          <span className="normal-case font-medium text-slate-800 ml-1">
+            · {formatHorizonLong(atDays)}
+          </span>
         </div>
 
-        <div className="px-1 relative">
-          <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 pointer-events-none">
-            {HORIZON_TICKS.map((t) => {
-              const pct = (daysToPosition(t.days) / POSITION_RESOLUTION) * 100
+        <div className="max-w-sm">
+          <div className="px-1 relative">
+            <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 pointer-events-none">
+              {HORIZON_TICKS.map((t, i) => {
+                const pct = (TICK_POSITIONS[i] / POSITION_RESOLUTION) * 100
+                return (
+                  <span
+                    key={t.days}
+                    className="absolute w-0.5 h-2.5 bg-slate-300/70"
+                    style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
+                  />
+                )
+              })}
+            </div>
+            <Slider
+              min={0}
+              max={POSITION_RESOLUTION}
+              step={1}
+              value={daysToPosition(atDays)}
+              onChange={(pos) => onAtDaysChange(positionToDays(pos))}
+            />
+          </div>
+
+          <div className="relative h-4 mt-1 mx-1">
+            {HORIZON_TICKS.map((t, i) => {
+              const pct = (TICK_POSITIONS[i] / POSITION_RESOLUTION) * 100
+              const isActive = Math.abs(t.days - atDays) <= Math.max(1, t.days * 0.05)
               return (
-                <span
+                <button
                   key={t.days}
-                  className="absolute w-0.5 h-2.5 bg-slate-300/70"
+                  onClick={() => onAtDaysChange(t.days)}
+                  className={cn(
+                    'absolute top-0 text-[10px] transition-colors whitespace-nowrap',
+                    isActive
+                      ? 'text-slate-800 font-semibold'
+                      : 'text-slate-400 hover:text-slate-600',
+                  )}
                   style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
-                />
+                >
+                  {t.label}
+                </button>
               )
             })}
           </div>
-          <Slider
-            min={0}
-            max={POSITION_RESOLUTION}
-            step={1}
-            value={daysToPosition(atDays)}
-            onChange={(pos) => onAtDaysChange(positionToDays(pos))}
-          />
-        </div>
-
-        <div className="relative h-4 mt-1 mx-1">
-          {HORIZON_TICKS.map((t) => {
-            const pct = (daysToPosition(t.days) / POSITION_RESOLUTION) * 100
-            const isActive = Math.abs(t.days - atDays) <= Math.max(1, t.days * 0.05)
-            return (
-              <button
-                key={t.days}
-                onClick={() => onAtDaysChange(t.days)}
-                className={cn(
-                  'absolute top-0 text-[10px] transition-colors whitespace-nowrap',
-                  isActive
-                    ? 'text-slate-800 font-semibold'
-                    : 'text-slate-400 hover:text-slate-600',
-                )}
-                style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
-              >
-                {t.label}
-              </button>
-            )
-          })}
         </div>
 
         <div className="mt-2 text-[11px] text-slate-500">
-          {mode === 'cumulative' ? (
-            <>
-              How much of each outcome's long-run effect has accrued by{' '}
-              <span className="font-medium">{formatHorizonShort(atDays)}</span>{' '}
-              if the change is sustained from today.
-            </>
-          ) : (
-            <>
-              Lingering effect{' '}
-              <span className="font-medium">{formatHorizonShort(atDays)}</span>{' '}
-              after a single day's change. Most markers decay back to baseline.
-            </>
-          )}
+          Each lever you pull is applied{' '}
+          <span className="font-medium">every day</span> from now through{' '}
+          <span className="font-medium">{formatHorizonShort(atDays)}</span>.
+          Levers the model cannot credibly extend to this horizon are hidden.
         </div>
       </div>
     </Card>
@@ -841,17 +976,15 @@ function HorizonToggle({ atDays, onAtDaysChange, mode, onModeChange }: HorizonTo
 interface EffectRowProps {
   effect: NodeEffect
   atDays: number
-  mode: DosingMode
   mcEffect?: MCNodeEffect | null
 }
 
-function EffectRow({ effect, atDays, mode, mcEffect }: EffectRowProps) {
+function EffectRow({ effect, atDays, mcEffect }: EffectRowProps) {
   const key = canonicalOutcomeKey(effect.nodeId)
   const meta = OUTCOME_META[key]
   const horizonDays = horizonDaysFor(key) ?? 30
-  const fn = mode === 'cumulative' ? cumulativeEffectFraction : oneOffEffectFraction
-  const fraction = fn(atDays, horizonDays)
-  const fractionAsymptote = fn(horizonDays * 10, horizonDays)
+  const fraction = cumulativeEffectFraction(atDays, horizonDays)
+  const fractionAsymptote = cumulativeEffectFraction(horizonDays * 10, horizonDays)
 
   const asymptoticEffect = effect.totalEffect
   const timedEffect = asymptoticEffect * fraction
@@ -881,10 +1014,9 @@ function EffectRow({ effect, atDays, mode, mcEffect }: EffectRowProps) {
       ? 'benefit'
       : 'harm'
 
-  const pctOfAsymptote =
-    mode === 'cumulative' && fractionAsymptote > 0
-      ? Math.min(100, Math.round((fraction / fractionAsymptote) * 100))
-      : null
+  const pctOfAsymptote = fractionAsymptote > 0
+    ? Math.min(100, Math.round((fraction / fractionAsymptote) * 100))
+    : null
 
   // Scale the BART posterior CI by the same time fraction used for the
   // point estimate so the band represents the timed delta, not the
@@ -924,7 +1056,6 @@ function EffectRow({ effect, atDays, mode, mcEffect }: EffectRowProps) {
         <DecayCurve
           horizonDays={horizonDays}
           atDays={atDays}
-          mode={mode}
           tone={tone}
         />
       </div>
@@ -954,6 +1085,148 @@ function EffectRow({ effect, atDays, mode, mcEffect }: EffectRowProps) {
   )
 }
 
+// ─── State-space panel component ───────────────────────────────────
+
+interface StateSpacePanelProps {
+  participant: ParticipantPortal
+  stateOverrides: Record<string, number>
+  atDays: number
+  onOverrideChange: (key: string, value: number) => void
+  onResetAll: () => void
+}
+
+function StateSpacePanel({
+  participant,
+  stateOverrides,
+  atDays,
+  onOverrideChange,
+  onResetAll,
+}: StateSpacePanelProps) {
+  const [open, setOpen] = useState(false)
+
+  const rows = useMemo(() => {
+    const credible = leversAvailableAt('stateOverride', atDays)
+    return STATE_SPACE_KNOBS.filter((knob) => credible.has(knob.observedKey)).map(
+      (knob) => {
+        const today = todayValueForKnob(knob, participant)
+        const range = rangeForKnob(knob, participant)
+        const override = stateOverrides[knob.observedKey]
+        const effective = override ?? today
+        const available = today != null
+        const changed = available && override != null && Math.abs(override - today!) > 1e-9
+        return { knob, today, range, effective, available, changed }
+      },
+    )
+  }, [participant, stateOverrides, atDays])
+
+  const anyChanged = rows.some((r) => r.changed)
+
+  // If every knob is hidden at this horizon, don't render the panel at all.
+  // Protects against an empty Card and a confusing "State today" header with
+  // nothing underneath.
+  if (rows.length === 0) return null
+  const fmt = (v: number | null, knob: StateSpaceKnob) => {
+    if (v == null || !Number.isFinite(v)) return '—'
+    const formatted = knob.format ? knob.format(v) : formatValue(v, undefined)
+    return knob.unit ? `${formatted} ${knob.unit}` : formatted
+  }
+
+  return (
+    <Card>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50/60 transition-colors rounded-t-md"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <ChevronDown
+            className={cn(
+              'w-4 h-4 text-slate-400 transition-transform',
+              open ? 'rotate-0' : '-rotate-90',
+            )}
+          />
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            State today
+          </div>
+          {anyChanged && (
+            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 ml-1">
+              simulating from altered state
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] text-slate-400 truncate ml-2">
+          Loads + confounders that reshape Twin's factual baseline.
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 pt-1 space-y-2">
+          <div className="flex items-center justify-end">
+            <button
+              onClick={onResetAll}
+              disabled={!anyChanged}
+              className={cn(
+                'text-[11px] flex items-center gap-1 px-2 py-1 rounded border transition-colors',
+                anyChanged
+                  ? 'text-slate-600 border-slate-200 hover:bg-slate-50'
+                  : 'text-slate-300 border-slate-100 cursor-not-allowed',
+              )}
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset state
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {rows.map(({ knob, today, range, effective, available, changed }) => (
+              <div
+                key={knob.observedKey}
+                className={cn(
+                  'rounded-md p-2 border transition-colors',
+                  !available
+                    ? 'bg-slate-50 border-slate-100 opacity-60'
+                    : changed
+                    ? 'bg-amber-50/40 border-amber-100'
+                    : 'bg-slate-50 border-slate-100',
+                )}
+              >
+                <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
+                  <div className="text-[11px] font-semibold text-slate-700 truncate">
+                    {knob.label}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-[10px] text-slate-400">
+                      {fmt(today, knob)}
+                      {changed ? '→' : ''}
+                    </span>
+                    {changed && (
+                      <span className="text-[11px] font-medium text-amber-700 tabular-nums ml-0.5">
+                        {fmt(effective ?? null, knob)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {available ? (
+                  <Slider
+                    min={range.min}
+                    max={range.max}
+                    step={knob.step}
+                    value={effective ?? range.min}
+                    onChange={(v) => onOverrideChange(knob.observedKey, v)}
+                  />
+                ) : (
+                  <div className="text-[10px] text-slate-400 italic py-1">
+                    no baseline for this member
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
 interface InterventionRow {
   node: ManipulableNode
   currentValue: number
@@ -963,42 +1236,33 @@ interface InterventionRow {
 interface MultiInterventionPanelProps {
   rows: InterventionRow[]
   proposedValues: Record<string, number>
-  effectiveValues: Record<string, number>
   onProposedChange: (nodeId: string, value: number) => void
-  binaryOn: Record<string, boolean>
-  onBinaryToggle: (id: string) => void
   onResetAll: () => void
   onRun: () => void
   isRunning: boolean
   anyDelta: boolean
+  atDays: number
 }
 
 function MultiInterventionPanel({
   rows,
   proposedValues,
-  effectiveValues,
   onProposedChange,
-  binaryOn,
-  onBinaryToggle,
   onResetAll,
   onRun,
   isRunning,
   anyDelta,
+  atDays,
 }: MultiInterventionPanelProps) {
-  const binaryByTarget = useMemo(() => {
-    const out = new Map<string, BinaryIntervention>()
-    for (const b of BINARY_INTERVENTIONS) {
-      if (binaryOn[b.id]) out.set(b.targetNodeId, b)
-    }
-    return out
-  }, [binaryOn])
-
   return (
     <Card>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Interventions
+            Daily interventions
+            <span className="normal-case font-normal text-slate-400 ml-2">
+              · applied every day for {formatHorizonShort(atDays)}
+            </span>
           </div>
           <button
             onClick={onResetAll}
@@ -1015,91 +1279,54 @@ function MultiInterventionPanel({
           </button>
         </div>
 
-        <div>
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
-            Today's commitments
+        {rows.length === 0 ? (
+          <div className="text-[11px] text-slate-400 italic py-4 text-center">
+            No interventions are credibly predictable at this horizon. Shorten
+            the time frame to expose more levers.
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {BINARY_INTERVENTIONS.map((b) => {
-              const active = !!binaryOn[b.id]
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {rows.map(({ node, currentValue }) => {
+              const sliderValue = proposedValues[node.id] ?? currentValue
+              const range = rangeFor(node, currentValue)
+              const changed = Math.abs(sliderValue - currentValue) > 1e-9
               return (
-                <button
-                  key={b.id}
-                  onClick={() => onBinaryToggle(b.id)}
-                  title={b.description}
+                <div
+                  key={node.id}
                   className={cn(
-                    'text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5',
-                    active
-                      ? 'bg-amber-50 text-amber-800 border-amber-300'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300',
+                    'rounded-md p-2 border transition-colors',
+                    changed
+                      ? 'bg-primary-50/40 border-primary-100'
+                      : 'bg-slate-50 border-slate-100',
                   )}
                 >
-                  <span
-                    className={cn(
-                      'w-1.5 h-1.5 rounded-full',
-                      active ? 'bg-amber-500' : 'bg-slate-300',
-                    )}
+                  <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
+                    <div className="min-w-0 flex items-center gap-1">
+                      <div className="text-[11px] font-semibold text-slate-700 truncate">
+                        {node.label}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="text-[10px] text-slate-400">
+                        {formatNodeValue(currentValue, node)}→
+                      </span>
+                      <span className="text-[11px] font-medium text-slate-800 tabular-nums ml-0.5">
+                        {formatNodeValue(sliderValue, node)}
+                      </span>
+                    </div>
+                  </div>
+                  <Slider
+                    min={range.min}
+                    max={range.max}
+                    step={node.step}
+                    value={sliderValue}
+                    onChange={(v) => onProposedChange(node.id, v)}
                   />
-                  {b.label}
-                  {active && (
-                    <span className="text-[9px] text-amber-700/70 ml-0.5">
-                      {b.hint}
-                    </span>
-                  )}
-                </button>
+                </div>
               )
             })}
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {rows.map(({ node, currentValue }) => {
-            const sliderValue = proposedValues[node.id] ?? currentValue
-            const effective = effectiveValues[node.id] ?? sliderValue
-            const range = rangeFor(node, currentValue)
-            const changed = Math.abs(effective - currentValue) > 1e-9
-            const binary = binaryByTarget.get(node.id)
-            return (
-              <div
-                key={node.id}
-                className={cn(
-                  'rounded-md p-2 border transition-colors',
-                  changed
-                    ? 'bg-primary-50/40 border-primary-100'
-                    : 'bg-slate-50 border-slate-100',
-                )}
-              >
-                <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
-                  <div className="min-w-0 flex items-center gap-1">
-                    <div className="text-[11px] font-semibold text-slate-700 truncate">
-                      {node.label}
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <span className="text-[10px] text-slate-400">
-                      {formatNodeValue(currentValue, node)}→
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-800 tabular-nums ml-0.5">
-                      {formatNodeValue(effective, node)}
-                    </span>
-                  </div>
-                </div>
-                <Slider
-                  min={range.min}
-                  max={range.max}
-                  step={node.step}
-                  value={sliderValue}
-                  onChange={(v) => onProposedChange(node.id, v)}
-                />
-                {binary && (
-                  <div className="mt-1 text-[9px] text-amber-700/80 truncate">
-                    + {binary.label.toLowerCase()} ({binary.hint})
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        )}
 
         <Button onClick={onRun} disabled={isRunning || !anyDelta} className="w-full">
           {isRunning ? (
@@ -1122,18 +1349,17 @@ function MultiInterventionPanel({
 // ─── Main view ──────────────────────────────────────────────────────
 
 export function TwinView() {
-  const { pid, displayName, cohort } = useActiveParticipant()
+  const { pid, displayName, cohort, persona } = useActiveParticipant()
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual } = useSCM()
   const { status: bartStatus, runMC, coverage } = useBartTwin()
 
   const [proposedValues, setProposedValues] = useState<Record<string, number>>({})
-  const [binaryOn, setBinaryOn] = useState<Record<string, boolean>>({})
+  const [stateOverrides, setStateOverrides] = useState<Record<string, number>>({})
   const [state, setState] = useState<FullCounterfactualState | null>(null)
   const [mcState, setMcState] = useState<MCFullCounterfactualState | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [atDays, setAtDays] = useState<number>(90)
-  const [mode, setMode] = useState<DosingMode>('cumulative')
   const [goal, setGoal] = useState<GoalCandidate | null>(null)
 
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -1141,10 +1367,12 @@ export function TwinView() {
   // Invalidate stale MC bands whenever the underlying levers change. The
   // bands are snapshotted from the last runMC call; if the user moves a
   // slider and doesn't re-run, we'd be painting yesterday's draws onto
-  // today's point estimates.
+  // today's point estimates. Horizon changes don't invalidate — the same
+  // counterfactual just gets re-displayed with a different time fraction.
   useEffect(() => {
     setMcState(null)
-  }, [proposedValues, binaryOn])
+    setState(null)
+  }, [proposedValues, stateOverrides])
 
   const interventionRows = useMemo<InterventionRow[]>(() => {
     if (!participant) return []
@@ -1152,76 +1380,59 @@ export function TwinView() {
     for (const e of participant.effects_bayesian) {
       edgeCounts.set(e.action, (edgeCounts.get(e.action) ?? 0) + 1)
     }
+    const credible = leversAvailableAt('intervention', atDays)
     return MANIPULABLE_NODES
-      .filter((n) => edgeCounts.has(n.id))
+      .filter((n) => edgeCounts.has(n.id) && credible.has(n.id))
       .map((node) => ({
         node,
         currentValue: participant.current_values?.[node.id] ?? node.defaultValue,
         edgeCount: edgeCounts.get(node.id) ?? 0,
       }))
       .sort((a, b) => b.edgeCount - a.edgeCount)
-  }, [participant])
-
-  const effectiveValues = useMemo<Record<string, number>>(() => {
-    const out: Record<string, number> = {}
-    for (const { node, currentValue } of interventionRows) {
-      out[node.id] = proposedValues[node.id] ?? currentValue
-    }
-    for (const b of BINARY_INTERVENTIONS) {
-      if (!binaryOn[b.id]) continue
-      const baseline = participant?.current_values?.[b.targetNodeId] ?? 0
-      const slider = proposedValues[b.targetNodeId] ?? baseline
-      out[b.targetNodeId] =
-        b.mode === 'set' ? b.onValue : slider + b.onValue
-    }
-    return out
-  }, [interventionRows, proposedValues, binaryOn, participant])
+  }, [participant, atDays])
 
   const deltas = useMemo(() => {
     const out: Array<{ nodeId: string; value: number; originalValue: number }> = []
-    const seen = new Set<string>()
     for (const { node, currentValue } of interventionRows) {
-      const effective = effectiveValues[node.id] ?? currentValue
+      const effective = proposedValues[node.id] ?? currentValue
       if (Math.abs(effective - currentValue) > 1e-9) {
         out.push({ nodeId: node.id, value: effective, originalValue: currentValue })
-        seen.add(node.id)
-      }
-    }
-    for (const b of BINARY_INTERVENTIONS) {
-      if (!binaryOn[b.id]) continue
-      if (seen.has(b.targetNodeId)) continue
-      const baseline = participant?.current_values?.[b.targetNodeId] ?? 0
-      const effective = effectiveValues[b.targetNodeId]
-      if (effective != null && Math.abs(effective - baseline) > 1e-9) {
-        out.push({
-          nodeId: b.targetNodeId,
-          value: effective,
-          originalValue: baseline,
-        })
       }
     }
     return out
-  }, [interventionRows, effectiveValues, binaryOn, participant])
+  }, [interventionRows, proposedValues])
 
   const handleProposedChange = useCallback((nodeId: string, value: number) => {
     setProposedValues((prev) => ({ ...prev, [nodeId]: value }))
   }, [])
 
-  const handleBinaryToggle = useCallback((id: string) => {
-    setBinaryOn((prev) => ({ ...prev, [id]: !prev[id] }))
-  }, [])
-
   const handleResetAll = useCallback(() => {
     setProposedValues({})
-    setBinaryOn({})
+    setStateOverrides({})
     setState(null)
     setMcState(null)
+  }, [])
+
+  const handleStateOverrideChange = useCallback((key: string, value: number) => {
+    setStateOverrides((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const handleStateReset = useCallback(() => {
+    setStateOverrides({})
   }, [])
 
   const handleRun = useCallback(() => {
     if (!participant || deltas.length === 0) return
     setIsRunning(true)
-    const observedValues: Record<string, number> = { ...participant.current_values }
+    // Drop any state-override the user set at a shorter horizon where the
+    // knob is now hidden — otherwise a non-credible starting value would
+    // silently leak into the factual the MC abducts from.
+    const credibleOverrides = filterCredibleLevers(
+      stateOverrides,
+      'stateOverride',
+      atDays,
+    )
+    const observedValues = buildObservedValues(participant, credibleOverrides)
     try {
       const result = runFullCounterfactual(observedValues, deltas)
       setState(result)
@@ -1240,7 +1451,7 @@ export function TwinView() {
           console.warn('[TwinView] MC run failed:', err)
         })
     }
-  }, [participant, runFullCounterfactual, deltas, runMC, bartStatus])
+  }, [participant, runFullCounterfactual, deltas, runMC, bartStatus, stateOverrides, atDays])
 
   useLayoutEffect(() => {
     if (state && resultsRef.current) {
@@ -1297,7 +1508,7 @@ export function TwinView() {
   return (
     <PageLayout
       title="Causal Twin"
-      subtitle="See how a change moves every outcome over time. Results assume the change becomes your steady state."
+      subtitle="See how daily application of each change moves every outcome over your chosen horizon."
       maxWidth="full"
       padding="none"
       className="pt-6 pb-6 pr-6 pl-3"
@@ -1310,9 +1521,7 @@ export function TwinView() {
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center">
-              <GitBranch className="w-5 h-5 text-primary-600" />
-            </div>
+            <MemberAvatar persona={persona} displayName={displayName} size="md" />
             <div>
               <div className="text-sm font-semibold text-slate-800">
                 {displayName}
@@ -1340,22 +1549,26 @@ export function TwinView() {
         <HorizonToggle
           atDays={atDays}
           onAtDaysChange={setAtDays}
-          mode={mode}
-          onModeChange={setMode}
+        />
+
+        <StateSpacePanel
+          participant={participant}
+          stateOverrides={stateOverrides}
+          atDays={atDays}
+          onOverrideChange={handleStateOverrideChange}
+          onResetAll={handleStateReset}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
           <MultiInterventionPanel
             rows={interventionRows}
             proposedValues={proposedValues}
-            effectiveValues={effectiveValues}
             onProposedChange={handleProposedChange}
-            binaryOn={binaryOn}
-            onBinaryToggle={handleBinaryToggle}
             onResetAll={handleResetAll}
             onRun={handleRun}
             isRunning={isRunning}
             anyDelta={deltas.length > 0}
+            atDays={atDays}
           />
 
           <div ref={resultsRef}>
@@ -1368,7 +1581,6 @@ export function TwinView() {
                         goal={goal}
                         goalEffect={goalSplit.goalEffect}
                         atDays={atDays}
-                        mode={mode}
                         costsCount={goalSplit.costs.length}
                       />
                       {goalSplit.goalEffect && (
@@ -1378,7 +1590,6 @@ export function TwinView() {
                             <EffectRow
                               effect={goalSplit.goalEffect}
                               atDays={atDays}
-                              mode={mode}
                               mcEffect={mcState?.allEffects.get(goalSplit.goalEffect.nodeId)}
                             />
                           </div>
@@ -1397,7 +1608,6 @@ export function TwinView() {
                                 key={effect.nodeId}
                                 effect={effect}
                                 atDays={atDays}
-                                mode={mode}
                                 mcEffect={mcState?.allEffects.get(effect.nodeId)}
                               />
                             ))}
@@ -1416,7 +1626,6 @@ export function TwinView() {
                                 key={effect.nodeId}
                                 effect={effect}
                                 atDays={atDays}
-                                mode={mode}
                                 mcEffect={mcState?.allEffects.get(effect.nodeId)}
                               />
                             ))}
@@ -1429,9 +1638,7 @@ export function TwinView() {
                       <div className="flex items-baseline justify-between">
                         <div>
                           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                            {mode === 'cumulative'
-                              ? `If you sustain this change, ${formatHorizonShort(atDays)} from now:`
-                              : `One-off: effect ${formatHorizonShort(atDays)} after a single day:`}
+                            After {formatHorizonShort(atDays)} of applying these every day:
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">
                             Dashed tick = outcome's natural response time · dot = now
@@ -1447,7 +1654,6 @@ export function TwinView() {
                             key={effect.nodeId}
                             effect={effect}
                             atDays={atDays}
-                            mode={mode}
                             mcEffect={mcState?.allEffects.get(effect.nodeId)}
                           />
                         ))}

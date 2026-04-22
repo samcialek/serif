@@ -57,9 +57,10 @@ AppShell.displayName = 'AppShell'
 
 // Page Layout wrapper - BRUTALIST VERSION
 export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
-  title?: string
+  title?: React.ReactNode
   subtitle?: string
   actions?: React.ReactNode
+  titleAccessory?: React.ReactNode
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
   padding?: 'none' | 'sm' | 'md' | 'lg'
 }
@@ -87,6 +88,7 @@ export const PageLayout = forwardRef<HTMLDivElement, PageLayoutProps>(
       title,
       subtitle,
       actions,
+      titleAccessory,
       maxWidth = '2xl',
       padding = 'md',
       children,
@@ -101,20 +103,23 @@ export const PageLayout = forwardRef<HTMLDivElement, PageLayoutProps>(
         {...props}
       >
         {/* Page Header - BRUTALIST */}
-        {(title || actions) && (
+        {(title || actions || titleAccessory) && (
           <div className="mb-8">
             <div className="flex items-start justify-between">
-              <div>
-                {title && (
-                  <h1 className="text-3xl font-black text-black uppercase tracking-tight">
-                    {title}
-                  </h1>
-                )}
-                {subtitle && (
-                  <p className="mt-2 text-sm font-medium text-gray-600 uppercase tracking-wider">
-                    {subtitle}
-                  </p>
-                )}
+              <div className="flex items-center gap-4 min-w-0">
+                {titleAccessory}
+                <div className="min-w-0">
+                  {title && (
+                    <h1 className="text-3xl font-black text-black uppercase tracking-tight">
+                      {title}
+                    </h1>
+                  )}
+                  {subtitle && (
+                    <p className="mt-2 text-sm font-medium text-gray-600 uppercase tracking-wider">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
               </div>
               {actions && (
                 <div className="flex items-center gap-3">{actions}</div>

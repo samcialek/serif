@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
-import { Card } from '@/components/common'
+import { Card, MemberAvatar } from '@/components/common'
 import { OptimalSchedule } from '@/components/portal'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -23,7 +23,11 @@ const DAY_OF_WEEK = [
 export function ProtocolsView() {
   const activePid = usePortalStore((s) => s.activePid)
   const { participant, isLoading, error } = useParticipant()
-  const { displayName } = useActiveParticipant()
+  const { displayName, persona } = useActiveParticipant()
+
+  const titleAccessory = (
+    <MemberAvatar persona={persona} displayName={displayName} size="lg" />
+  )
 
   const today = useMemo(() => new Date(), [])
 
@@ -60,7 +64,7 @@ export function ProtocolsView() {
 
   if (isLoading) {
     return (
-      <PageLayout title={`${displayName} — today's plan`}>
+      <PageLayout title={`${displayName} — today's plan`} titleAccessory={titleAccessory}>
         <Card padding="md" className="flex flex-col items-center text-slate-500 py-12">
           <Loader2 className="w-5 h-5 animate-spin mb-2" />
           <span className="text-sm">Loading {displayName}…</span>
@@ -71,7 +75,7 @@ export function ProtocolsView() {
 
   if (error) {
     return (
-      <PageLayout title={`${displayName} — today's plan`}>
+      <PageLayout title={`${displayName} — today's plan`} titleAccessory={titleAccessory}>
         <Card padding="md" className="flex flex-col items-center text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-3">
             <AlertCircle className="w-6 h-6 text-rose-500" />
@@ -94,6 +98,7 @@ export function ProtocolsView() {
   return (
     <PageLayout
       title={`${displayName} — today's plan`}
+      titleAccessory={titleAccessory}
       subtitle="Today's schedule, chosen for this member's current loads and regime state."
     >
       <motion.div

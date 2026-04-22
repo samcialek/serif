@@ -16,6 +16,7 @@ import {
   Database,
   GitBranch,
   Compass,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -48,6 +49,7 @@ const navItems: NavItem[] = [
       { to: '/integration', icon: Link2, label: 'Devices' },
       { to: '/insights', icon: Lightbulb, label: 'Insights' },
       { to: '/exploration', icon: Compass, label: 'Exploration' },
+      { to: '/baseline', icon: TrendingUp, label: 'Baseline' },
       { to: '/twin', icon: GitBranch, label: 'Twin' },
       { to: '/protocols', icon: ListChecks, label: 'Protocols' },
     ],

@@ -14,7 +14,7 @@ import {
   Database,
 } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
-import { Card, MetricCard } from '@/components/common'
+import { Card, MetricCard, MemberAvatar } from '@/components/common'
 import { DataCadenceChart } from '@/components/charts'
 import { MetricSparkline } from '@/components/clients/MetricSparkline'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -595,6 +595,9 @@ function CaspianDataView() {
   return (
     <PageLayout
       title="Caspian's Raw Data"
+      titleAccessory={
+        <MemberAvatar persona={caspianPersona} displayName={caspianPersona.name} size="lg" />
+      }
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -655,10 +658,14 @@ function CaspianDataView() {
 }
 
 function SyntheticDataPlaceholder({ displayName }: { displayName: string }) {
+  const { persona } = useActiveParticipant()
   const { participant, isLoading } = useParticipant()
   return (
     <PageLayout
       title={`${displayName}'s Data`}
+      titleAccessory={
+        <MemberAvatar persona={persona} displayName={displayName} size="lg" />
+      }
       subtitle="Synthetic 100-day timeseries · wearable + lifestyle signals"
     >
       <motion.div

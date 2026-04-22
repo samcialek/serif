@@ -5,7 +5,7 @@ import { RefreshCw, Bell } from 'lucide-react'
 import { useDemoStore } from '@/stores/demoStore'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSyncStatus, useTimeSinceSync } from '@/hooks/useSyncStatus'
-import { PatientSwitcher, Tooltip } from '@/components/common'
+import { MemberAvatar, PatientSwitcher, Tooltip } from '@/components/common'
 import { isPatientScoped } from '@/config/routeGrain'
 
 const COHORT_LABELS: Record<string, string> = {
@@ -19,7 +19,7 @@ export type HeaderProps = React.HTMLAttributes<HTMLElement>
 export const Header = forwardRef<HTMLElement, HeaderProps>(
   ({ className, ...props }, ref) => {
     const { guidedMode } = useDemoStore()
-    const { displayName, kind, cohort } = useActiveParticipant()
+    const { displayName, kind, cohort, persona } = useActiveParticipant()
     const { isSyncing, simulateSync } = useSyncStatus()
     const timeSinceSync = useTimeSinceSync()
     const { pathname } = useLocation()
@@ -78,9 +78,12 @@ export const Header = forwardRef<HTMLElement, HeaderProps>(
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-serif-pink rounded-full" />
           </button>
 
-          <div className="w-8 h-8 bg-primary-100 flex items-center justify-center text-primary-600 text-sm font-semibold rounded-full">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
+          <MemberAvatar
+            persona={persona}
+            displayName={displayName}
+            size="md"
+            shape="circle"
+          />
         </div>
       </header>
     )

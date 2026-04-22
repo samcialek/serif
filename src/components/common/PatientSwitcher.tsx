@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, User, Search, FlaskConical } from 'lucide-react'
+import { ChevronDown, Search, FlaskConical } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import {
   useActiveParticipant,
@@ -9,6 +9,7 @@ import {
 } from '@/hooks/useActiveParticipant'
 import { NAMED_PERSONA_PIDS } from '@/data/participantRegistry'
 import { getPersonaById } from '@/data/personas'
+import { MemberAvatar } from './MemberAvatar'
 
 const NAMED_ENTRIES = Object.entries(NAMED_PERSONA_PIDS)
   .map(([pidStr, personaId]) => ({
@@ -23,7 +24,7 @@ export interface PatientSwitcherProps {
 }
 
 export function PatientSwitcher({ className }: PatientSwitcherProps) {
-  const { pid, displayName, kind, cohort } = useActiveParticipant()
+  const { pid, displayName, kind, cohort, persona } = useActiveParticipant()
   const setParticipant = useSetActiveParticipant()
   const navigate = useNavigate()
 
@@ -58,9 +59,12 @@ export function PatientSwitcher({ className }: PatientSwitcherProps) {
           'hover:border-slate-300 hover:shadow-sm transition-all',
         )}
       >
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center flex-shrink-0">
-          <User className="w-3.5 h-3.5 text-primary-600" />
-        </div>
+        <MemberAvatar
+          persona={persona}
+          displayName={displayName}
+          size="sm"
+          shape="circle"
+        />
         <div className="text-left min-w-0">
           <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider leading-none">
             Select a member
@@ -111,9 +115,12 @@ export function PatientSwitcher({ className }: PatientSwitcherProps) {
                         isActive && 'bg-primary-50/60',
                       )}
                     >
-                      <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                        <User className="w-3.5 h-3.5 text-slate-500" />
-                      </div>
+                      <MemberAvatar
+                        persona={persona}
+                        displayName={name}
+                        size="sm"
+                        shape="circle"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{name}</p>
                         {archetype && (
