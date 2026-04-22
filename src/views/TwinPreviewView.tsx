@@ -98,12 +98,56 @@ const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'bedtime', label: 'Bedtime', unit: 'hr', step: 0.25, defaultValue: 22.5 },
   { id: 'acwr', label: 'ACWR', unit: 'ratio', step: 0.05, defaultValue: 1.0,
     fixedRange: { min: 0.8, max: 1.8 }, derived: true },
-  { id: 'sleep_debt', label: 'Sleep Debt', unit: 'hrs', step: 0.5, defaultValue: 2.0,
-    fixedRange: { min: 0, max: 10 }, derived: true },
   { id: 'training_load', label: 'Training Load', unit: 'TRIMP/day', step: 5, defaultValue: 60,
     fixedRange: { min: 20, max: 150 }, derived: true },
-  { id: 'travel_load', label: 'Travel Load', unit: 'jet-lag index', step: 0.05, defaultValue: 0,
-    fixedRange: { min: 0, max: 1 }, derived: true },
+]
+
+// ─── Binary "today only" interventions ──────────────────────────────
+//
+// Some interventions are naturally yes/no commitments rather than dosed
+// quantities ("did you travel today?", "did you have alcohol?"). These
+// map onto existing SCM continuous nodes via a known preset value (set
+// mode) or an offset applied to the slider value (delta mode). When ON,
+// the binary's effective value overrides what the slider shows.
+
+interface BinaryIntervention {
+  id: string
+  label: string
+  description: string
+  targetNodeId: string
+  mode: 'set' | 'delta'
+  onValue: number
+  hint: string
+}
+
+const BINARY_INTERVENTIONS: BinaryIntervention[] = [
+  {
+    id: 'travel_today',
+    label: 'Travel today',
+    description: 'A long flight or major time-zone shift today.',
+    targetNodeId: 'travel_load',
+    mode: 'set',
+    onValue: 0.7,
+    hint: 'jet-lag → 0.7',
+  },
+  {
+    id: 'late_caffeine',
+    label: 'Caffeine after 2pm',
+    description: 'A coffee or tea late enough to push bedtime back.',
+    targetNodeId: 'bedtime',
+    mode: 'delta',
+    onValue: 0.75,
+    hint: 'bedtime +0:45',
+  },
+  {
+    id: 'alcohol_tonight',
+    label: 'Alcohol tonight',
+    description: 'A glass or two with dinner — fragments deep sleep.',
+    targetNodeId: 'sleep_duration',
+    mode: 'delta',
+    onValue: -0.5,
+    hint: 'sleep −0.5h',
+  },
 ]
 
 const BEDTIME_MIN = 20
@@ -247,73 +291,84 @@ interface HorizonToggleProps {
 }
 
 function HorizonToggle({ choice, onChoiceChange, mode, onModeChange }: HorizonToggleProps) {
+  const idx = HORIZON_CHOICES.findIndex((c) => c.id === choice.id)
+  const safeIdx = idx >= 0 ? idx : 0
   return (
     <Card>
-      <div className="p-4">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-          <Clock className="w-3.5 h-3.5" />
-          Time horizon
-          <span className="normal-case font-normal text-slate-400 text-[11px] ml-2">
-            Wireframe -- decay curves are synthetic
-          </span>
+      <div className="p-3">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <Clock className="w-3.5 h-3.5" />
+            Time horizon
+            <span className="normal-case font-medium text-slate-800 ml-1">
+              · {choice.label}
+            </span>
+          </div>
+          <div className="inline-flex rounded-md border border-slate-200 p-0.5 bg-slate-50">
+            <button
+              onClick={() => onModeChange('cumulative')}
+              className={cn(
+                'text-[11px] font-medium px-3 py-1 rounded',
+                mode === 'cumulative'
+                  ? 'bg-white shadow-sm text-slate-800'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+            >
+              Every day
+            </button>
+            <button
+              onClick={() => onModeChange('oneoff')}
+              className={cn(
+                'text-[11px] font-medium px-3 py-1 rounded',
+                mode === 'oneoff'
+                  ? 'bg-white shadow-sm text-slate-800'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+            >
+              Today only
+            </button>
+          </div>
         </div>
 
-        {/* Mode switch */}
-        <div className="inline-flex rounded-md border border-slate-200 p-0.5 mb-3 bg-slate-50">
-          <button
-            onClick={() => onModeChange('cumulative')}
-            className={cn(
-              'text-[11px] font-medium px-3 py-1 rounded',
-              mode === 'cumulative'
-                ? 'bg-white shadow-sm text-slate-800'
-                : 'text-slate-500 hover:text-slate-700',
-            )}
-          >
-            Every day
-          </button>
-          <button
-            onClick={() => onModeChange('oneoff')}
-            className={cn(
-              'text-[11px] font-medium px-3 py-1 rounded',
-              mode === 'oneoff'
-                ? 'bg-white shadow-sm text-slate-800'
-                : 'text-slate-500 hover:text-slate-700',
-            )}
-          >
-            Today only
-          </button>
+        <div className="px-1">
+          <Slider
+            min={0}
+            max={HORIZON_CHOICES.length - 1}
+            step={1}
+            value={safeIdx}
+            onChange={(v) => onChoiceChange(HORIZON_CHOICES[Math.round(v)])}
+          />
         </div>
 
-        {/* Horizon chips */}
-        <div className="flex flex-wrap gap-2">
-          {HORIZON_CHOICES.map((c) => (
+        <div className="flex justify-between mt-1 px-1">
+          {HORIZON_CHOICES.map((c, i) => (
             <button
               key={c.id}
               onClick={() => onChoiceChange(c)}
               className={cn(
-                'text-xs font-medium px-3 py-1.5 rounded-full border transition-colors',
-                choice.id === c.id
-                  ? 'bg-primary-600 text-white border-primary-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300',
+                'text-[10px] transition-colors',
+                i === safeIdx
+                  ? 'text-slate-800 font-semibold'
+                  : 'text-slate-400 hover:text-slate-600',
               )}
             >
-              {c.label}
+              {c.label.replace('In ', '')}
             </button>
           ))}
         </div>
 
-        <div className="mt-3 text-[11px] text-slate-500">
+        <div className="mt-2 text-[11px] text-slate-500">
           {mode === 'cumulative' ? (
             <>
-              Shows how much of each outcome's long-run effect has accrued
-              by <span className="font-medium">day {choice.days}</span> if
-              the change were your steady state starting today.
+              How much of each outcome's long-run effect has accrued by{' '}
+              <span className="font-medium">day {choice.days}</span> if
+              the change is sustained from today.
             </>
           ) : (
             <>
-              Shows the lingering effect at{' '}
-              <span className="font-medium">day {choice.days}</span> from a
-              single day's change. Most markers decay back to baseline.
+              Lingering effect at{' '}
+              <span className="font-medium">day {choice.days}</span> from
+              a single day's change. Most markers decay back to baseline.
             </>
           )}
         </div>
@@ -418,7 +473,10 @@ interface InterventionRow {
 interface MultiInterventionPanelProps {
   rows: InterventionRow[]
   proposedValues: Record<string, number>
+  effectiveValues: Record<string, number>
   onProposedChange: (nodeId: string, value: number) => void
+  binaryOn: Record<string, boolean>
+  onBinaryToggle: (id: string) => void
   onResetAll: () => void
   onRun: () => void
   isRunning: boolean
@@ -428,18 +486,30 @@ interface MultiInterventionPanelProps {
 function MultiInterventionPanel({
   rows,
   proposedValues,
+  effectiveValues,
   onProposedChange,
+  binaryOn,
+  onBinaryToggle,
   onResetAll,
   onRun,
   isRunning,
   anyDelta,
 }: MultiInterventionPanelProps) {
+  // Map node -> active binary that targets it (for hint badges).
+  const binaryByTarget = useMemo(() => {
+    const out = new Map<string, BinaryIntervention>()
+    for (const b of BINARY_INTERVENTIONS) {
+      if (binaryOn[b.id]) out.set(b.targetNodeId, b)
+    }
+    return out
+  }, [binaryOn])
+
   return (
     <Card>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Interventions ({rows.length})
+            Interventions
           </div>
           <button
             onClick={onResetAll}
@@ -456,12 +526,52 @@ function MultiInterventionPanel({
           </button>
         </div>
 
+        {/* Binary "today only" toggles */}
+        <div>
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+            Today's commitments
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {BINARY_INTERVENTIONS.map((b) => {
+              const active = !!binaryOn[b.id]
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => onBinaryToggle(b.id)}
+                  title={b.description}
+                  className={cn(
+                    'text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5',
+                    active
+                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'w-1.5 h-1.5 rounded-full',
+                      active ? 'bg-amber-500' : 'bg-slate-300',
+                    )}
+                  />
+                  {b.label}
+                  {active && (
+                    <span className="text-[9px] text-amber-700/70 ml-0.5">
+                      {b.hint}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Continuous sliders */}
         <div className="grid grid-cols-2 gap-2">
           {rows.map(({ node, currentValue }) => {
-            const proposed = proposedValues[node.id] ?? currentValue
-            const delta = proposed - currentValue
+            const sliderValue = proposedValues[node.id] ?? currentValue
+            const effective = effectiveValues[node.id] ?? sliderValue
             const range = rangeFor(node, currentValue)
-            const changed = Math.abs(delta) > 1e-9
+            const changed = Math.abs(effective - currentValue) > 1e-9
+            const binary = binaryByTarget.get(node.id)
             return (
               <div
                 key={node.id}
@@ -488,7 +598,7 @@ function MultiInterventionPanel({
                       {formatNodeValue(currentValue, node)}→
                     </span>
                     <span className="text-[11px] font-medium text-slate-800 tabular-nums ml-0.5">
-                      {formatNodeValue(proposed, node)}
+                      {formatNodeValue(effective, node)}
                     </span>
                   </div>
                 </div>
@@ -496,9 +606,14 @@ function MultiInterventionPanel({
                   min={range.min}
                   max={range.max}
                   step={node.step}
-                  value={proposed}
+                  value={sliderValue}
                   onChange={(v) => onProposedChange(node.id, v)}
                 />
+                {binary && (
+                  <div className="mt-1 text-[9px] text-amber-700/80 truncate">
+                    + {binary.label.toLowerCase()} ({binary.hint})
+                  </div>
+                )}
               </div>
             )
           })}
@@ -530,6 +645,7 @@ export function TwinPreviewView() {
   const { runFullCounterfactual } = useSCM()
 
   const [proposedValues, setProposedValues] = useState<Record<string, number>>({})
+  const [binaryOn, setBinaryOn] = useState<Record<string, boolean>>({})
   const [state, setState] = useState<FullCounterfactualState | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [choice, setChoice] = useState<HorizonChoice>(HORIZON_CHOICES[3]) // 3 months
@@ -553,23 +669,62 @@ export function TwinPreviewView() {
       .sort((a, b) => b.edgeCount - a.edgeCount)
   }, [participant])
 
+  // Effective per-node values: slider value, then any active binary
+  // override stamped on top (binary ON wins over slider for that node).
+  const effectiveValues = useMemo<Record<string, number>>(() => {
+    const out: Record<string, number> = {}
+    for (const { node, currentValue } of interventionRows) {
+      out[node.id] = proposedValues[node.id] ?? currentValue
+    }
+    for (const b of BINARY_INTERVENTIONS) {
+      if (!binaryOn[b.id]) continue
+      const baseline = participant?.current_values?.[b.targetNodeId] ?? 0
+      const slider = proposedValues[b.targetNodeId] ?? baseline
+      out[b.targetNodeId] =
+        b.mode === 'set' ? b.onValue : slider + b.onValue
+    }
+    return out
+  }, [interventionRows, proposedValues, binaryOn, participant])
+
   const deltas = useMemo(() => {
     const out: Array<{ nodeId: string; value: number; originalValue: number }> = []
+    const seen = new Set<string>()
     for (const { node, currentValue } of interventionRows) {
-      const proposed = proposedValues[node.id]
-      if (proposed != null && Math.abs(proposed - currentValue) > 1e-9) {
-        out.push({ nodeId: node.id, value: proposed, originalValue: currentValue })
+      const effective = effectiveValues[node.id] ?? currentValue
+      if (Math.abs(effective - currentValue) > 1e-9) {
+        out.push({ nodeId: node.id, value: effective, originalValue: currentValue })
+        seen.add(node.id)
+      }
+    }
+    // Binary targets that aren't in the slider rows (e.g., travel_load,
+    // which we removed from MANIPULABLE_NODES so it's binary-only).
+    for (const b of BINARY_INTERVENTIONS) {
+      if (!binaryOn[b.id]) continue
+      if (seen.has(b.targetNodeId)) continue
+      const baseline = participant?.current_values?.[b.targetNodeId] ?? 0
+      const effective = effectiveValues[b.targetNodeId]
+      if (effective != null && Math.abs(effective - baseline) > 1e-9) {
+        out.push({
+          nodeId: b.targetNodeId,
+          value: effective,
+          originalValue: baseline,
+        })
       }
     }
     return out
-  }, [interventionRows, proposedValues])
+  }, [interventionRows, effectiveValues, binaryOn, participant])
 
   const handleProposedChange = useCallback((nodeId: string, value: number) => {
     setProposedValues((prev) => ({ ...prev, [nodeId]: value }))
   }, [])
 
+  const handleBinaryToggle = useCallback((id: string) => {
+    setBinaryOn((prev) => ({ ...prev, [id]: !prev[id] }))
+  }, [])
+
   const handleResetAll = useCallback(() => {
     setProposedValues({})
+    setBinaryOn({})
     setState(null)
   }, [])
 
@@ -685,7 +840,10 @@ export function TwinPreviewView() {
           <MultiInterventionPanel
             rows={interventionRows}
             proposedValues={proposedValues}
+            effectiveValues={effectiveValues}
             onProposedChange={handleProposedChange}
+            binaryOn={binaryOn}
+            onBinaryToggle={handleBinaryToggle}
             onResetAll={handleResetAll}
             onRun={handleRun}
             isRunning={isRunning}
