@@ -436,7 +436,7 @@ function MultiInterventionPanel({
 }: MultiInterventionPanelProps) {
   return (
     <Card>
-      <div className="p-4 space-y-4">
+      <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
             Interventions ({rows.length})
@@ -456,7 +456,7 @@ function MultiInterventionPanel({
           </button>
         </div>
 
-        <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 gap-2">
           {rows.map(({ node, currentValue }) => {
             const proposed = proposedValues[node.id] ?? currentValue
             const delta = proposed - currentValue
@@ -466,28 +466,28 @@ function MultiInterventionPanel({
               <div
                 key={node.id}
                 className={cn(
-                  'rounded-md p-3 border transition-colors',
+                  'rounded-md p-2 border transition-colors',
                   changed
                     ? 'bg-primary-50/40 border-primary-100'
                     : 'bg-slate-50 border-slate-100',
                 )}
               >
-                <div className="flex items-baseline justify-between gap-2 mb-2">
-                  <div className="min-w-0 flex items-center gap-1.5">
-                    <div className="text-xs font-semibold text-slate-700 truncate">
+                <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
+                  <div className="min-w-0 flex items-center gap-1">
+                    <div className="text-[11px] font-semibold text-slate-700 truncate">
                       {node.label}
                     </div>
                     {node.derived && (
-                      <span className="text-[9px] uppercase tracking-wide text-slate-400 border border-slate-200 rounded px-1 py-[1px] bg-white">
-                        derived
+                      <span className="text-[8px] uppercase tracking-wide text-slate-400 border border-slate-200 rounded px-1 bg-white">
+                        d
                       </span>
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="text-[11px] text-slate-500">
-                      {formatNodeValue(currentValue, node)} →{' '}
+                    <span className="text-[10px] text-slate-400">
+                      {formatNodeValue(currentValue, node)}→
                     </span>
-                    <span className="text-xs font-medium text-slate-800 tabular-nums">
+                    <span className="text-[11px] font-medium text-slate-800 tabular-nums ml-0.5">
                       {formatNodeValue(proposed, node)}
                     </span>
                   </div>
@@ -626,12 +626,17 @@ export function TwinPreviewView() {
   }
 
   return (
-    <PageLayout title="Twin Preview">
+    <PageLayout
+      title="Twin Preview"
+      maxWidth="full"
+      padding="none"
+      className="pt-6 pb-6 pr-6 pl-3"
+    >
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="space-y-4"
+        className="space-y-3"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -676,7 +681,7 @@ export function TwinPreviewView() {
           onModeChange={setMode}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
           <MultiInterventionPanel
             rows={interventionRows}
             proposedValues={proposedValues}
