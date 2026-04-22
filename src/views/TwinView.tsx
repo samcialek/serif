@@ -27,6 +27,7 @@
 
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import {
   GitBranch,
   Play,
@@ -37,6 +38,10 @@ import {
   Info,
   Sparkles,
   Users as UsersIcon,
+  Clock,
+  CalendarDays,
+  Calendar,
+  ArrowRight,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
@@ -52,6 +57,13 @@ import type {
 } from '@/data/scm/fullCounterfactual'
 import type { MCFullCounterfactualState, MCNodeEffect } from '@/data/scm/bartMonteCarlo'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
+import {
+  HORIZON_BAND_META,
+  HORIZON_BAND_ORDER,
+  horizonBandFor,
+  horizonDaysFor,
+  type HorizonBand,
+} from '@/data/scm/outcomeHorizons'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { formatOutcomeValue, formatClockTime } from '@/utils/rounding'
 
@@ -64,10 +76,16 @@ interface ManipulableNode {
   step: number
   /** Falls back when participant has no observed value for this node. */
   defaultValue: number
+  /** Explicit slider bounds. Overrides the auto-computed range, needed for
+   * nodes with a meaningful zero baseline (travel_load) or a narrow
+   * dimensionless domain (acwr). */
+  fixedRange?: { min: number; max: number }
+  /** Derived metrics like acwr and sleep_debt are still valid do(X=x)
+   * counterfactuals, but surface them as such so the UI can distinguish a
+   * direct lever from a state you'd normally influence upstream. */
+  derived?: boolean
 }
 
-// training_load (TRIMP) is a derived metric, not a user-mutable action —
-// excluded from the manipulable set.
 const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'sleep_duration', label: 'Sleep Duration', unit: 'hrs', step: 0.25, defaultValue: 7 },
   { id: 'running_volume', label: 'Running Volume', unit: 'km/day', step: 0.5, defaultValue: 6 },
@@ -78,6 +96,16 @@ const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'dietary_protein', label: 'Dietary Protein', unit: 'g/day', step: 5, defaultValue: 100 },
   { id: 'dietary_energy', label: 'Dietary Energy', unit: 'kcal/day', step: 100, defaultValue: 2500 },
   { id: 'bedtime', label: 'Bedtime', unit: 'hr', step: 0.25, defaultValue: 22.5 },
+  // Derived states the engine treats as actions — valid do() levers even
+  // though upstream behaviour normally determines them.
+  { id: 'acwr', label: 'ACWR', unit: 'ratio', step: 0.05, defaultValue: 1.0,
+    fixedRange: { min: 0.8, max: 1.8 }, derived: true },
+  { id: 'sleep_debt', label: 'Sleep Debt', unit: 'hrs', step: 0.5, defaultValue: 2.0,
+    fixedRange: { min: 0, max: 10 }, derived: true },
+  { id: 'training_load', label: 'Training Load', unit: 'TRIMP/day', step: 5, defaultValue: 60,
+    fixedRange: { min: 20, max: 150 }, derived: true },
+  { id: 'travel_load', label: 'Travel Load', unit: 'jet-lag index', step: 0.05, defaultValue: 0,
+    fixedRange: { min: 0, max: 1 }, derived: true },
 ]
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -88,14 +116,15 @@ const MANIPULABLE_NODES: ManipulableNode[] = [
 const BEDTIME_MIN = 20
 const BEDTIME_MAX = 28
 
-function rangeFor(nodeId: string, currentValue: number, step: number): { min: number; max: number } {
-  if (nodeId === 'bedtime') {
+function rangeFor(node: ManipulableNode, currentValue: number): { min: number; max: number } {
+  if (node.id === 'bedtime') {
     return { min: BEDTIME_MIN, max: BEDTIME_MAX }
   }
-  const base = Math.max(currentValue, step * 4)
+  if (node.fixedRange) return node.fixedRange
+  const base = Math.max(currentValue, node.step * 4)
   const lower = Math.max(0, base * 0.5)
   const upper = base * 1.5
-  const round = (v: number) => Math.round(v / step) * step
+  const round = (v: number) => Math.round(v / node.step) * node.step
   return { min: round(lower), max: round(upper) }
 }
 
@@ -354,7 +383,7 @@ function MultiInterventionPanel({
             const proposed = proposedValues[node.id] ?? currentValue
             const delta = proposed - currentValue
             const pct = currentValue !== 0 ? (delta / Math.abs(currentValue)) * 100 : 0
-            const range = rangeFor(node.id, currentValue, node.step)
+            const range = rangeFor(node, currentValue)
             const changed = Math.abs(delta) > 1e-9
             const isBedtime = node.id === 'bedtime'
             return (
@@ -369,8 +398,16 @@ function MultiInterventionPanel({
               >
                 <div className="flex items-baseline justify-between gap-2 mb-2">
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-700 truncate">
+                    <div className="text-xs font-semibold text-slate-700 truncate flex items-center gap-1.5">
                       {node.label}
+                      {node.derived && (
+                        <span
+                          className="text-[9px] uppercase tracking-wide text-slate-400 border border-slate-200 rounded px-1 py-[1px] bg-white"
+                          title="Derived state — upstream actions normally determine it; the slider performs a do() intervention"
+                        >
+                          derived
+                        </span>
+                      )}
                     </div>
                     <div className="text-[10px] text-slate-400">
                       {edgeCount} causal {edgeCount === 1 ? 'edge' : 'edges'}
@@ -452,6 +489,32 @@ const CATEGORY_LABELS: Record<MechanismCategory, string> = {
   metabolic: 'Metabolic',
 }
 
+// For the time-first layout, mechanism category becomes a secondary tag on
+// each row rather than a grouping axis. Assign each node its primary
+// category by CATEGORY_ORDER precedence (same tiebreaker as before).
+function primaryCategoryFor(
+  effect: NodeEffect,
+): MechanismCategory | null {
+  for (const cat of CATEGORY_ORDER) {
+    if (effect.categories.includes(cat)) return cat
+  }
+  return null
+}
+
+const BAND_ICONS: Record<HorizonBand, typeof Clock> = {
+  today: Clock,
+  weeks: CalendarDays,
+  months: Calendar,
+  unknown: Info,
+}
+
+const BAND_ACCENT: Record<HorizonBand, string> = {
+  today: 'text-sky-600 bg-sky-50 border-sky-200',
+  weeks: 'text-violet-600 bg-violet-50 border-violet-200',
+  months: 'text-amber-700 bg-amber-50 border-amber-200',
+  unknown: 'text-slate-500 bg-slate-50 border-slate-200',
+}
+
 function EffectRow({
   effect,
   mcEffect,
@@ -497,6 +560,9 @@ function EffectRow({
   const deltaP50 = mcEffect ? mcEffect.posteriorSummary.p50 - mcEffect.factualValue : 0
   const deltaP95 = mcEffect ? mcEffect.posteriorSummary.p95 - mcEffect.factualValue : 0
 
+  const category = primaryCategoryFor(effect)
+  const horizonDays = horizonDaysFor(key)
+
   return (
     <div className="flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-slate-50 transition-colors">
       <div className="flex items-center gap-3 min-w-0">
@@ -510,11 +576,21 @@ function EffectRow({
                 aria-label="BART posterior"
               />
             )}
+            {category && (
+              <span className="text-[9px] uppercase tracking-wide text-slate-500 border border-slate-200 rounded px-1 py-[1px] bg-white">
+                {CATEGORY_LABELS[category]}
+              </span>
+            )}
           </div>
           <div className="text-[11px] text-slate-400">
             {effect.identification.strategy === 'unidentified'
               ? 'unidentified — observational only'
               : `${effect.identification.strategy} identification`}
+            {horizonDays != null && (
+              <span className="ml-1.5 text-slate-400">
+                · ~{horizonDays < 14 ? `${horizonDays}d` : horizonDays < 60 ? `${Math.round(horizonDays / 7)}w` : `${Math.round(horizonDays / 30)}mo`} to full effect
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -547,45 +623,45 @@ function EffectRow({
 }
 
 function ResultsPanel({ state, mcState }: ResultsPanelProps) {
-  // Group by mechanism category so wearable outcomes (sleep/recovery) stay
-  // visible alongside biomarkers (cardio/metabolic) — sorting purely by
-  // absolute effect magnitude buries low-unit daily metrics behind lab
-  // markers that naturally move by larger numeric amounts.
-  const byCategory = useMemo(() => {
+  // Group by time-to-effect band so wearable outcomes (fast) are visually
+  // separated from labs (slow). The previous mechanism-category axis is
+  // preserved as a small pill on each row — biology still matters, but the
+  // primary question is "when does this show up?".
+  const byBand = useMemo(() => {
     const seen = new Set<string>()
-    const groups: Array<{ category: MechanismCategory; effects: NodeEffect[] }> = []
-    for (const cat of CATEGORY_ORDER) {
-      const summary = state.categoryEffects[cat]
-      if (!summary) continue
-      const effects = summary.affectedNodes
-        .filter((e) => Math.abs(e.totalEffect) > 1e-6)
-        .filter((e) => {
-          // A node can belong to multiple categories (e.g. hscrp →
-          // metabolic + recovery). Show it under the first category it
-          // appears in, following CATEGORY_ORDER, so users don't see the
-          // same row twice.
-          if (seen.has(e.nodeId)) return false
-          seen.add(e.nodeId)
-          return true
-        })
-        .sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
-      if (effects.length > 0) groups.push({ category: cat, effects })
+    const buckets: Record<HorizonBand, NodeEffect[]> = {
+      today: [],
+      weeks: [],
+      months: [],
+      unknown: [],
     }
-    return groups
-  }, [state.categoryEffects])
+    for (const effect of state.allEffects.values()) {
+      if (Math.abs(effect.totalEffect) <= 1e-6) continue
+      if (seen.has(effect.nodeId)) continue
+      seen.add(effect.nodeId)
+      const band = horizonBandFor(canonicalOutcomeKey(effect.nodeId))
+      buckets[band].push(effect)
+    }
+    for (const band of HORIZON_BAND_ORDER) {
+      buckets[band].sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
+    }
+    return HORIZON_BAND_ORDER
+      .map((band) => ({ band, effects: buckets[band] }))
+      .filter(({ effects }) => effects.length > 0)
+  }, [state.allEffects])
 
   const totalVisible = useMemo(
-    () => byCategory.reduce((n, g) => n + g.effects.length, 0),
-    [byCategory],
+    () => byBand.reduce((n, g) => n + g.effects.length, 0),
+    [byBand],
   )
 
   const topDecomposables: NodeEffect[] = useMemo(() => {
-    const all = byCategory.flatMap((g) => g.effects)
+    const all = byBand.flatMap((g) => g.effects)
     return all
       .filter((e) => e.pathways.length > 0)
       .sort((a, b) => Math.abs(b.totalEffect) - Math.abs(a.totalEffect))
       .slice(0, 2)
-  }, [byCategory])
+  }, [byBand])
 
   if (totalVisible === 0) {
     return (
@@ -603,36 +679,52 @@ function ResultsPanel({ state, mcState }: ResultsPanelProps) {
       <Card>
         <div className="p-4">
           <div className="flex items-baseline justify-between mb-3">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-              Downstream effects
+            <div>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Effects over time
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">
+                Assumes the change becomes your steady state.
+              </div>
             </div>
             <div className="text-[11px] text-slate-400 tabular-nums">
-              {totalVisible} across {byCategory.length}{' '}
-              {byCategory.length === 1 ? 'domain' : 'domains'}
+              {totalVisible} outcome{totalVisible === 1 ? '' : 's'} across {byBand.length}{' '}
+              horizon{byBand.length === 1 ? '' : 's'}
             </div>
           </div>
-          <div className="space-y-4">
-            {byCategory.map(({ category, effects }) => (
-              <div key={category}>
-                <div className="flex items-baseline gap-2 px-3 mb-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    {CATEGORY_LABELS[category]}
+          <div className="space-y-5">
+            {byBand.map(({ band, effects }) => {
+              const meta = HORIZON_BAND_META[band]
+              const BandIcon = BAND_ICONS[band]
+              return (
+                <div key={band}>
+                  <div className="flex items-center gap-2 px-1 mb-2">
+                    <div className={cn(
+                      'flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full border',
+                      BAND_ACCENT[band],
+                    )}>
+                      <BandIcon className="w-3 h-3" />
+                      {meta.label}
+                    </div>
+                    <span className="text-[10px] text-slate-400">
+                      {meta.subtitle}
+                    </span>
+                    <span className="ml-auto text-[10px] text-slate-400 tabular-nums">
+                      {effects.length}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 tabular-nums">
-                    {effects.length}
-                  </span>
+                  <div className="space-y-1">
+                    {effects.map((effect) => (
+                      <EffectRow
+                        key={effect.nodeId}
+                        effect={effect}
+                        mcEffect={mcState?.allEffects.get(effect.nodeId)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  {effects.map((effect) => (
-                    <EffectRow
-                      key={effect.nodeId}
-                      effect={effect}
-                      mcEffect={mcState?.allEffects.get(effect.nodeId)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </Card>
@@ -810,18 +902,28 @@ export function TwinView() {
         transition={{ duration: 0.2 }}
         className="space-y-4"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center">
-            <GitBranch className="w-5 h-5 text-primary-600" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-slate-800">
-              {displayName}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center">
+              <GitBranch className="w-5 h-5 text-primary-600" />
             </div>
-            <div className="text-xs text-slate-500">
-              {cohort ? `Cohort ${cohort} · ` : ''}Structural causal twin
+            <div>
+              <div className="text-sm font-semibold text-slate-800">
+                {displayName}
+              </div>
+              <div className="text-xs text-slate-500">
+                {cohort ? `Cohort ${cohort} · ` : ''}Structural causal twin
+              </div>
             </div>
           </div>
+          <Link
+            to="/twin-preview"
+            className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md px-2.5 py-1.5 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Temporal preview
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         <MethodBadge />
