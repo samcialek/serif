@@ -179,10 +179,22 @@ export interface OutcomeOverlaySlot {
   factual?: number
   /** Counterfactual (post-intervention) value at the chosen horizon. */
   after?: number
+  /** Lower bound of the after value's posterior band (BART MC p10). When the
+   *  BART bundle is loaded for this outcome, the canvas surfaces this so the
+   *  overlay can render a "± uncertainty" pill alongside the point estimate. */
+  afterLow?: number
+  /** Upper bound of the after value's posterior band (BART MC p90). */
+  afterHigh?: number
 }
 
-/** Per-outcome before/after/delta values, indexed by canonical outcome key. */
-export type OutcomeStateMap = Map<string, { factual: number; after: number; delta: number }>
+/** Per-outcome before/after/delta values, indexed by canonical outcome key.
+ *  Optional `afterLow`/`afterHigh` carry the BART posterior band when MC is
+ *  available; UI may render them as a ± uncertainty alongside the point
+ *  estimate but solver decisions stay on the point estimate for tractability. */
+export type OutcomeStateMap = Map<
+  string,
+  { factual: number; after: number; delta: number; afterLow?: number; afterHigh?: number }
+>
 
 /** How edges visualize energy flow. Each style trades off fidelity, density,
  *  and perf.
@@ -718,6 +730,8 @@ export function CausalGraphCanvas({
                   tone,
                   factual: stats?.factual,
                   after: stats?.after,
+                  afterLow: stats?.afterLow,
+                  afterHigh: stats?.afterHigh,
                 })}
               </g>
             )
@@ -790,6 +804,7 @@ export function CausalGraphCanvas({
 
 import { cumulativeEffectFraction, horizonDaysFor } from '@/data/scm/outcomeHorizons'
 import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
+import type { MCFullCounterfactualState } from '@/data/scm/bartMonteCarlo'
 import { applyOutcomeBound } from '@/data/scm/syntheticEdges'
 
 export function outcomeDeltasAt(
@@ -861,6 +876,55 @@ export function outcomeStatesAt(
         delta: after - factual,
       })
     }
+  }
+  return out
+}
+
+/** Merge MC posterior bands from a BART-backed MCFullCounterfactualState
+ *  into an existing OutcomeStateMap. The point-estimate state stays the
+ *  source of truth for `after` (so the solver and the rendered number
+ *  agree); the MC state only contributes the `afterLow`/`afterHigh` band.
+ *
+ *  Bands are scaled by the same horizon fraction as the point estimate, so
+ *  at short atDays the band is narrow (effect not yet accrued) and widens
+ *  to the asymptotic posterior spread as atDays → horizon.
+ *
+ *  Outcomes without a BART surface or without enough downstream MC spread
+ *  (collapsed to a single value) get no band — UI falls back to a plain
+ *  point estimate. */
+export function mergeBandsFromMC(
+  base: OutcomeStateMap,
+  mc: MCFullCounterfactualState | null,
+  atDays: number,
+  outcomeIdSet?: Set<string>,
+): OutcomeStateMap {
+  if (!mc) return base
+  const out: OutcomeStateMap = new Map(base)
+  for (const e of mc.allEffects.values()) {
+    const key = canonicalOutcomeKey(e.nodeId)
+    if (outcomeIdSet && !outcomeIdSet.has(key)) continue
+    const baseEntry = out.get(key)
+    if (!baseEntry) continue
+    const samples = e.counterfactualSamples
+    if (!samples || samples.length === 0) continue
+    // Treat the band as flat across draws if all samples agree to within
+    // a tiny epsilon — no MC spread reached this node, no band to show.
+    const summary = e.posteriorSummary
+    if (!summary) continue
+    const spread = summary.p95 - summary.p05
+    if (spread < 1e-6) continue
+    // Scale the spread by the same horizon fraction we applied to the point
+    // estimate's totalEffect — at atDays much less than the outcome's
+    // horizon, only a fraction of the asymptotic uncertainty has accrued.
+    const horizonDays = horizonDaysFor(key) ?? 30
+    const fraction = cumulativeEffectFraction(atDays, horizonDays)
+    // Center the timed band on the point-estimate `after` so the rendered
+    // bracket reads "after ± timed_uncertainty" — symmetric, with the
+    // posterior shape preserved via the (p05, p95) → ± spread mapping.
+    const halfSpread = ((summary.p95 - summary.p05) / 2) * fraction
+    const afterLow = applyOutcomeBound(key, baseEntry.after - halfSpread)
+    const afterHigh = applyOutcomeBound(key, baseEntry.after + halfSpread)
+    out.set(key, { ...baseEntry, afterLow, afterHigh })
   }
   return out
 }

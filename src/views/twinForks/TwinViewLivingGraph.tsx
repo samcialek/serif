@@ -32,7 +32,9 @@ import type { PersonaPortraitStat } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSCM } from '@/hooks/useSCM'
+import { useBartTwin } from '@/hooks/useBartTwin'
 import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
+import type { MCFullCounterfactualState } from '@/data/scm/bartMonteCarlo'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { formatOutcomeValue } from '@/utils/rounding'
@@ -54,6 +56,7 @@ import {
   buildGraph,
   outcomeDeltasAt,
   outcomeStatesAt,
+  mergeBandsFromMC,
   type EdgeStyle,
   type GraphLayout,
 } from './_graph'
@@ -119,6 +122,11 @@ export function TwinViewLivingGraph() {
   const { pid, displayName, cohort, persona } = useActiveParticipant()
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual } = useSCM()
+  // BART MC runs in parallel with the synchronous piecewise pass. The
+  // solver and the rendered point estimate keep using the synchronous
+  // path (tractable, deterministic); when BART is ready, we fold the
+  // posterior spread into outcome bands for display only.
+  const { status: bartStatus, runMC: runBartMC } = useBartTwin()
 
   const [regime, setRegime] = useState<Regime>('quotidian')
   const [proposedValues, setProposedValues] = useState<Record<string, number>>({})
@@ -267,9 +275,42 @@ export function TwinViewLivingGraph() {
     [state, graphOutcomeIds, atDays],
   )
 
-  const outcomeStats = useMemo(
+  // Point-estimate stats — used as the baseline for everything (numbers
+  // shown to user, solver decisions). BART bands are merged in below.
+  const outcomeStatsPoint = useMemo(
     () => outcomeStatesAt(state, atDays, graphOutcomeIds, observedBaseline ?? undefined),
     [state, graphOutcomeIds, atDays, observedBaseline],
+  )
+
+  // BART MC pass — runs asynchronously when state changes. Result is the
+  // posterior spread per outcome; the point-estimate `after` value isn't
+  // touched. Solver runs on the synchronous engine, so it stays
+  // tractable and deterministic.
+  const [mcState, setMcState] = useState<MCFullCounterfactualState | null>(null)
+  useEffect(() => {
+    if (bartStatus !== 'ready' || !participant || deltas.length === 0) {
+      setMcState(null)
+      return
+    }
+    let cancelled = false
+    runBartMC(observedBaseline ?? {}, deltas)
+      .then((result) => {
+        if (cancelled) return
+        setMcState(result)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.warn('[TwinViewLivingGraph] BART MC failed:', err)
+        setMcState(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [bartStatus, participant, deltas, observedBaseline, runBartMC])
+
+  const outcomeStats = useMemo(
+    () => mergeBandsFromMC(outcomeStatsPoint, mcState, atDays, graphOutcomeIds),
+    [outcomeStatsPoint, mcState, atDays, graphOutcomeIds],
   )
   // Build a goal candidate for any outcome on the fly. If the outcome is
   // pre-registered in GOAL_CANDIDATES we use it; otherwise we synthesize
@@ -557,7 +598,24 @@ export function TwinViewLivingGraph() {
           </div>
         </div>
 
-        <MethodBadge />
+        <div className="flex items-center gap-2 flex-wrap">
+          <MethodBadge />
+          {/* BART posterior badge — when the bundle is loaded, outcomes show
+              ± posterior bands. Surfaces the engine state so the user knows
+              whether the displayed numbers carry uncertainty quantification. */}
+          {bartStatus === 'loading' && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Loading posterior draws…
+            </span>
+          )}
+          {bartStatus === 'ready' && mcState && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+              BART · {mcState.kSamples} draws · {mcState.bartOutcomes.length} outcomes
+            </span>
+          )}
+        </div>
 
         {/* Solver control bar appears above the graph when in solver mode. */}
         <AnimatePresence>
@@ -682,7 +740,7 @@ export function TwinViewLivingGraph() {
                     handleOptimize(id)
                   }
                 }}
-                renderOutcomeOverlay={({ id, label, delta, tone, deltaNorm, factual, after }) => {
+                renderOutcomeOverlay={({ id, label, delta, tone, deltaNorm, factual, after, afterLow, afterHigh }) => {
                   const fill =
                     tone === 'benefit'
                       ? '#10b981'
@@ -738,6 +796,16 @@ export function TwinViewLivingGraph() {
                   const hasStats = factual != null && after != null
                   const factualStr = hasStats ? formatOutcomeValue(factual!, key) : null
                   const afterStr = hasStats ? formatOutcomeValue(after!, key) : null
+                  // BART posterior band: render as ± half-spread next to the
+                  // unit. Only meaningful when the band is non-trivial relative
+                  // to the displayed precision; suppress otherwise to keep the
+                  // overlay clean for outcomes BART hasn't covered.
+                  const hasBand =
+                    afterLow != null &&
+                    afterHigh != null &&
+                    Math.abs(afterHigh - afterLow) > 1e-6
+                  const bandHalf = hasBand ? (afterHigh! - afterLow!) / 2 : 0
+                  const bandStr = hasBand ? formatOutcomeValue(bandHalf, key) : null
                   const deltaSign = delta > 0 ? '+' : delta < 0 ? '−' : ''
                   const deltaStr = formatOutcomeValue(Math.abs(delta), key)
                   const arrowGlyph = delta > 0 ? '▲' : delta < 0 ? '▼' : '•'
@@ -808,6 +876,17 @@ export function TwinViewLivingGraph() {
                             {unit && (
                               <tspan fill={dimFill} dx={5} fontSize={12} fontWeight={500}>
                                 {unit}
+                              </tspan>
+                            )}
+                            {hasBand && (
+                              <tspan
+                                fill={dimFill}
+                                dx={6}
+                                fontSize={11}
+                                fontWeight={500}
+                                opacity={0.75}
+                              >
+                                ±{bandStr}
                               </tspan>
                             )}
                           </text>
