@@ -15,6 +15,7 @@ import { cn } from '@/utils/classNames'
 import { Info, Loader2, Sparkles } from 'lucide-react'
 import type { ParticipantPortal } from '@/data/portal/types'
 import { cumulativeEffectFraction } from '@/data/scm/outcomeHorizons'
+import { POPULATION_BASELINES } from '@/data/scm/syntheticEdges'
 
 // ─── Manipulable actions ────────────────────────────────────────────
 
@@ -195,15 +196,25 @@ export function formatNodeValue(
 
 /** Build the observedValues record engines consume — merges current_values
  *  with loads_today and outcome_baselines under every name the DAG might
- *  look up, then lays state-space overrides on top. Default layer is the
- *  MANIPULABLE_NODES defaults so BART parent extraction never falls back
- *  to piecewise just because the participant JSON omits a key. */
+ *  look up, then lays state-space overrides on top.
+ *
+ *  Priority (low → high):
+ *    1. MANIPULABLE_NODES defaults (lever IDs)
+ *    2. POPULATION_BASELINES (outcome IDs) — anchors latent outcomes so
+ *       SCM abduction doesn't compute factualValue = sum(parent contribs),
+ *       which can drive SOL negative or SE above 100.
+ *    3. participant.current_values
+ *    4. loads_today
+ *    5. participant.outcome_baselines (per-participant override)
+ *    6. stateOverrides
+ */
 export function buildObservedValues(
   participant: ParticipantPortal,
   stateOverrides: Record<string, number> = {},
 ): Record<string, number> {
   const out: Record<string, number> = {}
   for (const node of MANIPULABLE_NODES) out[node.id] = node.defaultValue
+  for (const [k, v] of Object.entries(POPULATION_BASELINES)) out[k] = v
   Object.assign(out, participant.current_values)
 
   const loads = participant.loads_today

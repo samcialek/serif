@@ -24,18 +24,122 @@ import type { InsightBayesian } from '@/data/portal/types'
 import type { StructuralEquation } from './types'
 import type { StructuralEdge } from '../dataValue/types'
 
+/**
+ * Causal shape with physical units. The spec carries the actual literature
+ * effect (e.g., "−2.5 min SOL per hour of caffeine cutoff, plateauing past
+ * 6h") instead of a normalized [-1, 1] strength. The engine consumes these
+ * directly via bb/ba/theta in the piecewise-linear equation; visual edge
+ * weight in the LivingGraph is derived from the shape via `shapeToVisualMean`.
+ *
+ *   linear     — constant slope across the action's plausible range
+ *   saturating — steep slope until `knee`, then `slopeAfter` (default 0)
+ *                Captures plateau_up (slope>0, slopeAfter≈0) and plateau_down
+ *                (slope<0, slopeAfter≈0). Sign in `slope` carries direction.
+ *   inverted_u — peaks at `peak`. `slopeUp` (signed positive when outcome rises
+ *                up to peak) and `slopeDown` (signed negative for outcome
+ *                falling past peak) drive the bb/ba split.
+ */
+export type SyntheticShape =
+  | { kind: 'linear'; slope: number }
+  | {
+      kind: 'saturating'
+      knee: number
+      slope: number
+      slopeAfter?: number
+    }
+  | {
+      kind: 'inverted_u'
+      peak: number
+      slopeUp: number
+      slopeDown: number
+    }
+
 interface SyntheticEdgeSpec {
   action: string
   outcome: string
+  /** Causal shape with physical units. When present, this drives the engine
+   *  equation directly — supersedes the legacy `mean × span` translation. */
+  shape?: SyntheticShape
   /** Normalized [-1, 1] signed effect used for posterior.mean. Sign is
-   *  what matters for LivingGraph coloring; magnitude sets edge weight
-   *  via the in-graph normalization. */
+   *  what matters for LivingGraph coloring; magnitude sets edge weight via
+   *  the in-graph normalization. Edges with a `shape` derive visual weight
+   *  from the shape; this field stays for legacy edges and as a tooltip
+   *  fallback when shape is not yet calibrated. */
   mean: number
   pathway: 'wearable' | 'biomarker'
   horizonDays: number
   /** Short rationale — surfaced in InsightRow tooltips as the
    *  supporting_data_description. */
   rationale: string
+}
+
+/**
+ * Population-median baselines for outcomes that participants typically don't
+ * have a direct measurement of (sleep architecture, latency, daily HRV, etc.).
+ * These anchor the abduction step: without them, SCM abduction sets a latent
+ * outcome's factual value to `sum(parent contributions)`, which the linear
+ * additive engine can drive negative for SOL or above 100% for SE.
+ *
+ * Anchored to typical adult resting-state references (sleep medicine textbooks,
+ * Hirshkowitz 2015 NSF recommendations, Carskadon & Dement 2005 architecture
+ * percentages, Shaffer 2017 HRV norms). These are *defaults*, not predictions —
+ * any per-participant `outcome_baselines[outcome]` overrides them.
+ */
+export const POPULATION_BASELINES: Record<string, number> = {
+  // Wearable / sleep architecture (minutes unless noted)
+  sleep_onset_latency: 15,
+  deep_sleep: 90,
+  rem_sleep: 100,
+  sleep_efficiency: 88,
+  hrv_daily: 50,
+
+  // Hormonal / inflammatory state
+  cortisol: 14,
+  hscrp: 1.0,
+}
+
+/**
+ * Physically meaningful bounds for outcome values. The engine is linear-
+ * additive per-edge and can occasionally drive a counterfactual past a
+ * physical limit (negative SOL, sleep efficiency > 100, ferritin < 0).
+ * These bounds clamp display values so the user never sees an impossible
+ * number; the engine's raw delta is preserved upstream so we don't hide
+ * calibration issues silently — only the rendered before/after pair gets
+ * snapped to the physical envelope.
+ */
+export const OUTCOME_BOUNDS: Record<string, { min?: number; max?: number }> = {
+  // Sleep — minutes/percent must stay non-negative; SE caps at 100
+  sleep_onset_latency: { min: 0 },
+  deep_sleep: { min: 0 },
+  rem_sleep: { min: 0 },
+  sleep_efficiency: { min: 0, max: 100 },
+
+  // Wearable
+  hrv_daily: { min: 0 },
+
+  // Biomarkers — concentrations are non-negative
+  cortisol: { min: 0 },
+  hscrp: { min: 0 },
+  triglycerides: { min: 0 },
+  hdl: { min: 0 },
+  ldl: { min: 0 },
+  apob: { min: 0 },
+  glucose: { min: 0 },
+  ferritin: { min: 0 },
+  hemoglobin: { min: 0 },
+  iron_total: { min: 0 },
+  vo2_peak: { min: 0 },
+  alt: { min: 0 },
+}
+
+/** Clamp a value to its outcome's physical bounds, if any. */
+export function applyOutcomeBound(outcome: string, value: number): number {
+  const bound = OUTCOME_BOUNDS[outcome]
+  if (!bound) return value
+  let v = value
+  if (bound.min != null && v < bound.min) v = bound.min
+  if (bound.max != null && v > bound.max) v = bound.max
+  return v
 }
 
 const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
@@ -89,35 +193,90 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   // synthetic effect is *net of* — the magnitude is the within-person
   // causal effect that survives adjustment, not the naive correlation.
 
-  // ── Caffeine: timing dominates dose (5h half-life means an afternoon
-  //    coffee still has ~30% plasma at bedtime). Both edges call out the
-  //    confounded naive correlation explicitly so the user can see
-  //    Serif's adjustment story, not just the residual coefficient.
-  { action: 'caffeine_mg',     outcome: 'deep_sleep',       mean: -0.35, pathway: 'wearable', horizonDays: 3, rationale: 'Naive caffeine↔poor-sleep is ~50% confounded — tired people drink more coffee AND sleep worse. Within-person, the residual adenosine-blockade effect still halves SWS density (Landolt 1995 RCT).' },
-  { action: 'caffeine_mg',     outcome: 'sleep_efficiency', mean: -0.30, pathway: 'wearable', horizonDays: 2, rationale: 'After pulling out next-day-fatigue confounding, ~60% of the naive correlation persists — caffeine still delays onset and fragments late sleep (Drake 2013).' },
-  { action: 'caffeine_mg',     outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of training_load: caffeine → sympathetic tone → HRV suppression (Bowtell 2017).' },
-  { action: 'caffeine_mg',     outcome: 'rem_sleep',        mean: -0.20, pathway: 'wearable', horizonDays: 3, rationale: 'Modest REM suppression — caffeine hits SWS harder than REM, but late-night plasma still trims the late-cycle REM episodes (Landolt 1995).' },
-  { action: 'caffeine_mg',     outcome: 'sleep_onset_latency', mean:  0.40, pathway: 'wearable', horizonDays: 2, rationale: 'Adenosine blockade → longer time-to-sleep, dose-linear within habitual users. ~10 min penalty per 100mg above habitual baseline (Drake 2013).' },
-  // Caffeine timing — bigger than dose because half-life makes plasma
-  // level at bedtime the dominant signal.
-  { action: 'caffeine_timing', outcome: 'deep_sleep',       mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Timing dominates dose because of 5h half-life — 6h vs 0h pre-bed cutoff doubles SWS rebound at the same total intake (Drake 2013 crossover).' },
-  { action: 'caffeine_timing', outcome: 'sleep_efficiency', mean:  0.50, pathway: 'wearable', horizonDays: 2, rationale: 'Within-person dose-vs-timing experiments give timing ~60% of caffeine\'s SE penalty — onset latency is the dominant signal.' },
-  { action: 'caffeine_timing', outcome: 'sleep_onset_latency', mean: -0.55, pathway: 'wearable', horizonDays: 2, rationale: 'Timing dominates onset — at 0h pre-bed, plasma is ~75% peak; at 6h, ~30%. Six-hour cutoff cuts onset latency by 12-18 min vs none (Drake 2013 crossover).' },
+  // ── Caffeine dose: adenosine blockade saturates around habitual intake
+  //    (~200 mg). Plasma half-life is ~5h, so timing-of-cutoff often
+  //    dominates dose at the same intake. Each shape carries the literature
+  //    physical magnitude; see rationale for source.
+  { action: 'caffeine_mg',     outcome: 'deep_sleep',          mean: -0.35,
+    shape: { kind: 'saturating', knee: 200, slope: -0.10, slopeAfter: -0.03 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: '−20 min SWS through 200mg habitual range, then plateaus (−10 more min from 200→600mg). Adenosine receptors saturate near habitual intake (Landolt 1995, Drake 2013).' },
+  { action: 'caffeine_mg',     outcome: 'sleep_efficiency',    mean: -0.30,
+    shape: { kind: 'saturating', knee: 200, slope: -0.04, slopeAfter: -0.012 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: '~−8 pp SE through habitual dose, then plateaus. Late-night fragmentation accounts for most of the effect (Drake 2013).' },
+  { action: 'caffeine_mg',     outcome: 'hrv_daily',           mean: -0.30,
+    shape: { kind: 'saturating', knee: 200, slope: -0.10, slopeAfter: -0.03 },
+    pathway: 'wearable', horizonDays: 4,
+    rationale: '−20 ms RMSSD over habitual dose range, then plateau. Sympathetic-dominance via β-adrenergic stimulation (Bowtell 2017, Hibino 1997).' },
+  { action: 'caffeine_mg',     outcome: 'rem_sleep',           mean: -0.20,
+    shape: { kind: 'saturating', knee: 300, slope: -0.04, slopeAfter: -0.015 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: 'REM more resistant than SWS — most loss above 300mg via late-night plasma trimming the final REM cycles (Landolt 1995).' },
+  { action: 'caffeine_mg',     outcome: 'sleep_onset_latency', mean:  0.40,
+    shape: { kind: 'saturating', knee: 200, slope: 0.08, slopeAfter: 0.025 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: '~+8 min SOL per 100mg up to habitual; saturating thereafter (receptor occupancy). 200mg → +16 min, 600mg → +26 min (Drake 2013).' },
 
-  // ── Alcohol: same story — late drinking devastates more than total
-  //    units do at the same intake. Late nights and big dinners explain
-  //    ~30% of the naive alcohol↔poor-sleep link; the residual is direct
-  //    ethanol pharmacology.
-  { action: 'alcohol_units',   outcome: 'deep_sleep',       mean: -0.40, pathway: 'wearable', horizonDays: 3, rationale: 'Naive alcohol↔poor-sleep is ~30% confounded by late nights and heavy meals. The residual REM/SWS suppression is direct pharmacology, dose-linear (Ebrahim 2013 meta of 27 studies).' },
-  { action: 'alcohol_units',   outcome: 'sleep_efficiency', mean: -0.30, pathway: 'wearable', horizonDays: 2, rationale: 'After holding bedtime constant, alcohol still drives mid-sleep awakenings above ~1 unit — the second-half-of-night arousal pattern is the hallmark (Ebrahim 2013).' },
-  { action: 'alcohol_units',   outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of exercise and intake: alcohol blunts vagal tone for 24h post-drink (Spaak 2010).' },
-  { action: 'alcohol_units',   outcome: 'rem_sleep',        mean: -0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Signature alcohol footprint — REM suppressed 30-40% in the first half of the night, dose-linear above 1 unit. Less rebound than SWS suppression, so the deficit is real (Ebrahim 2013 meta of 27 studies).' },
-  { action: 'alcohol_units',   outcome: 'sleep_onset_latency', mean: -0.20, pathway: 'wearable', horizonDays: 2, rationale: 'Alcohol shortens onset (sedation) by 5-10 min — the only sleep stage it "improves." But the second-half disruption to architecture more than offsets, so this is a known false-positive lever.' },
-  // Alcohol timing — pre-bed clearance is the bigger lever than dose.
-  { action: 'alcohol_timing',  outcome: 'deep_sleep',       mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Ethanol clears at ~0.015 BAC/hr — a 4h pre-bed gap restores SWS architecture even at 2-unit doses. Timing > dose for the same total intake.' },
-  { action: 'alcohol_timing',  outcome: 'sleep_efficiency', mean:  0.50, pathway: 'wearable', horizonDays: 2, rationale: '2 units at 6pm vs 10pm differ by ~10pp in SE — pre-bed clearance prevents the second-half awakenings entirely (Ebrahim 2013).' },
-  { action: 'alcohol_timing',  outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Pre-bed clearance preserves overnight vagal recovery — early drinking with metabolism completed before sleep keeps HRV near baseline.' },
-  { action: 'alcohol_timing',  outcome: 'rem_sleep',        mean:  0.50, pathway: 'wearable', horizonDays: 3, rationale: 'REM is concentrated in the second half of the night — clearance before sleep onset preserves the late-night REM episodes that ethanol otherwise wipes out (Ebrahim 2013).' },
+  // Caffeine timing — bigger than dose for the same intake because half-life
+  // makes plasma at bedtime the dominant signal. Effect plateaus past ~6h
+  // (plasma concentration drops below the disruption threshold).
+  { action: 'caffeine_timing', outcome: 'deep_sleep',          mean:  0.55,
+    shape: { kind: 'saturating', knee: 6, slope: 5, slopeAfter: 1 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: '+30 min SWS over the first 6h of cutoff (plasma drops from ~75% to ~30% peak), then +1 min/hr afterward as plasma approaches negligible (Drake 2013 crossover).' },
+  { action: 'caffeine_timing', outcome: 'sleep_efficiency',    mean:  0.50,
+    shape: { kind: 'saturating', knee: 6, slope: 1.5, slopeAfter: 0.3 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: '+9 pp SE over the first 6h of cutoff via shorter onset and fewer late-night arousals; flattens past 6h.' },
+  { action: 'caffeine_timing', outcome: 'sleep_onset_latency', mean: -0.55,
+    shape: { kind: 'saturating', knee: 6, slope: -2.5, slopeAfter: -0.4 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: '−15 min SOL from a 6h cutoff (Drake 2013 crossover: 12–18 min reduction). Marginal benefit past 6h is small — plasma already low.' },
+
+  // ── Alcohol: dose acts on architecture in the second half of the night
+  //    (REM/SWS rebound suppression). Timing matters because ethanol clears
+  //    at ~0.015 BAC/hr; pre-bed gap restores architecture even at 2 units.
+  //    The second-half-of-night arousal pattern is the canonical fingerprint.
+  { action: 'alcohol_units',   outcome: 'deep_sleep',          mean: -0.40,
+    shape: { kind: 'linear', slope: -10 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: '−10 min SWS per drink (linear above habitual ~1 unit baseline). REM-rebound suppression via ethanol metabolites (Ebrahim 2013 meta of 27 studies).' },
+  { action: 'alcohol_units',   outcome: 'sleep_efficiency',    mean: -0.30,
+    shape: { kind: 'linear', slope: -3 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: '−3 pp SE per drink — second-half-of-night arousals dominate as ethanol clears (Ebrahim 2013).' },
+  { action: 'alcohol_units',   outcome: 'hrv_daily',           mean: -0.30,
+    shape: { kind: 'linear', slope: -8 },
+    pathway: 'wearable', horizonDays: 4,
+    rationale: '−8 ms RMSSD per drink, vagal tone blunted for 24h post-intake (Spaak 2010).' },
+  { action: 'alcohol_units',   outcome: 'rem_sleep',           mean: -0.55,
+    shape: { kind: 'linear', slope: -15 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: '−15 min REM per drink — ethanol suppresses REM 30–40% in the first half of the night with little rebound. Signature alcohol footprint (Ebrahim 2013).' },
+  { action: 'alcohol_units',   outcome: 'sleep_onset_latency', mean: -0.20,
+    shape: { kind: 'linear', slope: -3 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: 'Sedation shortens onset −3 min per drink — the only stage alcohol "improves." Architecture damage in the second half more than offsets (Ebrahim 2013).' },
+
+  // Alcohol timing — pre-bed clearance is the bigger lever. Saturates at
+  // ~4h gap (ethanol fully metabolized for typical intake by sleep onset).
+  { action: 'alcohol_timing',  outcome: 'deep_sleep',          mean:  0.55,
+    shape: { kind: 'saturating', knee: 4, slope: 12, slopeAfter: 1 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: '+12 min SWS per hour of pre-bed gap up to ~4h (full metabolism for ≤2 units), then plateau.' },
+  { action: 'alcohol_timing',  outcome: 'sleep_efficiency',    mean:  0.50,
+    shape: { kind: 'saturating', knee: 4, slope: 2.5, slopeAfter: 0.2 },
+    pathway: 'wearable', horizonDays: 2,
+    rationale: '+10 pp SE from a 4h gap — pre-bed clearance prevents the second-half awakenings entirely (Ebrahim 2013).' },
+  { action: 'alcohol_timing',  outcome: 'hrv_daily',           mean:  0.45,
+    shape: { kind: 'saturating', knee: 4, slope: 5, slopeAfter: 0.5 },
+    pathway: 'wearable', horizonDays: 4,
+    rationale: '+20 ms RMSSD restored by 4h gap — vagal recovery completes once ethanol metabolizes before sleep onset.' },
+  { action: 'alcohol_timing',  outcome: 'rem_sleep',           mean:  0.50,
+    shape: { kind: 'saturating', knee: 4, slope: 15, slopeAfter: 1 },
+    pathway: 'wearable', horizonDays: 3,
+    rationale: '+60 min REM restored by a 4h gap — late-night REM episodes are preserved when ethanol clears before sleep (Ebrahim 2013).' },
 
   // ── Caffeine + alcohol: longer-horizon biomarker fingerprints ─────
   // The next-day sleep story is half the picture. Both substances
@@ -271,6 +430,34 @@ interface SyntheticEngineBundle {
 }
 
 /**
+ * Translate a SyntheticShape into the piecewise-linear engine parameters
+ *   f(dose) = bb · min(dose, θ) + ba · max(0, dose − θ)
+ *
+ * — linear:     bb = ba = slope; θ at midOf(action) keeps the function
+ *               linear over the action's plausible range.
+ * — saturating: first segment slope until knee, then `slopeAfter`
+ *               (defaults to 0) past it. Same shape captures plateau-up
+ *               (slope>0) and plateau-down (slope<0) — sign in `slope`
+ *               carries direction.
+ * — inverted_u: ascending slope until peak, descending after. Sign of
+ *               slopeUp/slopeDown chosen so the function rises to peak
+ *               and falls past it.
+ */
+function shapeToBbBaTheta(
+  shape: SyntheticShape,
+  actionMid: number,
+): { bb: number; ba: number; theta: number } {
+  switch (shape.kind) {
+    case 'linear':
+      return { bb: shape.slope, ba: shape.slope, theta: actionMid }
+    case 'saturating':
+      return { bb: shape.slope, ba: shape.slopeAfter ?? 0, theta: shape.knee }
+    case 'inverted_u':
+      return { bb: shape.slopeUp, ba: shape.slopeDown, theta: shape.peak }
+  }
+}
+
+/**
  * Build engine-consumable equations + DAG edges from PHASE_1_EDGES.
  *
  * Pass `existingEquationKeys` (a Set of "source→target" strings already
@@ -290,18 +477,36 @@ export function buildSyntheticEquations(
   for (const spec of PHASE_1_EDGES) {
     const key = `${spec.action}→${spec.outcome}`
 
-    const actionSpan = spanOf(ACTION_SPAN, spec.action)
-    const outcomeSpan = spanOf(OUTCOME_SPAN, spec.outcome)
-    const slope = (spec.mean * outcomeSpan) / actionSpan
-
     if (!existingEquationKeys.has(key)) {
+      let bb: number
+      let ba: number
+      let theta: number
+
+      if (spec.shape) {
+        // Shape carries the literature physical effect directly; no need
+        // to round-trip through normalized mean × span.
+        const params = shapeToBbBaTheta(spec.shape, midOf(ACTION_SPAN, spec.action))
+        bb = params.bb
+        ba = params.ba
+        theta = params.theta
+      } else {
+        // Legacy edges still translate the [-1, 1] mean to a physical
+        // slope via action/outcome spans.
+        const actionSpan = spanOf(ACTION_SPAN, spec.action)
+        const outcomeSpan = spanOf(OUTCOME_SPAN, spec.outcome)
+        const slope = (spec.mean * outcomeSpan) / actionSpan
+        bb = slope
+        ba = slope
+        theta = midOf(ACTION_SPAN, spec.action)
+      }
+
       equations.push({
         source: spec.action,
         target: spec.outcome,
         curveType: 'linear',
-        theta: midOf(ACTION_SPAN, spec.action),
-        bb: slope,
-        ba: slope,
+        theta,
+        bb,
+        ba,
         effN: 0,
         personalPct: 0,
         provenance: 'literature',

@@ -790,6 +790,7 @@ export function CausalGraphCanvas({
 
 import { cumulativeEffectFraction, horizonDaysFor } from '@/data/scm/outcomeHorizons'
 import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
+import { applyOutcomeBound } from '@/data/scm/syntheticEdges'
 
 export function outcomeDeltasAt(
   state: FullCounterfactualState | null,
@@ -814,7 +815,11 @@ export function outcomeDeltasAt(
  *  per outcome — needed when the UI wants to surface absolute pre/post values
  *  (e.g., LivingGraph showing "42 → 51" alongside the colored Δ). The same
  *  horizon phase-in (cumulativeEffectFraction) is applied, so `after` is the
- *  factual value plus the timed effect, not the asymptotic counterfactual. */
+ *  factual value plus the timed effect, not the asymptotic counterfactual.
+ *
+ *  Both `factual` and `after` are clamped to physical bounds (e.g. SOL ≥ 0,
+ *  SE ∈ [0, 100]); `delta` is then recomputed as `after − factual` so the
+ *  rendered triple stays internally consistent. */
 export function outcomeStatesAt(
   state: FullCounterfactualState | null,
   atDays: number,
@@ -830,10 +835,12 @@ export function outcomeStatesAt(
     const timed = e.totalEffect * fraction
     const prev = out.get(key)
     if (!prev || Math.abs(timed) > Math.abs(prev.delta)) {
+      const factual = applyOutcomeBound(key, e.factualValue)
+      const after = applyOutcomeBound(key, e.factualValue + timed)
       out.set(key, {
-        factual: e.factualValue,
-        after: e.factualValue + timed,
-        delta: timed,
+        factual,
+        after,
+        delta: after - factual,
       })
     }
   }
