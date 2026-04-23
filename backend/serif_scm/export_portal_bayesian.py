@@ -39,6 +39,9 @@ from .total_effect_priors import (
     TotalEffectPrior, DEFAULT_FLOOR_MODE, MEAN_SCALED_FRAC, VAR_INFLATION,
     supported_pairs_from_priors,
 )
+from .weak_default_priors import (
+    fill_weak_defaults, summarize_by_provenance, SIGMA_WEAK_FRAC,
+)
 from .user_observations import (
     load_user_observations, save_user_observations,
     build_all_user_observations, UserObservation,
@@ -388,6 +391,7 @@ def _row(
         "outcome": outcome,
         "pathway": pathway,
         "evidence_tier": evidence_tier,
+        "prior_provenance": getattr(pop, "provenance", "synthetic"),
         "literature_backed": is_literature_backed(action, outcome),
         "horizon_days": horizon,
         "horizon_display": horizon_display(horizon) if horizon > 0 else "",
@@ -634,8 +638,18 @@ def main():
         save_priors(priors, priors_path_for_mode)
         print(f"[bayes] fitted {len(priors)} priors in {time.time()-t1:.1f}s")
 
-    # Derive SUPPORTED_PAIRS from fitted priors. Filters out zero-slope edges
-    # and any DAG paths that cancel to zero before user observations are fit.
+    # Layer 0 fill — weak zero-centered priors for pairs without a DAG fit.
+    # Derived each run from the Cartesian grid + SIGMA_WEAK_FRAC so changes
+    # to the weak-prior config don't need a cache bust.
+    priors, weak_added = fill_weak_defaults(priors)
+    print(f"[bayes] layer 0 added {len(weak_added)} weak-default priors "
+          f"(SIGMA_WEAK_FRAC={SIGMA_WEAK_FRAC:.2f})")
+    provenance_counts = summarize_by_provenance(priors)
+    print(f"[bayes] prior provenance (__all__): {provenance_counts}")
+
+    # Derive SUPPORTED_PAIRS from priors. Synthetic fits pass when |mean|
+    # exceeds 1e-6; weak defaults pass unconditionally (they carry posterior
+    # via user observations, not via the fit magnitude).
     supported_pairs = supported_pairs_from_priors(priors)
     n_wear = sum(1 for _, o in supported_pairs if o in WEARABLE_HORIZONS)
     n_bio = sum(1 for _, o in supported_pairs if o in BIOMARKER_HORIZONS)
@@ -1017,6 +1031,8 @@ def main():
         "evidence_tier_thresholds": EVIDENCE_TIER_THRESHOLDS,
         "per_pathway_tier": {k: dict(v) for k, v in per_pathway_tier.items()},
         "n_priors": len(priors),
+        "prior_provenance_counts": provenance_counts,
+        "sigma_weak_frac": SIGMA_WEAK_FRAC,
         "tier_counts": global_tier_counts,
         "exposed_total": exposed_total,
         "contraction_p10_p50_p90_mean": [

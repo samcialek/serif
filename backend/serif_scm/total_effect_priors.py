@@ -88,6 +88,9 @@ class TotalEffectPrior:
     floor_mode: str = "absolute"   # "absolute" | "mean_scaled"
     floor_applied: bool = False    # whether the mean-scaled floor dominated
     mean_scaled_std: float = 0.0   # MEAN_SCALED_FRAC * |mean| (for diagnostics)
+    # "synthetic" (DAG-fit), "weak_default" (Layer 0, zero-mean fallback for pairs
+    # with no DAG path), or "synthetic+literature" (precision-pooled blend).
+    provenance: str = "synthetic"
 
 
 def _collect_effects(participants, equations, topo_order):
@@ -128,6 +131,11 @@ def supported_pairs_from_priors(
     An (action, outcome) is supported when the population prior exists
     with |mean| above `nonzero_threshold` — filters out the zero-slope
     edges from engine_lessons #8 as well as DAG paths that cancel to zero.
+
+    Weak-default (Layer 0) priors have mean=0 by construction; they pass
+    through regardless of the threshold because user observations are what
+    carry them — a missing Layer 0 entry here would drop the pair out of
+    the user-OLS pipeline too.
     """
     supported: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -136,7 +144,8 @@ def supported_pairs_from_priors(
             continue
         if outcome not in SUPPORTED_OUTCOMES:
             continue
-        if abs(p.mean) < nonzero_threshold:
+        is_weak_default = getattr(p, "provenance", "synthetic") == "weak_default"
+        if not is_weak_default and abs(p.mean) < nonzero_threshold:
             continue
         if (action, outcome) in seen:
             continue
