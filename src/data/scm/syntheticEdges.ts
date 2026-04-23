@@ -81,37 +81,39 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   // synthetic effect is *net of* — the magnitude is the within-person
   // causal effect that survives adjustment, not the naive correlation.
 
-  // ── Caffeine dose → sleep + autonomic (net of sleep debt) ──────────
-  // Naive caffeine ↔ poor-sleep is confounded: tired people drink
-  // more coffee AND sleep worse. After adjusting for sleep_debt and
-  // bedtime, the within-person effect attenuates ~30% but stays
-  // clearly negative — adenosine blockade is the real channel.
-  { action: 'caffeine_mg',     outcome: 'deep_sleep',       mean: -0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Net of sleep_debt: caffeine halves SWS density, dose-linear (Landolt 1995)' },
-  { action: 'caffeine_mg',     outcome: 'sleep_efficiency', mean: -0.45, pathway: 'wearable', horizonDays: 2, rationale: 'Net of prior-day fatigue: caffeine delays onset and fragments late sleep (Drake 2013)' },
-  { action: 'caffeine_mg',     outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of training_load: caffeine → sympathetic tone → HRV suppression (Bowtell 2017)' },
-  { action: 'caffeine_mg',     outcome: 'resting_hr',       mean:  0.25, pathway: 'wearable', horizonDays: 4, rationale: 'Mild dose-linear tachycardic effect (β1 agonism via cAMP)' },
+  // ── Caffeine: timing dominates dose (5h half-life means an afternoon
+  //    coffee still has ~30% plasma at bedtime). Both edges call out the
+  //    confounded naive correlation explicitly so the user can see
+  //    Serif's adjustment story, not just the residual coefficient.
+  { action: 'caffeine_mg',     outcome: 'deep_sleep',       mean: -0.35, pathway: 'wearable', horizonDays: 3, rationale: 'Naive caffeine↔poor-sleep is ~50% confounded — tired people drink more coffee AND sleep worse. Within-person, the residual adenosine-blockade effect still halves SWS density (Landolt 1995 RCT).' },
+  { action: 'caffeine_mg',     outcome: 'sleep_efficiency', mean: -0.30, pathway: 'wearable', horizonDays: 2, rationale: 'After pulling out next-day-fatigue confounding, ~60% of the naive correlation persists — caffeine still delays onset and fragments late sleep (Drake 2013).' },
+  { action: 'caffeine_mg',     outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of training_load: caffeine → sympathetic tone → HRV suppression (Bowtell 2017).' },
+  { action: 'caffeine_mg',     outcome: 'resting_hr',       mean:  0.25, pathway: 'wearable', horizonDays: 4, rationale: 'Mild dose-linear tachycardic effect (β1 agonism via cAMP).' },
+  // Caffeine timing — bigger than dose because half-life makes plasma
+  // level at bedtime the dominant signal.
+  { action: 'caffeine_timing', outcome: 'deep_sleep',       mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Timing dominates dose because of 5h half-life — 6h vs 0h pre-bed cutoff doubles SWS rebound at the same total intake (Drake 2013 crossover).' },
+  { action: 'caffeine_timing', outcome: 'sleep_efficiency', mean:  0.50, pathway: 'wearable', horizonDays: 2, rationale: 'Within-person dose-vs-timing experiments give timing ~60% of caffeine\'s SE penalty — onset latency is the dominant signal.' },
 
-  // ── Caffeine timing → sleep (net of dose) ──────────────────────────
-  // Independent of how much caffeine is consumed, the gap between the
-  // last cup and bedtime is the dominant within-person knob: 6h vs 0h
-  // pre-bed nearly doubles SWS recovery in crossover trials.
-  { action: 'caffeine_timing', outcome: 'deep_sleep',       mean:  0.40, pathway: 'wearable', horizonDays: 3, rationale: 'Net of dose: 6h vs 0h pre-bed cutoff doubles SWS rebound (Drake 2013)' },
-  { action: 'caffeine_timing', outcome: 'sleep_efficiency', mean:  0.35, pathway: 'wearable', horizonDays: 2, rationale: 'Net of dose: timing is the dominant within-person lever for onset latency' },
+  // ── Alcohol: same story — late drinking devastates more than total
+  //    units do at the same intake. Late nights and big dinners explain
+  //    ~30% of the naive alcohol↔poor-sleep link; the residual is direct
+  //    ethanol pharmacology.
+  { action: 'alcohol_units',   outcome: 'deep_sleep',       mean: -0.40, pathway: 'wearable', horizonDays: 3, rationale: 'Naive alcohol↔poor-sleep is ~30% confounded by late nights and heavy meals. The residual REM/SWS suppression is direct pharmacology, dose-linear (Ebrahim 2013 meta of 27 studies).' },
+  { action: 'alcohol_units',   outcome: 'sleep_efficiency', mean: -0.30, pathway: 'wearable', horizonDays: 2, rationale: 'After holding bedtime constant, alcohol still drives mid-sleep awakenings above ~1 unit — the second-half-of-night arousal pattern is the hallmark (Ebrahim 2013).' },
+  { action: 'alcohol_units',   outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of exercise and intake: alcohol blunts vagal tone for 24h post-drink (Spaak 2010).' },
+  { action: 'alcohol_units',   outcome: 'resting_hr',       mean:  0.25, pathway: 'wearable', horizonDays: 4, rationale: 'Sympathetic rebound after metabolism, dose-linear up to ~4 units.' },
+  // Alcohol timing — pre-bed clearance is the bigger lever than dose.
+  { action: 'alcohol_timing',  outcome: 'deep_sleep',       mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Ethanol clears at ~0.015 BAC/hr — a 4h pre-bed gap restores SWS architecture even at 2-unit doses. Timing > dose for the same total intake.' },
+  { action: 'alcohol_timing',  outcome: 'sleep_efficiency', mean:  0.50, pathway: 'wearable', horizonDays: 2, rationale: '2 units at 6pm vs 10pm differ by ~10pp in SE — pre-bed clearance prevents the second-half awakenings entirely (Ebrahim 2013).' },
+  { action: 'alcohol_timing',  outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Pre-bed clearance preserves overnight vagal recovery — early drinking with metabolism completed before sleep keeps HRV near baseline.' },
 
-  // ── Alcohol dose → quotidian (net of bedtime + dietary energy) ─────
-  // Naive alcohol ↔ poor-sleep is partly confounded by late nights and
-  // heavy meals (people drink more on weekends, eat more, sleep later).
-  // Adjusting for bedtime and dietary_energy isolates the direct
-  // pharmacological effect — still strongly negative on REM/SWS.
-  { action: 'alcohol_units',   outcome: 'deep_sleep',       mean: -0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Net of bedtime and caloric load: ethanol suppresses REM/SWS, dose-linear (Ebrahim 2013 meta)' },
-  { action: 'alcohol_units',   outcome: 'sleep_efficiency', mean: -0.45, pathway: 'wearable', horizonDays: 2, rationale: 'Net of bedtime: mid-sleep awakenings rise dose-linearly above 1 unit (Ebrahim 2013)' },
-  { action: 'alcohol_units',   outcome: 'hrv_daily',        mean: -0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Net of exercise and intake: alcohol blunts vagal tone for 24h post-drink (Spaak 2010)' },
-  { action: 'alcohol_units',   outcome: 'resting_hr',       mean:  0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Sympathetic rebound after metabolism, dose-linear up to ~4 units' },
-
-  // ── Alcohol timing → sleep (net of dose) ───────────────────────────
-  { action: 'alcohol_timing',  outcome: 'deep_sleep',       mean:  0.45, pathway: 'wearable', horizonDays: 3, rationale: 'Net of dose: 4h metabolism window (~0.015 BAC/hr) restores SWS architecture' },
-  { action: 'alcohol_timing',  outcome: 'sleep_efficiency', mean:  0.40, pathway: 'wearable', horizonDays: 2, rationale: 'Net of dose: pre-bed clearance prevents the second-half awakenings (Ebrahim 2013)' },
-  { action: 'alcohol_timing',  outcome: 'hrv_daily',        mean:  0.35, pathway: 'wearable', horizonDays: 4, rationale: 'Net of dose: pre-bed clearance preserves overnight vagal recovery' },
+  // ── Caffeine + alcohol: longer-horizon biomarker fingerprints ─────
+  // The next-day sleep story is half the picture. Both substances
+  // leave a weeks-band footprint in the blood that complements the
+  // wearable signal.
+  { action: 'caffeine_mg',     outcome: 'cortisol',         mean:  0.35, pathway: 'biomarker', horizonDays: 28, rationale: 'Chronic caffeine → tonically elevated cortisol, dose-linear in habitual users (Lovallo 2005).' },
+  { action: 'alcohol_units',   outcome: 'triglycerides',    mean:  0.30, pathway: 'biomarker', horizonDays: 35, rationale: 'Ethanol → hepatic VLDL overproduction → fasting TG, dose-response above ~1 unit/day (Klatsky meta).' },
+  { action: 'alcohol_units',   outcome: 'alt',              mean:  0.40, pathway: 'biomarker', horizonDays: 42, rationale: 'Hepatocellular stress marker rises within weeks of sustained intake above ~2 units/day; reverses on abstinence (Klatsky meta).' },
 
   // ── Training → quotidian (cardiac + autonomic adaptation) ──────────
   { action: 'zone2_volume',    outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Endurance training raises parasympathetic tone (Plews 2013)' },
