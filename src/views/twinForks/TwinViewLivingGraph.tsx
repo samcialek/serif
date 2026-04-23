@@ -192,9 +192,14 @@ export function TwinViewLivingGraph() {
     const causalOnly = showExploratory
       ? allEffects
       : allEffects.filter((e) => e.prior_provenance !== 'weak_default')
-    const regimeEffects = causalOnly.filter((e) =>
-      outcomeInRegime(canonicalOutcomeKey(e.outcome)),
-    )
+    // sleep_quality is a fuzzy wearable composite of efficiency + deep
+    // sleep + HRV — overlaps with sleep_efficiency in the same band, so
+    // we surface only sleep_efficiency to keep the graph honest.
+    const regimeEffects = causalOnly.filter((e) => {
+      const key = canonicalOutcomeKey(e.outcome)
+      if (key === 'sleep_quality') return false
+      return outcomeInRegime(key)
+    })
     return buildGraph(regimeEffects, manipulableIds, layout)
   }, [participant, layout, manipulableIds, outcomeInRegime, showExploratory])
   const graphOutcomeIds = useMemo(
