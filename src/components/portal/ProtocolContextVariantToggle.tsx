@@ -15,16 +15,20 @@ import { cn } from '@/utils/classNames'
 import type { ChipVariant } from './ProtocolContextChip'
 import type { AuditPlacement } from './ProtocolAuditTrail'
 
-const STORAGE_KEY = 'serif.protocols.contextVariants.v1'
+const STORAGE_KEY = 'serif.protocols.contextVariants.v2'
 
 export interface ContextVariants {
   chip: ChipVariant
   audit: AuditPlacement
+  /** When true, each ProtocolRow shows yesterday's dose below today's
+   * if the two differ. Requires participant.regimes_history (≥ 2 days). */
+  yesterdayDiff: boolean
 }
 
 const DEFAULT_VARIANTS: ContextVariants = {
   chip: 'detailed',
   audit: 'inline',
+  yesterdayDiff: false,
 }
 
 function readFromStorage(): ContextVariants {
@@ -35,6 +39,7 @@ function readFromStorage(): ContextVariants {
     return {
       chip: parsed.chip ?? DEFAULT_VARIANTS.chip,
       audit: parsed.audit ?? DEFAULT_VARIANTS.audit,
+      yesterdayDiff: parsed.yesterdayDiff ?? DEFAULT_VARIANTS.yesterdayDiff,
     }
   } catch {
     return DEFAULT_VARIANTS
@@ -112,6 +117,7 @@ export function ProtocolContextVariantToggle({
         <Settings2 className="w-3 h-3" />
         <span className="tabular-nums">
           chip: {variants.chip} · audit: {variants.audit}
+          {variants.yesterdayDiff && ' · diff'}
         </span>
       </button>
       {open && (
@@ -157,11 +163,29 @@ export function ProtocolContextVariantToggle({
               Modal
             </SegmentButton>
           </div>
-          <p className="text-[10px] text-slate-500 leading-snug">
+          <p className="text-[10px] text-slate-500 leading-snug mb-3">
             <span className="font-medium">Inline:</span> accordion expands
             below the timeline row.{' '}
             <span className="font-medium">Modal:</span> click opens overlay
             with more breathing room.
+          </p>
+
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
+            Yesterday-vs-today diff
+          </p>
+          <label className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer py-1">
+            <input
+              type="checkbox"
+              checked={variants.yesterdayDiff}
+              onChange={(e) => onChange({ yesterdayDiff: e.target.checked })}
+              className="w-3.5 h-3.5"
+            />
+            <span>Show yesterday's dose under changed items</span>
+          </label>
+          <p className="text-[10px] text-slate-500 leading-snug">
+            Reruns the picker with yesterday's regime activations from
+            regimes_history[-2]. Rows where the dose differs get a
+            "Yesterday was…" sub-line.
           </p>
         </div>
       )}

@@ -17,6 +17,7 @@ import {
   derivedWakeTime,
   pickNeutralBaseline,
   pickOptimalSchedule,
+  pickYesterdayProtocol,
   OBJECTIVE_ORON,
 } from '@/utils/twinSem'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
@@ -68,14 +69,17 @@ export function ProtocolsView() {
     if (!effectiveParticipant) return null
     const result = pickOptimalSchedule(effectiveParticipant, OBJECTIVE_ORON)
     const neutralBaseline = pickNeutralBaseline(effectiveParticipant, OBJECTIVE_ORON)
+    const yesterday = variants.yesterdayDiff
+      ? pickYesterdayProtocol(effectiveParticipant, OBJECTIVE_ORON)
+      : null
     const wakeTime = derivedWakeTime(effectiveParticipant)
     const regimes = effectiveParticipant.regime_activations ?? {}
     const activeRegimes = (Object.entries(regimes) as Array<[RegimeKey, number]>)
       .filter(([, v]) => v >= 0.3)
       .sort((a, b) => b[1] - a[1])
       .map(([key, activation]) => ({ key, activation }))
-    return { result, neutralBaseline, wakeTime, activeRegimes }
-  }, [effectiveParticipant])
+    return { result, neutralBaseline, yesterday, wakeTime, activeRegimes }
+  }, [effectiveParticipant, variants.yesterdayDiff])
 
   if (activePid == null) {
     return (
@@ -162,6 +166,7 @@ export function ProtocolsView() {
             participant={effectiveParticipant}
             result={twin.result}
             neutralBaseline={twin.neutralBaseline}
+            yesterday={twin.yesterday}
             dateLabel={dateLabel}
             dayOfWeek={DAY_OF_WEEK[today.getDay()]}
             activeRegimes={twin.activeRegimes}

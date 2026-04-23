@@ -193,6 +193,12 @@ export interface ParticipantPortal {
   /** Today's rolling-load summary (acwr, ctl, sleep_debt_14d, …) with
    * personal-baseline deviations. Present when life_df had data. */
   loads_today?: Partial<Record<LoadKey, LoadValue>>
+  /** Last 14 days of each load, oldest-first. Last entry == loads_today.value.
+   * Drives per-item causal sparklines (#5) and yesterday-vs-today diff (#4). */
+  loads_history?: Partial<Record<LoadKey, number[]>>
+  /** Last 14 days of each regime activation, oldest-first. Last entry
+   * matches regime_activations. Drives the yesterday-vs-today pick diff. */
+  regimes_history?: Partial<Record<RegimeKey, number[]>>
   release_schedule?: ReleaseEntry[]
   exploration_recommendations?: ExplorationRecommendation[]
 }

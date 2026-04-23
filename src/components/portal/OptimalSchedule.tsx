@@ -56,6 +56,7 @@ import type { ChipVariant } from '@/components/portal/ProtocolContextChip'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import type { AuditPlacement } from '@/components/portal/ProtocolAuditTrail'
 import type { RegimeOverrides } from '@/components/portal/CounterfactualSliders'
+import { CausalSparkline } from '@/components/portal/CausalSparkline'
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'Overreaching',
@@ -94,10 +95,66 @@ const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
   baseline: 'bg-slate-300',
 }
 
+/** True when yesterday's version of this item meaningfully differed —
+ * dose string, time, or any regime-percentage detail. Comparing details
+ * surfaces threshold-adjacent moves (e.g., inflammation 98%→48% where
+ * the item still fires but the embedded percentage changed). */
+function doseDiffers(today: ProtocolItem, yesterday: ProtocolItem): boolean {
+  if (today.dose !== yesterday.dose) return true
+  if (today.displayTime !== yesterday.displayTime) return true
+  const t = (today.details ?? []).join('|')
+  const y = (yesterday.details ?? []).join('|')
+  return t !== y
+}
+
+function YesterdayLine({
+  today,
+  yesterday,
+}: {
+  today: ProtocolItem
+  yesterday: ProtocolItem
+}) {
+  const timeChanged = today.displayTime !== yesterday.displayTime
+  const doseChanged = today.dose !== yesterday.dose
+  // Surface the first detail that differs between today and yesterday
+  // (typically a regime-percentage blurb like "inflammation_state: 98%").
+  const diffDetail: string | null = (() => {
+    const tList = today.details ?? []
+    const yList = yesterday.details ?? []
+    const max = Math.max(tList.length, yList.length)
+    for (let i = 0; i < max; i++) {
+      if (tList[i] !== yList[i]) return yList[i] ?? null
+    }
+    return null
+  })()
+  return (
+    <div className="ml-[72px] mb-1 text-[11px] text-slate-500 tabular-nums leading-snug">
+      <span className="text-slate-400">Yesterday: </span>
+      {(timeChanged || doseChanged) && (
+        <span className="line-through decoration-slate-300">
+          <span className="font-medium">{yesterday.displayTime}</span>
+          <span className="mx-1 text-slate-300">·</span>
+          <span>{yesterday.dose}</span>
+        </span>
+      )}
+      {!timeChanged && !doseChanged && diffDetail && (
+        <span className="italic">{diffDetail}</span>
+      )}
+    </div>
+  )
+}
+
 interface OptimalScheduleProps {
   participant: ParticipantPortal
   result: CounterfactualResult
   neutralBaseline: CounterfactualResult | null
+  /** Yesterday's pick + the participant used to compute it. Null when
+   * the user hasn't opted into diff mode, or when history is too shallow
+   * (< 2 days). Used to render the "Yesterday was…" sub-line per row. */
+  yesterday: {
+    result: CounterfactualResult
+    yesterdayParticipant: ParticipantPortal
+  } | null
   dateLabel: string
   dayOfWeek: string
   activeRegimes: Array<{ key: RegimeKey; activation: number }>
@@ -120,6 +177,7 @@ export function OptimalSchedule({
   participant,
   result,
   neutralBaseline,
+  yesterday,
   dateLabel,
   dayOfWeek,
   activeRegimes,
@@ -157,6 +215,19 @@ export function OptimalSchedule({
     )
     return matchProtocolItems(real, neutral)
   }, [participant, best.schedule, neutralBaseline, wakeTime, today])
+
+  // Yesterday's ProtocolItems, keyed by title for O(1) lookup in each row.
+  const yesterdayByTitle = useMemo(() => {
+    if (!yesterday) return null
+    const items = buildDailyProtocol(
+      yesterday.yesterdayParticipant,
+      yesterday.result.best.schedule,
+      { wakeTime, date: today },
+    )
+    const map = new Map<string, ProtocolItem>()
+    for (const it of items) map.set(it.title, it)
+    return map
+  }, [yesterday, wakeTime, today])
 
   // Top 3 beneficial projections for the compact outcomes strip.
   const topProjections = useMemo(() => {
@@ -284,6 +355,7 @@ export function OptimalSchedule({
               <ProtocolRow
                 key={i}
                 matched={m}
+                yesterdayItem={yesterdayByTitle?.get(m.real.title) ?? null}
                 participant={participant}
                 chipVariant={chipVariant}
                 auditPlacement={auditPlacement}
@@ -342,6 +414,9 @@ export function OptimalSchedule({
 
 interface ProtocolRowProps {
   matched: MatchedProtocolItem
+  /** Yesterday's equivalent item (matched by title), or null when diff
+   * mode is off / item didn't exist yesterday / history too shallow. */
+  yesterdayItem: ProtocolItem | null
   participant: ParticipantPortal
   chipVariant: ChipVariant
   auditPlacement: AuditPlacement
@@ -349,6 +424,7 @@ interface ProtocolRowProps {
 
 function ProtocolRow({
   matched,
+  yesterdayItem,
   participant,
   chipVariant,
   auditPlacement,
@@ -403,9 +479,27 @@ function ProtocolRow({
         </p>
       )}
       {hasContext && (
-        <div className="ml-[72px] mb-1">
+        <div className="ml-[72px] mb-1 flex items-center gap-2 flex-wrap">
           <ProtocolContextChip context={real.context} variant={chipVariant} />
+          {(() => {
+            const topLoad = real.context.driving_loads[0]
+            const series = topLoad
+              ? participant.loads_history?.[topLoad.key] ?? []
+              : []
+            if (!topLoad || series.length < 2) return null
+            return (
+              <CausalSparkline
+                series={series}
+                loadKey={topLoad.key}
+                label={topLoad.label}
+                severityOverride={topLoad.severity}
+              />
+            )
+          })()}
         </div>
+      )}
+      {yesterdayItem && doseDiffers(real, yesterdayItem) && (
+        <YesterdayLine today={real} yesterday={yesterdayItem} />
       )}
       <div className="ml-[72px] flex items-center gap-1.5 flex-wrap">
         {real.tags.map((t) => (

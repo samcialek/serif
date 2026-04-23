@@ -283,3 +283,105 @@ def compute_loads_summary(
             "ratio": dev.ratio,
         }
     return out
+
+
+def compute_loads_history(
+    life_df_pid: pd.DataFrame,
+    n_days: int = 14,
+) -> dict[str, list[float]]:
+    """Last `n_days` daily values of each load, oldest-first.
+
+    Used by the Protocols tab to render per-item causal sparklines (#5)
+    and drive the yesterday-vs-today diff mode (#4). The last entry of
+    each list matches loads_today's value.
+    """
+    augmented = augment_lifestyle(life_df_pid)
+    if len(augmented) == 0:
+        return {col: [] for col in LOAD_COLUMNS}
+    tail = augmented.tail(n_days)
+    out: dict[str, list[float]] = {}
+    for col in LOAD_COLUMNS:
+        if col not in tail.columns:
+            continue
+        out[col] = [float(v) for v in tail[col].tolist()]
+    return out
+
+
+def compute_regimes_history(
+    life_df_pid: pd.DataFrame,
+    blood_df_pid: pd.DataFrame | None,
+    n_days: int = 14,
+) -> dict[str, list[float]]:
+    """Last `n_days` daily regime activations, oldest-first.
+
+    Uses the SAME inputs and helpers as the live regime_activations in
+    export_portal_bayesian.main() (transform.compute_acwr with 7/28-day
+    windows, transform.compute_sleep_debt with target=8.0h) so that
+    history[-1] matches today's regime_activations exactly — no drift
+    between the two routes.
+
+    Biomarkers (ferritin, hscrp) change only at blood draws; for days
+    between draws we forward-fill from the most recent draw-day ≤ day_t,
+    and back-fill from the first-ever draw for pre-first-draw days.
+    """
+    # Lazy imports so this module stays importable from test fixtures
+    # that don't load the full engine.
+    from .reconcile import compute_regime_activations
+    from .transform import compute_acwr, compute_sleep_debt
+
+    if life_df_pid is None or len(life_df_pid) == 0:
+        return {
+            "overreaching_state": [],
+            "iron_deficiency_state": [],
+            "sleep_deprivation_state": [],
+            "inflammation_state": [],
+        }
+    df = life_df_pid.sort_values("day").reset_index(drop=True)
+    last_day = int(df["day"].iloc[-1])
+    # Build a continuous daily frame so index alignment matches the
+    # main() regime computation.
+    daily = (
+        pd.DataFrame({"day": range(1, last_day + 1)})
+        .merge(df[["day", "training_min", "sleep_hrs"]], on="day", how="left")
+        .ffill()
+        .bfill()
+    )
+    training = daily["training_min"].tolist()
+    sleep = daily["sleep_hrs"].tolist()
+
+    def _biomarker_by_day(col: str) -> dict[int, float]:
+        if blood_df_pid is None or len(blood_df_pid) == 0 or col not in blood_df_pid.columns:
+            return {}
+        rows = blood_df_pid[["draw_day", col]].dropna().sort_values("draw_day")
+        return {int(r["draw_day"]): float(r[col]) for _, r in rows.iterrows()}
+
+    ferritin_by_day = _biomarker_by_day("ferritin")
+    hscrp_by_day = _biomarker_by_day("hscrp")
+
+    def _lookup(series_by_day: dict[int, float], day: int) -> float:
+        if not series_by_day:
+            return 0.0
+        days = sorted(series_by_day.keys())
+        ffilled = [d for d in days if d <= day]
+        if ffilled:
+            return series_by_day[ffilled[-1]]
+        return series_by_day[days[0]]
+
+    first_day = max(1, last_day - n_days + 1)
+    history: dict[str, list[float]] = {
+        "overreaching_state": [],
+        "iron_deficiency_state": [],
+        "sleep_deprivation_state": [],
+        "inflammation_state": [],
+    }
+    for day in range(first_day, last_day + 1):
+        observed = {
+            "acwr":       compute_acwr(training, day - 1),
+            "sleep_debt": compute_sleep_debt(sleep, day - 1),
+            "ferritin":   _lookup(ferritin_by_day, day),
+            "hscrp":      _lookup(hscrp_by_day, day),
+        }
+        activations = compute_regime_activations(observed)
+        for key in history.keys():
+            history[key].append(float(activations.get(key, 0.0)))
+    return history

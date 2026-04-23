@@ -464,6 +464,65 @@ export function pickNeutralBaseline(
   return pickOptimalSchedule(neutral, objective)
 }
 
+/** Reconstruct an approximate `loads_today` map from `loads_history[-2]`
+ * — used to render yesterday's chips/severity with the same machinery
+ * as today's. The baseline/sd/z/ratio fields are intentionally hollow:
+ * downstream consumers (load severity, chip formatting) only read
+ * `value`, so the placeholders don't mislead anyone. */
+function buildYesterdayLoads(
+  history: Partial<Record<string, number[]>> | undefined,
+): { [key: string]: { value: number; baseline: number; sd: number; z: number; ratio: number } } | undefined {
+  if (!history) return undefined
+  const out: Record<string, { value: number; baseline: number; sd: number; z: number; ratio: number }> = {}
+  for (const [key, series] of Object.entries(history)) {
+    if (series && series.length >= 2) {
+      const value = series[series.length - 2]
+      out[key] = { value, baseline: value, sd: 0, z: 0, ratio: 1 }
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+/** Yesterday's pick — rerun pickOptimalSchedule with regimes_history[-2]
+ * as regime_activations and loads_history[-2] reconstituted as
+ * loads_today. Lets the Protocols tab answer "what would we have
+ * recommended yesterday?" and diff the two.
+ *
+ * Returns null when the history isn't deep enough (< 2 days).
+ */
+export function pickYesterdayProtocol(
+  participant: ParticipantPortal,
+  objective: ObjectiveOutcome[] = OBJECTIVE_ORON,
+): { result: CounterfactualResult; yesterdayParticipant: ParticipantPortal } | null {
+  const regHist = participant.regimes_history
+  if (!regHist) return null
+
+  const yesterdayRegimes: Partial<Record<RegimeKey, number>> = {}
+  let anyFound = false
+  for (const key of Object.keys(regHist) as RegimeKey[]) {
+    const series = regHist[key]
+    if (series && series.length >= 2) {
+      yesterdayRegimes[key] = series[series.length - 2]
+      anyFound = true
+    }
+  }
+  if (!anyFound) return null
+
+  const yesterdayLoads = buildYesterdayLoads(participant.loads_history) as
+    | ParticipantPortal['loads_today']
+    | undefined
+
+  const yesterdayParticipant: ParticipantPortal = {
+    ...participant,
+    regime_activations: yesterdayRegimes,
+    loads_today: yesterdayLoads,
+  }
+  return {
+    result: pickOptimalSchedule(yesterdayParticipant, objective),
+    yesterdayParticipant,
+  }
+}
+
 // Human-readable diff between two schedules ("vs chosen: +0.4 HRV, −0.3 cortisol").
 export interface ScheduleDiff {
   bedtimeDelta: number // hours

@@ -55,7 +55,7 @@ from .protocols import (
 )
 from .reconcile import compute_regime_activations
 from .transform import compute_acwr, compute_sleep_debt
-from .loads import compute_loads_summary
+from .loads import compute_loads_summary, compute_loads_history, compute_regimes_history
 from .scheduler import (
     compute_release_schedule, releases_to_dicts,
     release_count_warnings, release_count_distribution,
@@ -530,6 +530,8 @@ def _export_one(
     outcome_baselines: dict[str, float] | None = None,
     positivity_map: dict[str, dict] | None = None,
     loads_summary: dict[str, dict[str, float]] | None = None,
+    loads_history: dict[str, list[float]] | None = None,
+    regimes_history: dict[str, list[float]] | None = None,
 ) -> dict:
     """Build the full per-participant record.
 
@@ -590,6 +592,8 @@ def _export_one(
         "outcome_baselines": outcome_baselines or {},
         "regime_activations": regime_activations,
         "loads_today": loads_summary or {},
+        "loads_history": loads_history or {},
+        "regimes_history": regimes_history or {},
         "release_schedule": releases_to_dicts(releases),
         "exploration_recommendations": exploration_recommendations,
     }
@@ -739,8 +743,10 @@ def main():
             current_vals = compute_current_values(life_pid)
             behavioral_sds = compute_behavioral_sds(life_pid)
             loads_summary = compute_loads_summary(life_pid)
+            loads_history = compute_loads_history(life_pid, n_days=14)
         else:
             current_vals, behavioral_sds, loads_summary = {}, {}, {}
+            loads_history = {}
 
         # Regime inputs: acwr + sleep_debt from lifestyle, ferritin + hscrp from blood.
         p_blood = blood_df[blood_df["participant_id"] == pid]
@@ -759,8 +765,12 @@ def main():
                 "hscrp":      float(day_row.iloc[0].get("hscrp", 0.0)),
             }
             regime_activations = compute_regime_activations(regime_inputs)
+            regimes_history = compute_regimes_history(
+                life_pid, p_blood if len(p_blood) > 0 else None, n_days=14,
+            )
         else:
             regime_activations = {}
+            regimes_history = {}
 
         wear_pid = wear_by_pid.get(pid)
         outcome_baselines = compute_outcome_baselines(
@@ -787,6 +797,8 @@ def main():
             outcome_baselines=outcome_baselines,
             positivity_map=positivity_map,
             loads_summary=loads_summary,
+            loads_history=loads_history,
+            regimes_history=regimes_history,
         )
         (out_dir / f"participant_{pid:04d}.json").write_text(
             json.dumps(record, indent=2, default=float)
