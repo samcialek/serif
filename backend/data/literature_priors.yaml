@@ -19,13 +19,19 @@
 #   conversion_note       — how we mapped reported units → Serif units
 #   transportability_inflation — factor applied to variance (default 2.0)
 #   notes                 — free-text caveats
-#   citation_status       — "verified" | "needs_verification" | "draft"
+#   citation_status       — one of:
+#                           "verified"             — DOI resolves, paper exists, topic matches, β plausibly derivable
+#                           "verified_topic_only"  — paper exists and is on-topic, but β magnitude not back-checked against paper text
+#                           "needs_verification"   — initial seed state; not yet audited
+#                           "draft"                — placeholder; not audited
+#                           "wrong_doi"            — DOI needs fixing; paper exists under different DOI
+#                           "wrong_topic"          — DOI resolves but paper doesn't support the claim
+#                           "fabricated"           — DOI unresolvable and no matching paper found
 #
-# Citation status on initial seed: most entries are DRAFT — the β and SE
-# were reconstructed from recall + agent research summaries and MUST be
-# verified against the actual paper text before being trusted by the
-# blending pipeline. `literature_priors.py` refuses to load anything with
-# status != "verified" unless --include-drafts is passed.
+# AUDIT 2026-04-22: post-audit, most entries are NOT verified. See
+# LITERATURE_AUDIT.md for per-entry findings. `literature_priors.py` refuses
+# to load anything with status != "verified" unless --include-drafts is
+# passed, so none of the un-verified entries currently feed the engine.
 
 version: 1
 default_transportability_inflation: 2.0
@@ -45,8 +51,8 @@ entries:
     year: 2024
     reported_units: "mmol/L per 1 SD daily steps"
     conversion_note: "SD(steps) ≈ 4000/day in UKB; Serif step = 2000 → ×0.5. mmol/L LDL × 38.67 → mg/dL"
-    citation_status: needs_verification
-    notes: "UKB healthy-volunteer bias; inflation 2.0 applied"
+    citation_status: fabricated
+    notes: "AUDIT 2026-04-22: DOI returns 404; no matching paper found. See LITERATURE_AUDIT.md."
 
   - action: zone2_volume
     outcome: hdl_smoothed
@@ -57,9 +63,11 @@ entries:
     source: "Ekelund 2019 UKB MVPA"
     doi: "https://doi.org/10.1136/bmj.l4570"
     year: 2019
+    # AUDIT 2026-04-22: DOI resolves to Ekelund 2019 BMJ on all-cause mortality,
+    # NOT lipids. β cannot come from this paper. See LITERATURE_AUDIT.md.
     reported_units: "mmol/L HDL per 10 min/day MVPA"
     conversion_note: "+60 min/month ≈ +2 min/day MVPA; mmol/L × 38.67 → mg/dL"
-    citation_status: needs_verification
+    citation_status: wrong_topic
 
   - action: zone2_volume
     outcome: triglycerides_smoothed
@@ -70,9 +78,11 @@ entries:
     source: "Ekelund 2019 UKB MVPA"
     doi: "https://doi.org/10.1136/bmj.l4570"
     year: 2019
+    # AUDIT 2026-04-22: DOI resolves to Ekelund 2019 BMJ on all-cause mortality,
+    # NOT lipids. β cannot come from this paper. See LITERATURE_AUDIT.md.
     reported_units: "mmol/L TG per 10 min/day MVPA"
     conversion_note: "+60 min/month ≈ +2 min/day MVPA; mmol/L × 88.57 → mg/dL"
-    citation_status: needs_verification
+    citation_status: wrong_topic
 
   # ————— Activity × Glucose / metabolic —————
 
@@ -87,7 +97,9 @@ entries:
     year: 2022
     reported_units: "mmol/L glucose per 1 SD steps/day"
     conversion_note: "SD ≈ 4000 steps; Serif step = 2000 → ×0.5; mmol/L × 18.02 → mg/dL"
-    citation_status: needs_verification
+    citation_status: wrong_topic
+    # AUDIT 2026-04-22: DOI resolves to Dempsey 2022 EHJ on incident CVD,
+    # not glucose/HbA1c. β cannot come from this paper. See LITERATURE_AUDIT.md.
 
   - action: steps
     outcome: hscrp_smoothed
@@ -100,8 +112,8 @@ entries:
     year: 2024
     reported_units: "log(CRP) per 1 SD steps/day"
     conversion_note: "median UKB hsCRP ≈ 1.3 mg/L; back-transform at median; SD adj ×0.5"
-    citation_status: needs_verification
-    notes: "Log-outcome; back-transform anchored at cohort median hsCRP"
+    citation_status: fabricated
+    notes: "AUDIT 2026-04-22: DOI returns 404; no matching paper found. See LITERATURE_AUDIT.md."
 
   # ————— Sleep × inflammation / HR —————
 
@@ -116,8 +128,8 @@ entries:
     year: 2016
     reported_units: "log(CRP) per hour sleep (self-report)"
     conversion_note: "U-shaped; linear near 7h anchor; +30 min = +0.5h; self-report attenuation factor 0.7 applied"
-    citation_status: needs_verification
-    notes: "Self-report sleep is noisier than accelerometer; variance inflated 3.0 instead of default 2.0"
+    citation_status: verified_topic_only
+    notes: "AUDIT 2026-04-22: DOI resolves, paper on-topic (Irwin/Olmstead/Carroll 2016 Biol Psychiatry). β reconstruction from agent summary; magnitude not back-checked against paper text. Self-report sleep noisier; variance inflated 3.0."
     transportability_inflation: 3.0
 
   - action: sleep_duration
@@ -129,9 +141,11 @@ entries:
     source: "Jefferis 2019 UKB accelerometer"
     doi: "https://doi.org/10.1136/bjsports-2018-100237"
     year: 2019
+    # AUDIT 2026-04-22: DOI returns 404. Real Jefferis 2019 papers use BRHS
+    # cohort (older men), not UKB, and focus on CVD/mortality. See LITERATURE_AUDIT.md.
     reported_units: "bpm per hour accelerometer-sleep"
     conversion_note: "+30 min = 0.5 × reported per-hour slope"
-    citation_status: needs_verification
+    citation_status: fabricated
 
   - action: steps
     outcome: resting_hr
@@ -142,9 +156,11 @@ entries:
     source: "Jefferis 2019 UKB accelerometer"
     doi: "https://doi.org/10.1136/bjsports-2018-100237"
     year: 2019
+    # AUDIT 2026-04-22: DOI returns 404. Real Jefferis 2019 papers use BRHS
+    # cohort (older men), not UKB, and focus on CVD/mortality. See LITERATURE_AUDIT.md.
     reported_units: "bpm per 1 SD daily steps"
     conversion_note: "SD ≈ 4000 steps; Serif step = 2000 → ×0.5"
-    citation_status: needs_verification
+    citation_status: fabricated
 
   # ————— Diet × hormones —————
 
@@ -159,8 +175,8 @@ entries:
     year: 2023
     reported_units: "nmol/L testosterone per 10 g protein/day"
     conversion_note: "+20 g = 2× reported; nmol/L × 28.85 → ng/dL"
-    citation_status: needs_verification
-    notes: "Meta FFQ input; measurement error attenuates slope. Variance inflated 3.0"
+    citation_status: wrong_doi
+    notes: "AUDIT 2026-04-22: DOI resolves to unrelated Li et al. paper on Leydig cells in rats. Real Whittaker paper is Nutrition and Health 2022, DOI 10.1177/02601060221132922 — AND the real paper reports high-protein diets LOWER testosterone (opposite sign). Fix DOI + re-examine sign. See LITERATURE_AUDIT.md."
     transportability_inflation: 3.0
 
   - action: dietary_protein
@@ -174,7 +190,8 @@ entries:
     year: 2002
     reported_units: "nmol/L SHBG per 10 g protein/day"
     conversion_note: "+20 g = 2× reported"
-    citation_status: needs_verification
+    citation_status: wrong_doi
+    notes: "AUDIT 2026-04-22: DOI is in British Journal of Cancer; real Allen 2002 EPIC-Oxford androgens papers are in Cancer Epidemiol Biomarkers Prev / Cancer Causes Control. No clean N=4100 slope located. See LITERATURE_AUDIT.md."
     transportability_inflation: 3.0
 
   # ————— Zone2 / activity × VO2 peak —————
@@ -190,5 +207,5 @@ entries:
     year: 2016
     reported_units: "MET per 10 min/day aerobic"
     conversion_note: "1 MET ≈ 3.5 mL/kg/min; +60 min/month ≈ +2 min/day"
-    citation_status: needs_verification
-    notes: "Cross-sectional in UKB; longitudinal meta gives steeper slope"
+    citation_status: wrong_topic
+    notes: "AUDIT 2026-04-22: Ross 2016 is an AHA position statement on CRF importance, not a dose-response meta for zone2 → VO2peak. Real sources: Milanović 2015 or Bouchard 2011 HERITAGE. See LITERATURE_AUDIT.md."
