@@ -18,6 +18,7 @@
 import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowLeftRight,
   ChevronDown,
   ChevronUp,
   Calendar,
@@ -118,17 +119,22 @@ function YesterdayLine({
     return null
   })()
   return (
-    <div className="ml-[72px] mb-1 text-[11px] text-slate-500 tabular-nums leading-snug">
-      <span className="text-slate-400">Yesterday: </span>
+    <div className="ml-[72px] mb-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-[11px] leading-snug">
+      <ArrowLeftRight className="w-3 h-3 text-amber-600 flex-shrink-0" />
+      <span className="text-[10px] uppercase tracking-wider font-bold text-amber-700">
+        Yesterday
+      </span>
       {(timeChanged || doseChanged) && (
-        <span className="line-through decoration-slate-300">
-          <span className="font-medium">{yesterday.displayTime}</span>
-          <span className="mx-1 text-slate-300">·</span>
-          <span>{yesterday.dose}</span>
+        <span className="tabular-nums">
+          <span className="font-semibold">{yesterday.displayTime}</span>
+          <span className="mx-1 text-amber-400">·</span>
+          <span className="line-through decoration-amber-400">
+            {yesterday.dose}
+          </span>
         </span>
       )}
       {!timeChanged && !doseChanged && diffDetail && (
-        <span className="italic">{diffDetail}</span>
+        <span className="tabular-nums">{diffDetail}</span>
       )}
     </div>
   )
