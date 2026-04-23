@@ -238,26 +238,33 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   //    (REM/SWS rebound suppression). Timing matters because ethanol clears
   //    at ~0.015 BAC/hr; pre-bed gap restores architecture even at 2 units.
   //    The second-half-of-night arousal pattern is the canonical fingerprint.
+  // All alcohol_units → sleep responses are saturating, not linear: the
+  // biology has hard ceilings (only so much SWS/REM to suppress), receptor
+  // saturation (sedation, vagal blunting), and finite arousal windows.
+  // Linear extrapolation from low-dose RCTs blows past those ceilings at
+  // the high end of the lever (6 units), producing impossible readings
+  // (SOL → 0, RMSSD → 0). Knees and post-knee slopes from Ebrahim 2013
+  // dose-stratified subgroups + Roehrs & Roth 2001 sedation curves.
   { action: 'alcohol_units',   outcome: 'deep_sleep',          mean: -0.40,
-    shape: { kind: 'linear', slope: -10 },
+    shape: { kind: 'saturating', knee: 3, slope: -10, slopeAfter: -3 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '−10 min SWS per drink (linear above habitual ~1 unit baseline). REM-rebound suppression via ethanol metabolites (Ebrahim 2013 meta of 27 studies).' },
+    rationale: '−10 min SWS per drink up to ~3 units (the dose at which late-night ethanol-clearance arousals dominate); after that only −3 min/drink because the suppressible SWS pool is largely depleted (Ebrahim 2013 meta of 27 studies).' },
   { action: 'alcohol_units',   outcome: 'sleep_efficiency',    mean: -0.30,
-    shape: { kind: 'linear', slope: -3 },
+    shape: { kind: 'saturating', knee: 3, slope: -3, slopeAfter: -1 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '−3 pp SE per drink — second-half-of-night arousals dominate as ethanol clears (Ebrahim 2013).' },
+    rationale: '−3 pp SE per drink up to ~3 units; arousal windows finite, so post-knee slope is −1/drink. Second-half-of-night arousals dominate as ethanol clears (Ebrahim 2013).' },
   { action: 'alcohol_units',   outcome: 'hrv_daily',           mean: -0.30,
-    shape: { kind: 'linear', slope: -8 },
+    shape: { kind: 'saturating', knee: 3, slope: -8, slopeAfter: -2 },
     pathway: 'wearable', horizonDays: 4,
-    rationale: '−8 ms RMSSD per drink, vagal tone blunted for 24h post-intake (Spaak 2010).' },
+    rationale: '−8 ms RMSSD per drink up to ~3 units; vagal blunting saturates as parasympathetic floor approached. Heavy chronic intake adds another −2/drink via sustained sympathetic drive (Spaak 2010).' },
   { action: 'alcohol_units',   outcome: 'rem_sleep',           mean: -0.55,
-    shape: { kind: 'linear', slope: -15 },
+    shape: { kind: 'saturating', knee: 2, slope: -15, slopeAfter: -3 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '−15 min REM per drink — ethanol suppresses REM 30–40% in the first half of the night with little rebound. Signature alcohol footprint (Ebrahim 2013).' },
+    rationale: 'REM is suppressed 30–40% by the first 1–2 drinks then plateaus — the first-half-of-night REM episodes are short and easily abolished, but late-night REM rebound is partially preserved unless intake is very heavy. Knee at 2 drinks (Ebrahim 2013).' },
   { action: 'alcohol_units',   outcome: 'sleep_onset_latency', mean: -0.20,
-    shape: { kind: 'linear', slope: -3 },
+    shape: { kind: 'saturating', knee: 2, slope: -2.5, slopeAfter: -0.5 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: 'Sedation shortens onset −3 min per drink — the only stage alcohol "improves." Architecture damage in the second half more than offsets (Ebrahim 2013).' },
+    rationale: 'Sedation cuts SOL by ~5 min through the first 2 drinks, then plateaus — GABA-A occupancy saturates and additional intake doesn\'t accelerate sleep onset (and at very high doses can paradoxically prolong it via discomfort/anxiety). Post-knee slope kept slightly negative as a soft attenuation rather than the inverted-U paradox (Roehrs & Roth 2001, Ebrahim 2013).' },
 
   // Alcohol timing — pre-bed clearance is the bigger lever. Saturates at
   // ~4h gap (ethanol fully metabolized for typical intake by sleep onset).
