@@ -123,10 +123,11 @@ export function feasibleEffectMagnitude(
 
 export const OUTCOME_LABELS: Record<string, string> = {
   deep_sleep: 'Deep sleep',
+  rem_sleep: 'REM sleep',
   sleep_quality: 'Sleep quality',
   sleep_efficiency: 'Sleep efficiency',
+  sleep_onset_latency: 'Sleep onset latency',
   hrv_daily: 'HRV (daily)',
-  resting_hr: 'Resting HR',
   ferritin: 'Ferritin',
   hemoglobin: 'Hemoglobin',
   iron_total: 'Iron (total)',
@@ -171,10 +172,11 @@ export interface OutcomeMeta {
 
 export const OUTCOME_META: Record<string, OutcomeMeta> = {
   deep_sleep: { unit: 'min', noun: 'deep sleep', beneficial: 'higher' },
+  rem_sleep: { unit: 'min', noun: 'REM sleep', beneficial: 'higher' },
   sleep_quality: { unit: 'pts', noun: 'sleep quality', beneficial: 'higher' },
   sleep_efficiency: { unit: '%', noun: 'sleep efficiency', beneficial: 'higher' },
+  sleep_onset_latency: { unit: 'min', noun: 'sleep onset latency', beneficial: 'lower' },
   hrv_daily: { unit: 'ms', noun: 'HRV', beneficial: 'higher' },
-  resting_hr: { unit: 'bpm', noun: 'resting heart rate', beneficial: 'lower' },
   ferritin: { unit: 'ng/mL', noun: 'ferritin', beneficial: 'higher' },
   hemoglobin: { unit: 'g/dL', noun: 'hemoglobin', beneficial: 'higher' },
   iron_total: { unit: 'μg/dL', noun: 'iron', beneficial: 'higher' },

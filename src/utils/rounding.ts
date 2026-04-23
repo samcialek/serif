@@ -36,10 +36,11 @@ const ACTION_INCREMENT: Record<string, number> = {
 const OUTCOME_INCREMENT: Record<string, number> = {
   // wearables
   hrv_daily: 1,
-  resting_hr: 1,
   sleep_quality: 1,
   deep_sleep: 5,
+  rem_sleep: 5,
   sleep_efficiency: 1,
+  sleep_onset_latency: 1,
   // iron panel
   ferritin: 1,
   hemoglobin: 0.1,
@@ -94,10 +95,11 @@ export function outcomeIncrement(outcome: string): number {
 type BeneficialDir = 'higher' | 'lower' | 'neutral'
 const OUTCOME_BENEFICIAL: Record<string, BeneficialDir> = {
   deep_sleep: 'higher',
+  rem_sleep: 'higher',
   sleep_quality: 'higher',
   sleep_efficiency: 'higher',
+  sleep_onset_latency: 'lower',
   hrv_daily: 'higher',
-  resting_hr: 'lower',
   ferritin: 'higher',
   hemoglobin: 'higher',
   iron_total: 'higher',
@@ -143,9 +145,10 @@ export function beneficialDirection(outcome: string): BeneficialDir {
 type BoundsTuple = readonly [number, number]
 const PHYSIOLOGICAL_BOUNDS: Record<string, BoundsTuple> = {
   hrv_daily: [10, 150],
-  resting_hr: [35, 110],
   sleep_efficiency: [50, 100],
   deep_sleep: [20, 180],
+  rem_sleep: [30, 180],
+  sleep_onset_latency: [0, 90],
   sleep_quality: [0, 100],
   ferritin: [5, 500],
   hemoglobin: [8, 19],

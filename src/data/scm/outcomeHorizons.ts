@@ -17,9 +17,10 @@ export const OUTCOME_HORIZON_DAYS: Record<string, number> = {
   // Tomorrow band (<= 7d) — fast wearable response
   sleep_quality: 2,
   sleep_efficiency: 2,
+  sleep_onset_latency: 2,
   deep_sleep: 3,
+  rem_sleep: 3,
   hrv_daily: 4,
-  resting_hr: 4,
 
   // Weeks band (8-42d) — hormonal + short-turnover markers
   cortisol: 28,

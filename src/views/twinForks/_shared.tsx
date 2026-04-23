@@ -56,9 +56,10 @@ export interface GoalCandidate {
 
 export const GOAL_CANDIDATES: GoalCandidate[] = [
   { outcomeId: 'hrv_daily', label: 'Raise HRV', group: 'Wearable & sleep', direction: 'higher' },
-  { outcomeId: 'resting_hr', label: 'Lower resting heart rate', group: 'Wearable & sleep', direction: 'lower' },
   { outcomeId: 'sleep_efficiency', label: 'Improve sleep efficiency', group: 'Wearable & sleep', direction: 'higher' },
   { outcomeId: 'deep_sleep', label: 'More deep sleep', group: 'Wearable & sleep', direction: 'higher' },
+  { outcomeId: 'rem_sleep', label: 'More REM sleep', group: 'Wearable & sleep', direction: 'higher' },
+  { outcomeId: 'sleep_onset_latency', label: 'Fall asleep faster', group: 'Wearable & sleep', direction: 'lower' },
   { outcomeId: 'apob', label: 'Lower ApoB', group: 'Cardio-metabolic', direction: 'lower' },
   { outcomeId: 'ldl', label: 'Lower LDL', group: 'Cardio-metabolic', direction: 'lower' },
   { outcomeId: 'hdl', label: 'Raise HDL', group: 'Cardio-metabolic', direction: 'higher' },

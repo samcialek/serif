@@ -75,9 +75,9 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   { action: 'training_load',   outcome: 'deep_sleep',       mean: -0.20, pathway: 'wearable',  horizonDays: 7,  rationale: 'Chronic load → deep-sleep fragmentation' },
 
   // ─── Phase 2: quotidian dose-response, confounder-adjusted ────────
-  // These edges target the wearable-day band (deep_sleep,
-  // sleep_efficiency, hrv_daily, resting_hr) which the CASPian cohort
-  // under-samples. Each rationale calls out the confounders the
+  // These edges target the wearable-day band (deep_sleep, rem_sleep,
+  // sleep_efficiency, sleep_onset_latency, hrv_daily) which the CASPian
+  // cohort under-samples. Each rationale calls out the confounders the
   // synthetic effect is *net of* — the magnitude is the within-person
   // causal effect that survives adjustment, not the naive correlation.
 
@@ -88,11 +88,13 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   { action: 'caffeine_mg',     outcome: 'deep_sleep',       mean: -0.35, pathway: 'wearable', horizonDays: 3, rationale: 'Naive caffeine↔poor-sleep is ~50% confounded — tired people drink more coffee AND sleep worse. Within-person, the residual adenosine-blockade effect still halves SWS density (Landolt 1995 RCT).' },
   { action: 'caffeine_mg',     outcome: 'sleep_efficiency', mean: -0.30, pathway: 'wearable', horizonDays: 2, rationale: 'After pulling out next-day-fatigue confounding, ~60% of the naive correlation persists — caffeine still delays onset and fragments late sleep (Drake 2013).' },
   { action: 'caffeine_mg',     outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of training_load: caffeine → sympathetic tone → HRV suppression (Bowtell 2017).' },
-  { action: 'caffeine_mg',     outcome: 'resting_hr',       mean:  0.25, pathway: 'wearable', horizonDays: 4, rationale: 'Mild dose-linear tachycardic effect (β1 agonism via cAMP).' },
+  { action: 'caffeine_mg',     outcome: 'rem_sleep',        mean: -0.20, pathway: 'wearable', horizonDays: 3, rationale: 'Modest REM suppression — caffeine hits SWS harder than REM, but late-night plasma still trims the late-cycle REM episodes (Landolt 1995).' },
+  { action: 'caffeine_mg',     outcome: 'sleep_onset_latency', mean:  0.40, pathway: 'wearable', horizonDays: 2, rationale: 'Adenosine blockade → longer time-to-sleep, dose-linear within habitual users. ~10 min penalty per 100mg above habitual baseline (Drake 2013).' },
   // Caffeine timing — bigger than dose because half-life makes plasma
   // level at bedtime the dominant signal.
   { action: 'caffeine_timing', outcome: 'deep_sleep',       mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Timing dominates dose because of 5h half-life — 6h vs 0h pre-bed cutoff doubles SWS rebound at the same total intake (Drake 2013 crossover).' },
   { action: 'caffeine_timing', outcome: 'sleep_efficiency', mean:  0.50, pathway: 'wearable', horizonDays: 2, rationale: 'Within-person dose-vs-timing experiments give timing ~60% of caffeine\'s SE penalty — onset latency is the dominant signal.' },
+  { action: 'caffeine_timing', outcome: 'sleep_onset_latency', mean: -0.55, pathway: 'wearable', horizonDays: 2, rationale: 'Timing dominates onset — at 0h pre-bed, plasma is ~75% peak; at 6h, ~30%. Six-hour cutoff cuts onset latency by 12-18 min vs none (Drake 2013 crossover).' },
 
   // ── Alcohol: same story — late drinking devastates more than total
   //    units do at the same intake. Late nights and big dinners explain
@@ -101,11 +103,13 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   { action: 'alcohol_units',   outcome: 'deep_sleep',       mean: -0.40, pathway: 'wearable', horizonDays: 3, rationale: 'Naive alcohol↔poor-sleep is ~30% confounded by late nights and heavy meals. The residual REM/SWS suppression is direct pharmacology, dose-linear (Ebrahim 2013 meta of 27 studies).' },
   { action: 'alcohol_units',   outcome: 'sleep_efficiency', mean: -0.30, pathway: 'wearable', horizonDays: 2, rationale: 'After holding bedtime constant, alcohol still drives mid-sleep awakenings above ~1 unit — the second-half-of-night arousal pattern is the hallmark (Ebrahim 2013).' },
   { action: 'alcohol_units',   outcome: 'hrv_daily',        mean: -0.30, pathway: 'wearable', horizonDays: 4, rationale: 'Net of exercise and intake: alcohol blunts vagal tone for 24h post-drink (Spaak 2010).' },
-  { action: 'alcohol_units',   outcome: 'resting_hr',       mean:  0.25, pathway: 'wearable', horizonDays: 4, rationale: 'Sympathetic rebound after metabolism, dose-linear up to ~4 units.' },
+  { action: 'alcohol_units',   outcome: 'rem_sleep',        mean: -0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Signature alcohol footprint — REM suppressed 30-40% in the first half of the night, dose-linear above 1 unit. Less rebound than SWS suppression, so the deficit is real (Ebrahim 2013 meta of 27 studies).' },
+  { action: 'alcohol_units',   outcome: 'sleep_onset_latency', mean: -0.20, pathway: 'wearable', horizonDays: 2, rationale: 'Alcohol shortens onset (sedation) by 5-10 min — the only sleep stage it "improves." But the second-half disruption to architecture more than offsets, so this is a known false-positive lever.' },
   // Alcohol timing — pre-bed clearance is the bigger lever than dose.
   { action: 'alcohol_timing',  outcome: 'deep_sleep',       mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'Ethanol clears at ~0.015 BAC/hr — a 4h pre-bed gap restores SWS architecture even at 2-unit doses. Timing > dose for the same total intake.' },
   { action: 'alcohol_timing',  outcome: 'sleep_efficiency', mean:  0.50, pathway: 'wearable', horizonDays: 2, rationale: '2 units at 6pm vs 10pm differ by ~10pp in SE — pre-bed clearance prevents the second-half awakenings entirely (Ebrahim 2013).' },
   { action: 'alcohol_timing',  outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Pre-bed clearance preserves overnight vagal recovery — early drinking with metabolism completed before sleep keeps HRV near baseline.' },
+  { action: 'alcohol_timing',  outcome: 'rem_sleep',        mean:  0.50, pathway: 'wearable', horizonDays: 3, rationale: 'REM is concentrated in the second half of the night — clearance before sleep onset preserves the late-night REM episodes that ethanol otherwise wipes out (Ebrahim 2013).' },
 
   // ── Caffeine + alcohol: longer-horizon biomarker fingerprints ─────
   // The next-day sleep story is half the picture. Both substances
@@ -115,18 +119,16 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   { action: 'alcohol_units',   outcome: 'triglycerides',    mean:  0.30, pathway: 'biomarker', horizonDays: 35, rationale: 'Ethanol → hepatic VLDL overproduction → fasting TG, dose-response above ~1 unit/day (Klatsky meta).' },
   { action: 'alcohol_units',   outcome: 'alt',              mean:  0.40, pathway: 'biomarker', horizonDays: 42, rationale: 'Hepatocellular stress marker rises within weeks of sustained intake above ~2 units/day; reverses on abstinence (Klatsky meta).' },
 
-  // ── Training → quotidian (cardiac + autonomic adaptation) ──────────
+  // ── Training → quotidian (autonomic adaptation, week-scale) ────────
   { action: 'zone2_volume',    outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Endurance training raises parasympathetic tone (Plews 2013)' },
-  { action: 'zone2_volume',    outcome: 'resting_hr',       mean: -0.50, pathway: 'wearable', horizonDays: 4, rationale: 'Cardiac remodeling lowers RHR, dose-response (Carter 2003)' },
   { action: 'zone2_volume',    outcome: 'sleep_efficiency', mean:  0.25, pathway: 'wearable', horizonDays: 2, rationale: 'Moderate aerobic exercise improves sleep (Kredlow 2015 meta)' },
   { action: 'running_volume',  outcome: 'hrv_daily',        mean:  0.35, pathway: 'wearable', horizonDays: 4, rationale: 'Running volume → vagal tone, diminishing returns above LT1' },
-  { action: 'running_volume',  outcome: 'resting_hr',       mean: -0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Running volume → RHR, dose-response' },
 
   // ── Sleep duration → other quotidian outcomes ──────────────────────
   { action: 'sleep_duration',  outcome: 'sleep_efficiency', mean:  0.30, pathway: 'wearable', horizonDays: 2, rationale: 'Longer sleep opportunity supports consolidation' },
   { action: 'sleep_duration',  outcome: 'deep_sleep',       mean:  0.50, pathway: 'wearable', horizonDays: 3, rationale: 'More total sleep = more absolute SWS minutes' },
+  { action: 'sleep_duration',  outcome: 'rem_sleep',        mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'REM cycles lengthen across the night — the last 90-min cycle is 50%+ REM, so cutting sleep short loses REM disproportionately (Carskadon 2005).' },
   { action: 'sleep_duration',  outcome: 'hrv_daily',        mean:  0.40, pathway: 'wearable', horizonDays: 4, rationale: 'Rested state → vagal recovery (Stein 2005)' },
-  { action: 'sleep_duration',  outcome: 'resting_hr',       mean: -0.35, pathway: 'wearable', horizonDays: 4, rationale: 'Rested state → lower next-day RHR' },
 ]
 
 function horizonDisplay(days: number): string {
