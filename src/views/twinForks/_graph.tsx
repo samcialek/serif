@@ -819,13 +819,30 @@ export function outcomeDeltasAt(
  *
  *  Both `factual` and `after` are clamped to physical bounds (e.g. SOL ≥ 0,
  *  SE ∈ [0, 100]); `delta` is then recomputed as `after − factual` so the
- *  rendered triple stays internally consistent. */
+ *  rendered triple stays internally consistent.
+ *
+ *  Pass `baselineValues` to seed factual readings for outcomes that don't
+ *  appear in `state.allEffects` — needed so the LivingGraph can display
+ *  "current value, no change yet" before the user moves any lever. The
+ *  baseline pair is `{factual, after: factual, delta: 0}`. */
 export function outcomeStatesAt(
   state: FullCounterfactualState | null,
   atDays: number,
   outcomeIdSet?: Set<string>,
+  baselineValues?: Record<string, number>,
 ): OutcomeStateMap {
   const out: OutcomeStateMap = new Map()
+
+  if (baselineValues && outcomeIdSet) {
+    for (const key of outcomeIdSet) {
+      const v = baselineValues[key]
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        const f = applyOutcomeBound(key, v)
+        out.set(key, { factual: f, after: f, delta: 0 })
+      }
+    }
+  }
+
   if (!state) return out
   for (const e of state.allEffects.values()) {
     const key = canonicalOutcomeKey(e.nodeId)
@@ -834,6 +851,7 @@ export function outcomeStatesAt(
     const fraction = cumulativeEffectFraction(atDays, horizonDays)
     const timed = e.totalEffect * fraction
     const prev = out.get(key)
+    // Replace baseline (delta=0) or earlier weaker effect with this one.
     if (!prev || Math.abs(timed) > Math.abs(prev.delta)) {
       const factual = applyOutcomeBound(key, e.factualValue)
       const after = applyOutcomeBound(key, e.factualValue + timed)

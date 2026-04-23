@@ -103,9 +103,12 @@ function livingLayout(width: number, height: number): GraphLayout {
     width,
     height,
     leftX: LEVER_CARD_W / 2 + 24, // leave room for the lever card on the left
-    rightX: width - 180, // leave room for outcome label on the right
-    topPad: 48,
-    bottomPad: 36,
+    // Right margin sized for the big monospace readout (label + "72 → 89 unit"
+    // value pair + delta pill stacked underneath). 240px keeps the longest
+    // sleep_efficiency string ("88.0 → 88.0 %") from clipping.
+    rightX: width - 240,
+    topPad: 56,
+    bottomPad: 48,
   }
 }
 
@@ -209,31 +212,51 @@ export function TwinViewLivingGraph() {
     [graph],
   )
 
-  // Counterfactual state
+  // Solver — declared before the deltas/state pipeline so the SCM state
+  // can read solver-recommended values when the user enters solver mode.
+  // Without this ordering, deltas would only see proposedValues and the
+  // solver's chosen plan would never propagate into the displayed graph.
+  const solver = useTwinSolver({
+    participant,
+    rows: interventionRows,
+    atDays,
+    runFullCounterfactual,
+  })
+  const inSolverMode = goalOutcomeId != null
+  const effectiveValues = inSolverMode ? solver.values : proposedValues
+
+  // Counterfactual state — pulls from effectiveValues so that whether the
+  // user moved a slider directly or the solver chose a setting, the SCM
+  // engine sees the same input and the outcome circles render the same
+  // before/after pair.
   const deltas = useMemo(() => {
     const out: Array<{ nodeId: string; value: number; originalValue: number }> = []
     for (const { node, current } of interventionRows) {
-      const effective = proposedValues[node.id] ?? current
+      const effective = effectiveValues[node.id] ?? current
       if (Math.abs(effective - current) > 1e-9) {
         out.push({ nodeId: node.id, value: effective, originalValue: current })
       }
     }
     return out
-  }, [interventionRows, proposedValues])
+  }, [interventionRows, effectiveValues])
+
+  const observedBaseline = useMemo(
+    () => (participant ? buildObservedValues(participant) : null),
+    [participant],
+  )
 
   const state = useMemo(() => {
     if (!participant) return null
     if (deltas.length === 0) {
       return { allEffects: new Map() } as unknown as FullCounterfactualState
     }
-    const observed = buildObservedValues(participant)
     try {
-      return runFullCounterfactual(observed, deltas)
+      return runFullCounterfactual(observedBaseline ?? {}, deltas)
     } catch (err) {
       console.warn('[TwinViewLivingGraph] cf failed:', err)
       return null
     }
-  }, [participant, deltas, runFullCounterfactual])
+  }, [participant, deltas, observedBaseline, runFullCounterfactual])
 
   const outcomeDeltas = useMemo(
     () => outcomeDeltasAt(state, atDays, graphOutcomeIds),
@@ -241,17 +264,9 @@ export function TwinViewLivingGraph() {
   )
 
   const outcomeStats = useMemo(
-    () => outcomeStatesAt(state, atDays, graphOutcomeIds),
-    [state, graphOutcomeIds, atDays],
+    () => outcomeStatesAt(state, atDays, graphOutcomeIds, observedBaseline ?? undefined),
+    [state, graphOutcomeIds, atDays, observedBaseline],
   )
-
-  // Solver
-  const solver = useTwinSolver({
-    participant,
-    rows: interventionRows,
-    atDays,
-    runFullCounterfactual,
-  })
   // Build a goal candidate for any outcome on the fly. If the outcome is
   // pre-registered in GOAL_CANDIDATES we use it; otherwise we synthesize
   // one from OUTCOME_META so the per-outcome Optimize button works for
@@ -283,10 +298,8 @@ export function TwinViewLivingGraph() {
     ? OUTCOME_META[canonicalOutcomeKey(goalCandidate.outcomeId)]?.unit ?? ''
     : ''
 
-  // When the solver changes values, mirror them into the controls so the
-  // inline widgets animate to the plan.
-  const inSolverMode = goalOutcomeId != null
-  const effectiveValues = inSolverMode ? solver.values : proposedValues
+  // (inSolverMode and effectiveValues declared above — the SCM state pipe
+  //  needs them to feed the solver's chosen values into the engine.)
 
   // Persistent per-lever delta in [0,1] — how far each lever has been
   // moved from its baseline relative to its asymmetric reachable range.
@@ -664,11 +677,12 @@ export function TwinViewLivingGraph() {
                   const isGoal = goalOutcomeId === key
                   const canOptimize = !inSolverMode && goalCandidateFor(id) != null
                   const hasPendingChanges = deltas.length > 0
-                  const baseR = 18
+                  const baseR = 16
                   const dark = stylePreset.dark
                   const labelFill = dark ? '#f1f5f9' : '#0f172a'
                   const circleFill = dark ? '#0f172a' : '#ffffff'
                   const dimFill = dark ? '#94a3b8' : '#64748b'
+                  const afterFill = dark ? '#f8fafc' : '#0f172a'
                   const deltaFill = dark
                     ? tone === 'benefit'
                       ? '#34d399'
@@ -676,10 +690,32 @@ export function TwinViewLivingGraph() {
                         ? '#fb7185'
                         : '#94a3b8'
                     : tone === 'benefit'
-                      ? '#059669'
+                      ? '#047857'
                       : tone === 'harm'
-                        ? '#e11d48'
-                        : '#64748b'
+                        ? '#be123c'
+                        : '#475569'
+                  const pillBg = dark
+                    ? tone === 'benefit'
+                      ? 'rgba(52,211,153,0.18)'
+                      : tone === 'harm'
+                        ? 'rgba(251,113,133,0.18)'
+                        : 'rgba(148,163,184,0.18)'
+                    : tone === 'benefit'
+                      ? '#d1fae5'
+                      : tone === 'harm'
+                        ? '#ffe4e6'
+                        : '#f1f5f9'
+                  const pillBorder = dark
+                    ? tone === 'benefit'
+                      ? 'rgba(52,211,153,0.45)'
+                      : tone === 'harm'
+                        ? 'rgba(251,113,133,0.45)'
+                        : 'rgba(148,163,184,0.45)'
+                    : tone === 'benefit'
+                      ? '#a7f3d0'
+                      : tone === 'harm'
+                        ? '#fecdd3'
+                        : '#cbd5e1'
                   const meta = OUTCOME_META[key]
                   const unit = meta?.unit ?? ''
                   const hasDelta = Math.abs(delta) > 1e-6
@@ -688,16 +724,32 @@ export function TwinViewLivingGraph() {
                   const afterStr = hasStats ? formatOutcomeValue(after!, key) : null
                   const deltaSign = delta > 0 ? '+' : delta < 0 ? '−' : ''
                   const deltaStr = formatOutcomeValue(Math.abs(delta), key)
+                  const arrowGlyph = delta > 0 ? '▲' : delta < 0 ? '▼' : '•'
                   const monoStyle = {
                     pointerEvents: 'none' as const,
                     fontFamily:
                       'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace',
                     fontVariantNumeric: 'tabular-nums' as const,
                   }
+                  // Estimate pill width from glyph count (monospace ≈ 9px/char at 14px font).
+                  const pillLabel = `${arrowGlyph} ${deltaSign}${deltaStr}${unit ? ` ${unit}` : ''}`
+                  const pillW = 16 + pillLabel.length * 8.4
+                  // Stack: label (y=-4), value pair (y=18), optimize (y=42 if value, else y=24)
+                  const valueY = 19
+                  const optimizeY = hasStats ? 42 : 24
                   return (
                     <>
-                      {deltaNorm > 0.05 && (
-                        <circle r={baseR + deltaNorm * 14} fill={fill} opacity={0.22 * deltaNorm} />
+                      {/* Outer glow when an effect is meaningful — pulses the outcome with
+                          tone-tinted halo so the eye lands on what changed. */}
+                      {hasDelta && (
+                        <circle
+                          r={baseR + 8 + Math.min(deltaNorm, 1) * 14}
+                          fill={fill}
+                          opacity={0.18 + Math.min(deltaNorm, 1) * 0.22}
+                        />
+                      )}
+                      {!hasDelta && deltaNorm > 0.05 && (
+                        <circle r={baseR + deltaNorm * 12} fill={fill} opacity={0.18 * deltaNorm} />
                       )}
                       <circle
                         r={baseR}
@@ -705,67 +757,79 @@ export function TwinViewLivingGraph() {
                         stroke={isGoal ? '#059669' : fill}
                         strokeWidth={isGoal ? 3.5 : 2.25}
                       />
+                      {/* Label */}
                       <text
                         x={baseR + 10}
-                        y={2}
+                        y={-4}
                         textAnchor="start"
-                        fontSize={14}
+                        fontSize={13}
                         fontWeight={700}
                         fill={labelFill}
-                        style={{ pointerEvents: 'none', letterSpacing: '0.01em' }}
+                        style={{ pointerEvents: 'none', letterSpacing: '0.02em', textTransform: 'uppercase' as const }}
                       >
                         {label}
                       </text>
+                      {/* Big value pair: BEFORE → AFTER  unit  [Δ pill] */}
                       {hasStats && (
-                        <text
-                          x={baseR + 10}
-                          y={19}
-                          textAnchor="start"
-                          fontSize={11}
-                          fontWeight={600}
-                          style={monoStyle}
-                        >
-                          <tspan fill={dimFill}>{factualStr}</tspan>
-                          <tspan fill={dimFill} dx={4}>→</tspan>
-                          <tspan
-                            fill={hasDelta ? deltaFill : dimFill}
-                            fontWeight={hasDelta ? 700 : 600}
-                            dx={4}
+                        <>
+                          <text
+                            x={baseR + 10}
+                            y={valueY}
+                            textAnchor="start"
+                            fontSize={20}
+                            fontWeight={700}
+                            style={monoStyle}
                           >
-                            {afterStr}
-                          </tspan>
-                          {unit && (
-                            <tspan fill={dimFill} dx={3} fontSize={10}>
-                              {unit}
+                            <tspan fill={dimFill}>{factualStr}</tspan>
+                            <tspan fill={dimFill} dx={6} fontWeight={400}>→</tspan>
+                            <tspan
+                              fill={hasDelta ? afterFill : dimFill}
+                              fontWeight={800}
+                              dx={6}
+                            >
+                              {afterStr}
                             </tspan>
-                          )}
+                            {unit && (
+                              <tspan fill={dimFill} dx={5} fontSize={12} fontWeight={500}>
+                                {unit}
+                              </tspan>
+                            )}
+                          </text>
                           {hasDelta && (
-                            <tspan fill={deltaFill} dx={8} fontWeight={700}>
-                              Δ{deltaSign}{deltaStr}
-                            </tspan>
+                            <g transform={`translate(${baseR + 10}, ${valueY + 8})`}>
+                              <rect
+                                x={0}
+                                width={pillW}
+                                height={20}
+                                rx={10}
+                                fill={pillBg}
+                                stroke={pillBorder}
+                                strokeWidth={1}
+                              />
+                              <text
+                                x={pillW / 2}
+                                y={14}
+                                textAnchor="middle"
+                                fontSize={12.5}
+                                fontWeight={700}
+                                fill={deltaFill}
+                                style={{
+                                  ...monoStyle,
+                                  letterSpacing: '0.02em',
+                                }}
+                              >
+                                {pillLabel}
+                              </text>
+                            </g>
                           )}
-                        </text>
+                        </>
                       )}
-                      {!hasStats && hasDelta && (
-                        <text
-                          x={baseR + 10}
-                          y={19}
-                          textAnchor="start"
-                          fontSize={11}
-                          fontWeight={600}
-                          fill={deltaFill}
-                          style={monoStyle}
-                        >
-                          {formatEffectDelta(delta, label)}
-                        </text>
-                      )}
-                      {/* Optimize button — sits below the label. Tinted amber
-                          when the user has pending lever changes so the
-                          replace-and-restore-on-Exit affordance is visible
-                          before the click. */}
+                      {/* Optimize button — sits below the readout. Tinted amber when the
+                          user has pending lever changes so the replace-and-restore-on-Exit
+                          affordance is visible before the click. */}
                       {canOptimize && (
                         <g
-                          transform={`translate(${baseR + 10}, 28)`}
+                          transform={`translate(${baseR + 10}, ${hasDelta ? optimizeY + 22 : optimizeY})`}
                           onClick={(e) => {
                             e.stopPropagation()
                             handleOptimize(id)
