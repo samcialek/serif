@@ -3,6 +3,7 @@ import { AppShell } from '@/components/layout'
 import {
   CoachLandingView,
   ProtocolsView,
+  ProtocolsBarView,
   CoachView,
   ApiView,
   AdminView,
@@ -16,6 +17,9 @@ import {
   TwinView,
   BaselineView,
   ExplorationView,
+  LeverConceptsView,
+  TwinIntegrationView,
+  PainterlyTwinView,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -33,6 +37,9 @@ function App() {
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
           <Route path="/twin" element={<TwinView />} />
+          <Route path="/twin/lever-concepts" element={<LeverConceptsView />} />
+          <Route path="/twin/integration" element={<TwinIntegrationView />} />
+          <Route path="/twin/painterly" element={<PainterlyTwinView />} />
           <Route path="/twin-preview" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-direct" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-dragdrop" element={<Navigate to="/twin" replace />} />
@@ -46,6 +53,7 @@ function App() {
           <Route path="/twin-living" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-workspace" element={<Navigate to="/twin" replace />} />
           <Route path="/protocols" element={<ProtocolsView />} />
+          <Route path="/protocols-bar" element={<ProtocolsBarView />} />
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />
