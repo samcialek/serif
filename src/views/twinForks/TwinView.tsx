@@ -37,7 +37,7 @@ import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
 import type { MCFullCounterfactualState } from '@/data/scm/bartMonteCarlo'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
-import { formatOutcomeValue } from '@/utils/rounding'
+import { formatOutcomeValue, outcomeIncrement, roundToIncrement } from '@/utils/rounding'
 import { horizonBandFor, CURATED_LONGEVITY_OUTCOMES } from '@/data/scm/outcomeHorizons'
 import { buildPhase1SyntheticEdges } from '@/data/scm/syntheticEdges'
 import {
@@ -754,7 +754,17 @@ export function TwinView() {
                         : '#cbd5e1'
                   const meta = OUTCOME_META[key]
                   const unit = meta?.unit ?? ''
-                  const hasDelta = Math.abs(delta) > 1e-6
+                  // hasDelta gates the Δ pill and the outer glow halo — it
+                  // must reflect what the user actually sees rendered, not the
+                  // raw float. Otherwise a sub-increment wiggle (e.g. deep
+                  // sleep +0.3 min when the display rounds to 1 min) still
+                  // draws a "▲ +0 min" pill, which reads as "no change" and
+                  // makes the lever feel broken.
+                  const deltaAbsRounded = roundToIncrement(
+                    Math.abs(delta),
+                    outcomeIncrement(key),
+                  )
+                  const hasDelta = deltaAbsRounded > 0
                   const hasStats = factual != null && after != null
                   const factualStr = hasStats ? formatOutcomeValue(factual!, key) : null
                   const afterStr = hasStats ? formatOutcomeValue(after!, key) : null
@@ -1006,7 +1016,10 @@ export function TwinView() {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {Array.from(outcomeDeltas.entries())
-                  .filter(([, d]) => Math.abs(d) > 1e-6)
+                  .filter(
+                    ([id, d]) =>
+                      roundToIncrement(Math.abs(d), outcomeIncrement(canonicalOutcomeKey(id))) > 0,
+                  )
                   .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
                   .slice(0, 8)
                   .map(([id, delta]) => {
