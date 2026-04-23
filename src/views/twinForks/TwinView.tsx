@@ -1,5 +1,5 @@
 /**
- * Fork J (v2) — LivingGraph.
+ * Twin — canonical /twin view.
  *
  * The DAG *is* the interface. Lever controls are embedded inline on the
  * left-side nodes (rotary, fader, gauge — one per lever). Outcomes on the
@@ -57,7 +57,6 @@ import {
   outcomeDeltasAt,
   outcomeStatesAt,
   mergeBandsFromMC,
-  type EdgeStyle,
   type GraphLayout,
 } from './_graph'
 import { useTwinSolver } from './_solver'
@@ -76,19 +75,11 @@ type Regime = 'quotidian' | 'longevity'
 const LEVER_CARD_W = 360
 const LEVER_CARD_H = 64
 
-// Presets for the edge-style picker. Each chooses an accent used by the
-// sleek lever bar (thumb glow, fill gradient, changed-value highlight) —
-// edges themselves stay sign-colored so benefit/harm reading is preserved.
-const EDGE_STYLE_PRESETS: Record<
-  EdgeStyle,
-  { label: string; accent: string; highlight: string; dark: boolean }
-> = {
-  particles: { label: 'Classic',   accent: '#06b6d4', highlight: '#ffffff', dark: false },
-  circuit:   { label: 'Circuit',   accent: '#06b6d4', highlight: '#ffffff', dark: true  },
-  plasma:    { label: 'Plasma',    accent: '#a855f7', highlight: '#f0abfc', dark: true  },
-  lightning: { label: 'Lightning', accent: '#f59e0b', highlight: '#fef3c7', dark: true  },
-}
-const EDGE_STYLE_ORDER: EdgeStyle[] = ['particles', 'circuit', 'plasma', 'lightning']
+// Visual accent used by the sleek lever bar (thumb glow, fill gradient,
+// changed-value highlight). Edges themselves stay sign-colored so
+// benefit/harm reading is preserved.
+const LEVER_ACCENT = '#a855f7'
+const LEVER_HIGHLIGHT = '#f0abfc'
 
 function formatEffectDelta(value: number, outcomeId: string): string {
   if (!Number.isFinite(value)) return '—'
@@ -100,7 +91,7 @@ function formatEffectDelta(value: number, outcomeId: string): string {
   return `${sign}${rounded}`
 }
 
-// ─── LivingGraph layout ────────────────────────────────────────────
+// ─── Twin layout ───────────────────────────────────────────────────
 
 function livingLayout(width: number, height: number): GraphLayout {
   return {
@@ -118,7 +109,7 @@ function livingLayout(width: number, height: number): GraphLayout {
 
 // ─── Main ─────────────────────────────────────────────────────────
 
-export function TwinViewLivingGraph() {
+export function TwinView() {
   const { pid, displayName, cohort, persona } = useActiveParticipant()
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual } = useSCM()
@@ -133,8 +124,6 @@ export function TwinViewLivingGraph() {
   const [goalOutcomeId, setGoalOutcomeId] = useState<string | null>(null)
   const [activeLever, setActiveLever] = useState<string | null>(null)
   const [targetSize, setTargetSize] = useState(5)
-  const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('circuit')
-  const stylePreset = EDGE_STYLE_PRESETS[edgeStyle]
   // Backend Layer 0 added ~468 weak-default edges/participant. They
   // surface a confounded OLS, not a causal effect — keep the graph
   // causal-by-default and let the user reveal them via the toggle.
@@ -166,7 +155,7 @@ export function TwinViewLivingGraph() {
     [],
   )
 
-  // In LivingGraph, lever-side credibility is intentionally dropped: every
+  // Lever-side credibility is intentionally dropped: every
   // intervention lever in MANIPULABLE_NODES is always available. Gating is
   // purely outcome-side (regime's horizon band). Load accumulators (acwr,
   // sleep_debt, training_load, travel_load) still don't appear as levers
@@ -265,7 +254,7 @@ export function TwinViewLivingGraph() {
     try {
       return runFullCounterfactual(observedBaseline ?? {}, deltas)
     } catch (err) {
-      console.warn('[TwinViewLivingGraph] cf failed:', err)
+      console.warn('[TwinView] cf failed:', err)
       return null
     }
   }, [participant, deltas, observedBaseline, runFullCounterfactual])
@@ -300,7 +289,7 @@ export function TwinViewLivingGraph() {
       })
       .catch((err) => {
         if (cancelled) return
-        console.warn('[TwinViewLivingGraph] BART MC failed:', err)
+        console.warn('[TwinView] BART MC failed:', err)
         setMcState(null)
       })
     return () => {
@@ -423,7 +412,7 @@ export function TwinViewLivingGraph() {
 
   if (pid == null) {
     return (
-      <PageLayout title="Twin · LivingGraph">
+      <PageLayout title="Twin">
         <Card>
           <div className="p-8 text-center">
             <UsersIcon className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -435,7 +424,7 @@ export function TwinViewLivingGraph() {
   }
   if (isLoading || !participant) {
     return (
-      <PageLayout title="Twin · LivingGraph">
+      <PageLayout title="Twin">
         <Card>
           <div className="p-8 flex items-center justify-center text-sm text-slate-500">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -455,7 +444,7 @@ export function TwinViewLivingGraph() {
 
   return (
     <PageLayout
-      title="Twin · LivingGraph"
+      title="Twin"
       subtitle={
         regime === 'quotidian'
           ? 'Quotidian subgraph: levers → wearable-responsive outcomes (day-scale). Toggle to Longevity for biomarker outcomes.'
@@ -537,31 +526,6 @@ export function TwinViewLivingGraph() {
               Show exploratory
             </span>
           </label>
-
-          {/* Edge-style picker — "particles" is the classic dot-flow, the
-              others render edges as flowing energy with different feel. */}
-          <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-            {EDGE_STYLE_ORDER.map((k) => {
-              const selected = edgeStyle === k
-              const preset = EDGE_STYLE_PRESETS[k]
-              return (
-                <button
-                  key={k}
-                  onClick={() => setEdgeStyle(k)}
-                  className={cn(
-                    'px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-colors',
-                    selected
-                      ? 'bg-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700',
-                  )}
-                  style={selected ? { color: preset.accent } : undefined}
-                  title={`${preset.label} edge style`}
-                >
-                  {preset.label}
-                </button>
-              )
-            })}
-          </div>
 
           <div className="ml-auto flex items-center gap-2">
             {inSolverMode ? (
@@ -712,10 +676,7 @@ export function TwinViewLivingGraph() {
         <Card>
           <div className="p-2 relative">
             <div
-              className={cn(
-                'relative rounded-md transition-colors',
-                stylePreset.dark && 'bg-slate-950',
-              )}
+              className="relative rounded-md transition-colors bg-slate-950"
               style={{ height: graphHeight }}
             >
               <CausalGraphCanvas
@@ -725,12 +686,10 @@ export function TwinViewLivingGraph() {
                 outcomeStats={outcomeStats}
                 activeLever={activeLever}
                 goalOutcomeId={goalOutcomeId}
-                particleDirection={inSolverMode && solver.isSolving ? 'reverse' : 'forward'}
                 layout={layout}
                 className="w-full h-full"
                 leverPillHalfWidth={LEVER_CARD_W / 2}
                 outcomeAnchorInset={22}
-                edgeStyle={edgeStyle}
                 dimMode="none"
                 leverDeltas={leverDeltas}
                 renderLeverOverlay={() => null}
@@ -755,7 +714,7 @@ export function TwinViewLivingGraph() {
                   const canOptimize = !inSolverMode && goalCandidateFor(id) != null
                   const hasPendingChanges = deltas.length > 0
                   const baseR = 16
-                  const dark = stylePreset.dark
+                  const dark = true
                   const labelFill = dark ? '#f1f5f9' : '#0f172a'
                   const circleFill = dark ? '#0f172a' : '#ffffff'
                   const dimFill = dark ? '#94a3b8' : '#64748b'
@@ -1010,7 +969,7 @@ export function TwinViewLivingGraph() {
                         // Subtle text-shadow halo so labels stay legible
                         // against the SVG edge bundle behind them.
                         filter: changed
-                          ? `drop-shadow(0 0 6px ${stylePreset.accent}66)`
+                          ? `drop-shadow(0 0 6px ${LEVER_ACCENT}66)`
                           : 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
                       }}
                     >
@@ -1018,8 +977,8 @@ export function TwinViewLivingGraph() {
                         node={row.node}
                         current={row.current}
                         value={value}
-                        accent={stylePreset.accent}
-                        highlight={stylePreset.highlight}
+                        accent={LEVER_ACCENT}
+                        highlight={LEVER_HIGHLIGHT}
                         disabled={locked}
                         onChange={(v) => handleLeverChange(n.id, v)}
                       />
@@ -1088,4 +1047,4 @@ export function TwinViewLivingGraph() {
   )
 }
 
-export default TwinViewLivingGraph
+export default TwinView

@@ -2,8 +2,7 @@
  * Shared inverse-solver hook — coordinate descent over the credible lever
  * set, optimizing signed-timed-effect on a chosen goal outcome.
  *
- * Extracted from TwinViewSolve so Deck/LivingGraph/Workspace can all invoke
- * the same "find a plan that moves Y by X" engine. The hook owns:
+ * Used by the Twin view's abduction path. The hook owns:
  *   - current trial `values` (so the parent can render sliders animating in)
  *   - `history` (the per-iteration trail for live visualisation)
  *   - `solved` (the final step, tagged with error tolerance)

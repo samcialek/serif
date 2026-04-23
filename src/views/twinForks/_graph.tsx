@@ -1,21 +1,20 @@
 /**
  * Reusable causal-graph canvas.
  *
- * Extracted from TwinViewGraph so Deck/LivingGraph/Workspace can all share
- * the same particle-flow DAG rendering. The canvas is headless in two ways:
+ * Headless in two ways:
  *   1. It doesn't own lever state — the parent passes `activeLever` +
- *      `onSetActiveLever`, which lets the parent decide whether particles
- *      stream because of a knob being dragged, a hover, or an abduction
- *      sweep.
+ *      `onSetActiveLever`, which lets the parent decide whether the edge
+ *      flow streams because of a knob being dragged, a hover, or an
+ *      abduction sweep.
  *   2. It accepts `renderLeverOverlay` / `renderOutcomeOverlay` render-prop
- *      slots, so a fork can embed e.g. a fader directly on the node (for
- *      LivingGraph) without forking this file.
+ *      slots, so a fork can embed e.g. a fader directly on the node
+ *      without forking this file.
  *
- * Particles can flow `forward` (lever → outcome, for propagation) or
- * `reverse` (outcome → lever, for abduction storytelling).
+ * Edge flow runs `forward` (lever → outcome, for propagation) or `reverse`
+ * (outcome → lever, for abduction storytelling).
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
@@ -102,22 +101,6 @@ function edgePath(ax: number, ay: number, bx: number, by: number): string {
   return `M${ax},${ay} C${c1x},${ay} ${c2x},${by} ${bx},${by}`
 }
 
-function bezierAt(
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-  t: number,
-): { x: number; y: number } {
-  const dx = bx - ax
-  const c1x = ax + dx * 0.5
-  const c2x = bx - dx * 0.5
-  const u = 1 - t
-  const x = u * u * u * ax + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * bx
-  const y = u * u * u * ay + 3 * u * u * t * ay + 3 * u * t * t * by + t * t * t * by
-  return { x, y }
-}
-
 const COLORS = {
   benefit: '#059669',
   harm: '#e11d48',
@@ -145,16 +128,6 @@ export function defaultLayout(width: number, height: number): GraphLayout {
     topPad: 40,
     bottomPad: 40,
   }
-}
-
-// ─── Particle engine ─────────────────────────────────────────────
-
-interface Particle {
-  id: number
-  edgeIdx: number
-  t: number
-  speed: number
-  color: string
 }
 
 // ─── Canvas component ────────────────────────────────────────────
@@ -196,15 +169,6 @@ export type OutcomeStateMap = Map<
   { factual: number; after: number; delta: number; afterLow?: number; afterHigh?: number }
 >
 
-/** How edges visualize energy flow. Each style trades off fidelity, density,
- *  and perf.
- *   - 'particles' (classic): discrete dots traveling along bezier.
- *   - 'circuit': layered glow + bright dashed overlay flowing via
- *     stroke-dashoffset CSS anim (fast, tech).
- *   - 'plasma': smooth translating gradient pulse (slow, organic).
- *   - 'lightning': mostly quiet base with random bright strike flashes. */
-export type EdgeStyle = 'particles' | 'circuit' | 'plasma' | 'lightning'
-
 interface CausalGraphCanvasProps {
   nodes: GraphNode[]
   edges: GraphEdge[]
@@ -217,7 +181,6 @@ interface CausalGraphCanvasProps {
   goalOutcomeId?: string | null
   onLeverClick?: (id: string) => void
   onOutcomeClick?: (id: string) => void
-  particleDirection?: 'forward' | 'reverse'
   layout: GraphLayout
   className?: string
   showHeaders?: boolean
@@ -229,17 +192,14 @@ interface CausalGraphCanvasProps {
   renderLeverOverlay?: (slot: LeverOverlaySlot) => ReactNode
   renderOutcomeOverlay?: (slot: OutcomeOverlaySlot) => ReactNode
   proposedLevers?: Set<string>
-  /** Per-lever normalized delta in [0,1]. Used by Plasma (and any other
-   *  edge style that wants persistent width modulation) so edges from a
-   *  moved lever get visibly thicker proportional to how far it's been
-   *  moved from baseline. Independent of `activeLever`, which is a
-   *  transient "just-touched" flag for triggering directional flow. */
+  /** Per-lever normalized delta in [0,1]. Edges from a moved lever get
+   *  visibly thicker proportional to how far it's been moved from
+   *  baseline. Independent of `activeLever`, which is a transient
+   *  "just-touched" flag for triggering the electricity-flow pulse. */
   leverDeltas?: Map<string, number>
   /** How the parent wants downstream nodes to appear on goal-set. Defaults
    *  to 'dim-others' (goal mode from TwinViewGraph). 'none' disables it. */
   dimMode?: 'dim-others' | 'none'
-  /** How edges render energy flow. Defaults to 'particles' (classic). */
-  edgeStyle?: EdgeStyle
 }
 
 export function CausalGraphCanvas({
@@ -251,7 +211,6 @@ export function CausalGraphCanvas({
   goalOutcomeId,
   onLeverClick,
   onOutcomeClick,
-  particleDirection = 'forward',
   layout,
   className,
   showHeaders = true,
@@ -262,7 +221,6 @@ export function CausalGraphCanvas({
   proposedLevers,
   leverDeltas,
   dimMode = 'dim-others',
-  edgeStyle = 'particles',
 }: CausalGraphCanvasProps) {
   const rightInset = outcomeAnchorInset ?? leverPillHalfWidth
   const nodeById = useMemo(() => {
@@ -289,119 +247,13 @@ export function CausalGraphCanvas({
     return reachable
   }, [edges, goalOutcomeId, dimMode])
 
-  // ─── Particle engine (only used when edgeStyle === 'particles') ──
-
-  const particlesRef = useRef<Particle[]>([])
-  const [, forceRender] = useState(0)
-  const lastSpawnRef = useRef(0)
-  const nextIdRef = useRef(0)
-
-  useEffect(() => {
-    if (edgeStyle !== 'particles') return
-    let rafId = 0
-    let lastT = performance.now()
-    const loop = (now: number) => {
-      const dt = (now - lastT) / 1000
-      lastT = now
-
-      const live: Particle[] = []
-      for (const p of particlesRef.current) {
-        const nt = p.t + p.speed * dt
-        if (nt < 1) live.push({ ...p, t: nt })
-      }
-      particlesRef.current = live
-
-      // Spawn spec:
-      //   forward + activeLever: spawn on outbound edges from that lever.
-      //   reverse + goalOutcomeId: spawn on inbound edges to that outcome,
-      //     drawn in reverse (t is flipped in the render step).
-      if (particleDirection === 'forward' && activeLever) {
-        const spawnInterval = 150
-        if (now - lastSpawnRef.current > spawnInterval) {
-          lastSpawnRef.current = now
-          edges.forEach((edge, edgeIdx) => {
-            if (edge.from !== activeLever) return
-            const color =
-              edge.sign > 0 ? COLORS.benefit : edge.sign < 0 ? COLORS.harm : COLORS.neutral
-            particlesRef.current.push({
-              id: nextIdRef.current++,
-              edgeIdx,
-              t: 0,
-              speed: 0.25 + strengthNorm(edge.strength) * 0.55,
-              color,
-            })
-          })
-        }
-      } else if (particleDirection === 'reverse' && goalOutcomeId) {
-        const spawnInterval = 180
-        if (now - lastSpawnRef.current > spawnInterval) {
-          lastSpawnRef.current = now
-          edges.forEach((edge, edgeIdx) => {
-            if (edge.to !== goalOutcomeId) return
-            const color = '#a855f7'
-            particlesRef.current.push({
-              id: nextIdRef.current++,
-              edgeIdx,
-              t: 0,
-              speed: 0.35 + strengthNorm(edge.strength) * 0.4,
-              color,
-            })
-          })
-        }
-      }
-
-      forceRender((x) => (x + 1) % 1000000)
-      rafId = requestAnimationFrame(loop)
-    }
-    rafId = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(rafId)
-  }, [edgeStyle, activeLever, goalOutcomeId, particleDirection, edges, strengthNorm])
-
-  // ─── Lightning strike trigger (edgeStyle === 'lightning') ────────
-  // Every ~700ms, pick 2-4 random edges to "strike" — flash bright for
-  // 180ms. Active lever's edges are favored so interaction feels causal.
-
-  const [strikingEdges, setStrikingEdges] = useState<Set<number>>(new Set())
-  useEffect(() => {
-    if (edgeStyle !== 'lightning' || edges.length === 0) {
-      setStrikingEdges(new Set())
-      return
-    }
-    let flashTimeout: number | null = null
-    const fire = () => {
-      const count = Math.min(edges.length, 2 + Math.floor(Math.random() * 3))
-      const ids = new Set<number>()
-      // 50% of picks prefer edges from the active lever / to the goal outcome.
-      const preferred: number[] = []
-      if (activeLever || goalOutcomeId) {
-        edges.forEach((e, idx) => {
-          if (e.from === activeLever || e.to === goalOutcomeId) preferred.push(idx)
-        })
-      }
-      while (ids.size < count) {
-        if (preferred.length > 0 && Math.random() < 0.5) {
-          ids.add(preferred[Math.floor(Math.random() * preferred.length)])
-        } else {
-          ids.add(Math.floor(Math.random() * edges.length))
-        }
-      }
-      setStrikingEdges(ids)
-      flashTimeout = window.setTimeout(() => setStrikingEdges(new Set()), 180)
-    }
-    const interval = window.setInterval(fire, 700)
-    return () => {
-      window.clearInterval(interval)
-      if (flashTimeout) window.clearTimeout(flashTimeout)
-    }
-  }, [edgeStyle, edges, activeLever, goalOutcomeId])
-
   return (
     <svg
       viewBox={`0 0 ${layout.width} ${layout.height}`}
       className={className ?? 'w-full h-auto'}
       preserveAspectRatio="xMidYMid meet"
     >
-      {/* Shared defs + keyframes. Referenced by non-'particles' styles. */}
+      {/* Plasma shared defs + keyframes */}
       <defs>
         <filter
           id="sf-soft-blur"
@@ -412,33 +264,13 @@ export function CausalGraphCanvas({
         >
           <feGaussianBlur stdDeviation="2.5" />
         </filter>
-        <filter
-          id="sf-lightning-disp"
-          x="-20%"
-          y="-20%"
-          width="140%"
-          height="140%"
-        >
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.8"
-            numOctaves="2"
-            seed="3"
-          />
-          <feDisplacementMap in="SourceGraphic" scale="3" />
-        </filter>
       </defs>
       <style>{`
-        @keyframes sf-circuit-flow { to { stroke-dashoffset: -13; } }
         @keyframes sf-plasma-flow  { to { stroke-dashoffset: -30; } }
-        @keyframes sf-strike-pulse {
-          0%   { opacity: 0.2; }
-          20%  { opacity: 1; }
-          100% { opacity: 0; }
-        }
       `}</style>
 
-      {/* Edges — branched on edgeStyle */}
+      {/* Edges — plasma. Persistent thin lines at rest; source-lever delta
+          thickens outgoing edges; activeLever triggers electricity flow. */}
       {edges.map((e, i) => {
         const a = nodeById.get(e.from)
         const b = nodeById.get(e.to)
@@ -453,185 +285,49 @@ export function CausalGraphCanvas({
           !(reachableFromGoal.has(e.from) && reachableFromGoal.has(e.to))
         const isActive = activeLever === e.from || goalOutcomeId === e.to
         const strength = strengthNorm(e.strength)
-        const w = 0.5 + strength * 3
         const signColor =
           e.sign > 0 ? COLORS.benefit : e.sign < 0 ? COLORS.harm : COLORS.neutral
         const color = dimmed ? COLORS.dim : signColor
-
-        if (edgeStyle === 'particles') {
-          return (
-            <path
-              key={`edge-${i}`}
-              d={d}
-              stroke={color}
-              strokeOpacity={dimmed ? 0.12 : isActive ? 0.75 : 0.35}
-              strokeWidth={w}
-              fill="none"
-            />
-          )
-        }
-
-        if (edgeStyle === 'circuit') {
-          const dur = Math.max(0.5, 2 - strength * 1.2)
-          return (
-            <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
-              {/* Outer soft glow */}
+        const leverDelta = leverDeltas?.get(e.from) ?? 0
+        const moved = leverDelta > 0.01
+        const widthBoost = 1 + leverDelta * 2.2
+        const baseW = (0.6 + strength * 1.4) * widthBoost
+        const flowDur = Math.max(0.6, 1.6 - leverDelta * 0.8)
+        return (
+          <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
+            {moved && (
               <path
                 d={d}
                 stroke={color}
-                strokeOpacity={0.22}
-                strokeWidth={w * 3.5}
+                strokeOpacity={0.18 + leverDelta * 0.25}
+                strokeWidth={baseW * 4}
                 fill="none"
                 filter="url(#sf-soft-blur)"
               />
-              {/* Solid middle */}
+            )}
+            <path
+              d={d}
+              stroke={color}
+              strokeOpacity={0.32 + leverDelta * 0.4}
+              strokeWidth={baseW}
+              fill="none"
+            />
+            {isActive && (
               <path
                 d={d}
                 stroke={color}
-                strokeOpacity={0.5}
-                strokeWidth={w}
+                strokeOpacity={0.95}
+                strokeWidth={Math.max(2, baseW * 1.3)}
                 fill="none"
+                strokeDasharray="6 24"
+                strokeLinecap="round"
+                style={{
+                  animation: `sf-plasma-flow ${flowDur}s linear infinite`,
+                  filter: `drop-shadow(0 0 6px ${color})`,
+                }}
               />
-              {/* Bright dashed flowing overlay */}
-              <path
-                d={d}
-                stroke="#ffffff"
-                strokeOpacity={isActive ? 1 : 0.85}
-                strokeWidth={Math.max(1, w * 0.6)}
-                fill="none"
-                strokeDasharray="3 10"
-                style={{ animation: `sf-circuit-flow ${dur}s linear infinite` }}
-              />
-            </g>
-          )
-        }
-
-        if (edgeStyle === 'plasma') {
-          // Persistent (no animation while at rest): thin static lines.
-          // Source-lever delta: width swells ~3x at full deflection, so
-          // scrubbing a lever visibly thickens its outgoing edges.
-          // Active (source lever was just touched): bright dashed flow
-          // travels along the path, speed scales with how big the move is.
-          const leverDelta = leverDeltas?.get(e.from) ?? 0
-          const moved = leverDelta > 0.01
-          const widthBoost = 1 + leverDelta * 2.2
-          const baseW = (0.6 + strength * 1.4) * widthBoost
-          const flowDur = Math.max(0.6, 1.6 - leverDelta * 0.8)
-          return (
-            <g key={`edge-${i}`} opacity={dimmed ? 0.2 : 1}>
-              {/* Soft glow grows with delta so a moved lever's edges feel hot */}
-              {moved && (
-                <path
-                  d={d}
-                  stroke={color}
-                  strokeOpacity={0.18 + leverDelta * 0.25}
-                  strokeWidth={baseW * 4}
-                  fill="none"
-                  filter="url(#sf-soft-blur)"
-                />
-              )}
-              {/* Solid base — opacity grows with delta */}
-              <path
-                d={d}
-                stroke={color}
-                strokeOpacity={0.32 + leverDelta * 0.4}
-                strokeWidth={baseW}
-                fill="none"
-              />
-              {/* Electricity flow — ONLY when source lever is active */}
-              {isActive && (
-                <path
-                  d={d}
-                  stroke={color}
-                  strokeOpacity={0.95}
-                  strokeWidth={Math.max(2, baseW * 1.3)}
-                  fill="none"
-                  strokeDasharray="6 24"
-                  strokeLinecap="round"
-                  style={{
-                    animation: `sf-plasma-flow ${flowDur}s linear infinite`,
-                    filter: `drop-shadow(0 0 6px ${color})`,
-                  }}
-                />
-              )}
-            </g>
-          )
-        }
-
-        if (edgeStyle === 'lightning') {
-          const striking = strikingEdges.has(i)
-          return (
-            <g key={`edge-${i}`} opacity={dimmed ? 0.25 : 1}>
-              {/* Quiet base stroke */}
-              <path
-                d={d}
-                stroke={color}
-                strokeOpacity={striking ? 0.5 : 0.28}
-                strokeWidth={Math.max(0.5, w * 0.7)}
-                fill="none"
-              />
-              {striking && (
-                <>
-                  {/* Bright halo */}
-                  <path
-                    d={d}
-                    stroke={color}
-                    strokeOpacity={0.7}
-                    strokeWidth={w * 5}
-                    fill="none"
-                    filter="url(#sf-soft-blur)"
-                    style={{ animation: 'sf-strike-pulse 180ms ease-out forwards' }}
-                  />
-                  {/* Jagged bolt core */}
-                  <path
-                    d={d}
-                    stroke="#ffffff"
-                    strokeOpacity={1}
-                    strokeWidth={Math.max(1.2, w * 1.3)}
-                    fill="none"
-                    filter="url(#sf-lightning-disp)"
-                    style={{ animation: 'sf-strike-pulse 180ms ease-out forwards' }}
-                  />
-                </>
-              )}
-            </g>
-          )
-        }
-
-        return null
-      })}
-
-      {/* Particles */}
-      {particlesRef.current.map((p) => {
-        const edge = edges[p.edgeIdx]
-        if (!edge) return null
-        const a = nodeById.get(edge.from)
-        const b = nodeById.get(edge.to)
-        if (!a || !b) return null
-        if (
-          reachableFromGoal != null &&
-          !(reachableFromGoal.has(edge.from) && reachableFromGoal.has(edge.to))
-        ) {
-          return null
-        }
-        const t = particleDirection === 'reverse' ? 1 - p.t : p.t
-        const pt = bezierAt(
-          a.x + leverPillHalfWidth,
-          a.y,
-          b.x - rightInset,
-          b.y,
-          t,
-        )
-        const alpha = 1 - Math.abs(p.t - 0.5) * 1.6
-        return (
-          <circle
-            key={`p-${p.id}`}
-            cx={pt.x}
-            cy={pt.y}
-            r={2.5}
-            fill={p.color}
-            opacity={Math.max(0, alpha)}
-          />
+            )}
+          </g>
         )
       })}
 
@@ -828,7 +524,7 @@ export function outcomeDeltasAt(
 
 /** Like outcomeDeltasAt but returns the full {factual, after, delta} triple
  *  per outcome — needed when the UI wants to surface absolute pre/post values
- *  (e.g., LivingGraph showing "42 → 51" alongside the colored Δ). The same
+ *  (e.g., the Twin view showing "42 → 51" alongside the colored Δ). The same
  *  horizon phase-in (cumulativeEffectFraction) is applied, so `after` is the
  *  factual value plus the timed effect, not the asymptotic counterfactual.
  *
@@ -837,7 +533,7 @@ export function outcomeDeltasAt(
  *  rendered triple stays internally consistent.
  *
  *  Pass `baselineValues` to seed factual readings for outcomes that don't
- *  appear in `state.allEffects` — needed so the LivingGraph can display
+ *  appear in `state.allEffects` — needed so the Twin view can display
  *  "current value, no change yet" before the user moves any lever. The
  *  baseline pair is `{factual, after: factual, delta: 0}`. */
 export function outcomeStatesAt(

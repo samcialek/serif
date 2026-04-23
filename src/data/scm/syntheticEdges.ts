@@ -4,7 +4,7 @@
  * the real data or the target biomarker isn't sampled densely enough.
  *
  * These are first-class members of the SCM. Insights, Protocols, and
- * the LivingGraph treat them as peers of cohort-fit edges; the only
+ * the Twin view treat them as peers of cohort-fit edges; the only
  * marker is `prior_provenance: 'synthetic+literature'` and the
  * `posterior.source: 'literature'` flag, which are provenance metadata,
  * not a tier of trust.
@@ -12,7 +12,7 @@
  * The same spec drives:
  *   - InsightBayesian rows (via buildPhase1SyntheticEdges) — the
  *     normalized [-1, 1] `mean` carries direction + strength for the
- *     LivingGraph and Insights tooltip.
+ *     Twin view and Insights tooltip.
  *   - StructuralEquation entries (via buildSyntheticEquations) — `mean`
  *     converts to a physical-unit slope using action and outcome spans
  *     so the Twin engine produces real counterfactual deltas.
@@ -29,7 +29,7 @@ import type { StructuralEdge } from '../dataValue/types'
  * effect (e.g., "−2.5 min SOL per hour of caffeine cutoff, plateauing past
  * 6h") instead of a normalized [-1, 1] strength. The engine consumes these
  * directly via bb/ba/theta in the piecewise-linear equation; visual edge
- * weight in the LivingGraph is derived from the shape via `shapeToVisualMean`.
+ * weight in the Twin view is derived from the shape via `shapeToVisualMean`.
  *
  *   linear            — constant slope across the action's plausible range
  *   saturating        — steep slope until `knee`, then `slopeAfter` (default 0)
@@ -76,7 +76,7 @@ interface SyntheticEdgeSpec {
    *  equation directly — supersedes the legacy `mean × span` translation. */
   shape?: SyntheticShape
   /** Normalized [-1, 1] signed effect used for posterior.mean. Sign is
-   *  what matters for LivingGraph coloring; magnitude sets edge weight via
+   *  what matters for Twin edge coloring; magnitude sets edge weight via
    *  the in-graph normalization. Edges with a `shape` derive visual weight
    *  from the shape; this field stays for legacy edges and as a tooltip
    *  fallback when shape is not yet calibrated. */

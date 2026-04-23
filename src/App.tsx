@@ -13,7 +13,7 @@ import {
   CurveStyleDemoView,
   DataValueView,
   PortalView,
-  TwinViewLivingGraph,
+  TwinView,
   BaselineView,
   ExplorationView,
 } from '@/views'
@@ -32,7 +32,7 @@ function App() {
           <Route path="/insights" element={<PortalView />} />
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
-          <Route path="/twin" element={<TwinViewLivingGraph />} />
+          <Route path="/twin" element={<TwinView />} />
           <Route path="/twin-preview" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-direct" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-dragdrop" element={<Navigate to="/twin" replace />} />

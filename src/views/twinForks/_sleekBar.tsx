@@ -1,9 +1,6 @@
 /**
  * Sleek lever bar — wider, darker, with a gradient fill and glowing thumb.
- *
- * Shared across the LivingGraph edge-style presets (circuit / plasma /
- * lightning / classic). The `accent` prop lets each preset theme the fill
- * and thumb glow to match its edge palette.
+ * The `accent` prop themes the fill and thumb glow.
  */
 
 import { useCallback, useRef, useState } from 'react'

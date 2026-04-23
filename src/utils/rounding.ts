@@ -24,8 +24,8 @@ const ACTION_INCREMENT: Record<string, number> = {
   training_volume: 0.25,    // hours
   running_volume: 0.25,     // km/day (legacy, used by Protocols sem)
   zone2_volume: 0.25,       // km/day (legacy, used by Protocols sem)
-  zone2_minutes: 5,         // min/day (LivingGraph)
-  zone4_5_minutes: 1,       // min/day (LivingGraph)
+  zone2_minutes: 5,         // min/day (Twin)
+  zone4_5_minutes: 1,       // min/day (Twin)
   training_load: 10,        // load units/day
   steps: 500,
   dietary_protein: 5,       // g/day
@@ -39,8 +39,8 @@ const OUTCOME_INCREMENT: Record<string, number> = {
   // wearables
   hrv_daily: 1,
   sleep_quality: 1,
-  deep_sleep: 5,
-  rem_sleep: 5,
+  deep_sleep: 1,
+  rem_sleep: 1,
   sleep_efficiency: 1,
   sleep_onset_latency: 1,
   // iron panel

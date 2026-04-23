@@ -60,7 +60,7 @@ export const OUTCOME_HORIZON_DAYS: Record<string, number> = {
 }
 
 /**
- * Curated longevity outcome list — what surfaces in the LivingGraph
+ * Curated longevity outcome list — what surfaces in the Twin view's
  * "Longevity" regime. Keeping this explicit (rather than "everything not
  * today-band") because the longevity tab is a curatorial decision: drop
  * redundant downstream-of-other-markers outcomes (total_cholesterol /
