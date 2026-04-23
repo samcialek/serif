@@ -156,11 +156,17 @@ export function useTwinSolver({
   }, [cancel, baselineKey])
 
   const start = useCallback(
-    (goal: GoalCandidate, targetSigned: number) => {
+    (goal: GoalCandidate, targetSigned: number, opts?: { maximize?: boolean }) => {
       if (!participant || rows.length === 0) return
       cancelRef.current = false
       setIsSolving(true)
       setSolved(null)
+
+      // Maximize mode: ignore the target tolerance and keep stepping while
+      // any lever still offers improvement in signedTimedEffect. The user's
+      // expectation for the per-outcome Optimize button is "show me the
+      // *best* plan", not "satisfy a small target with one cheap move".
+      const maximize = opts?.maximize === true
 
       let current = { ...baseline }
       setValues(current)
@@ -178,15 +184,25 @@ export function useTwinSolver({
         trail.push(entry)
         setHistory([...trail])
 
-        const tol = Math.max(0.5, Math.abs(targetSigned) * 0.03)
-        if (Math.abs(error) < tol || iter >= maxIter) {
+        if (iter >= maxIter) {
           setSolved(entry)
           setIsSolving(false)
           onSolved?.(entry)
           return
         }
+        if (!maximize) {
+          const tol = Math.max(0.5, Math.abs(targetSigned) * 0.03)
+          if (Math.abs(error) < tol) {
+            setSolved(entry)
+            setIsSolving(false)
+            onSolved?.(entry)
+            return
+          }
+        }
 
-        const wantSign = error > 0 ? 1 : -1
+        // In target-seeking mode wantSign flips when overshooting; in
+        // maximize mode we always want signedTimedEffect to go up.
+        const wantSign = maximize ? 1 : error > 0 ? 1 : -1
         let bestGain = 0
         let bestLeverId: string | null = null
         let bestNewValue = 0
@@ -207,10 +223,15 @@ export function useTwinSolver({
               atDays,
               goal.direction,
             )
-            const trialError = targetSigned - trialAchieved
-            const gain = (Math.abs(error) - Math.abs(trialError)) * wantSign
+            const gain = maximize
+              ? (trialAchieved - achieved) * wantSign
+              : (Math.abs(error) - Math.abs(targetSigned - trialAchieved)) * wantSign
+            // Tiny travel-cost tiebreaker so the solver prefers cheaper
+            // moves when two levers offer the same gain. Kept much smaller
+            // in maximize mode (0.001) so it never blocks a real-but-small
+            // improvement on a far-travel lever.
             const travelCost = Math.abs(candidate - cv) / (range.max - range.min || 1)
-            const score = gain - travelCost * 0.05
+            const score = gain - travelCost * (maximize ? 0.001 : 0.05)
             if (score > bestGain) {
               bestGain = score
               bestLeverId = node.id

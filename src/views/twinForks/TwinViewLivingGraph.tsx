@@ -361,7 +361,9 @@ export function TwinViewLivingGraph() {
       const key = canonicalOutcomeKey(outcomeId)
       setGoalOutcomeId(key)
       // Defer to the next frame so goalCandidate updates before solving.
-      requestAnimationFrame(() => solver.start(goal, targetSize))
+      // maximize:true — the user wants the *best* mechanism-aligned plan
+      // for this outcome, not the minimum perturbation that hits a target.
+      requestAnimationFrame(() => solver.start(goal, targetSize, { maximize: true }))
     },
     [goalCandidateFor, solver, targetSize],
   )
@@ -590,7 +592,7 @@ export function TwinViewLivingGraph() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => solver.start(goalCandidate, targetSize)}
+                        onClick={() => solver.start(goalCandidate, targetSize, { maximize: true })}
                       >
                         <Wand2 className="w-4 h-4 mr-1" />
                         Re-solve
@@ -602,7 +604,7 @@ export function TwinViewLivingGraph() {
                   ) : (
                     <Button
                       size="sm"
-                      onClick={() => solver.start(goalCandidate, targetSize)}
+                      onClick={() => solver.start(goalCandidate, targetSize, { maximize: true })}
                     >
                       <Play className="w-4 h-4 mr-1" />
                       Solve
