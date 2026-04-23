@@ -16,6 +16,14 @@
  *                 bb = steepness (k), ba = max activation, theta = midpoint
  *                 bb < 0 for inverse sigmoid (activates as dose drops below theta)
  *
+ * Plus a smooth saturating (Hill / exponential approach) curve type for
+ * non-linear synthetic edges where biology has a hard ceiling but the
+ * piecewise kink at θ is unrealistic (alcohol → SWS, caffeine → SOL):
+ *   smooth_saturating:  f(dose) = bb * (1 - 2^(-dose / theta))
+ *                       bb = signed asymptote (max effect as dose → ∞)
+ *                       theta = EC50 (dose at which half of asymptote reached)
+ *                       ba is unused (carry 0 for symmetry).
+ *
  * bb and ba are slope coefficients from the fitted pipeline.
  */
 
@@ -61,6 +69,15 @@ export function evaluateEdge(dose: number, eq: StructuralEquation): number {
     // bb < 0: activates as dose drops below theta (inverse sigmoid)
     return eq.ba / (1 + Math.exp(-eq.bb * (dose - eq.theta)))
   }
+  if (eq.curveType === 'smooth_saturating') {
+    // Hill-style approach to asymptote: bb = signed asymptote, theta = EC50.
+    // f(dose) = bb * (1 - 2^(-dose / theta))
+    // At dose=theta we reach half of asymptote; at dose=3*theta, ~87.5%.
+    // For dose <= 0 we clamp to 0 — the saturation only models the
+    // positive-dose biology (no extrapolation past origin).
+    if (dose <= 0) return 0
+    return eq.bb * (1 - Math.pow(2, -dose / eq.theta))
+  }
   const belowContribution = eq.bb * Math.min(dose, eq.theta)
   const aboveContribution = eq.ba * Math.max(0, dose - eq.theta)
   return belowContribution + aboveContribution
@@ -76,6 +93,12 @@ export function edgeSensitivity(dose: number, eq: StructuralEquation): number {
     // Derivative of sigmoid: ba * bb * σ(x) * (1 - σ(x))
     const sig = 1 / (1 + Math.exp(-eq.bb * (dose - eq.theta)))
     return eq.ba * eq.bb * sig * (1 - sig)
+  }
+  if (eq.curveType === 'smooth_saturating') {
+    // d/dx [bb * (1 - 2^(-x/theta))] = bb * (ln(2)/theta) * 2^(-x/theta)
+    // At dose=0: slope = bb * ln(2) / theta (steepest); approaches 0 as dose → ∞.
+    if (dose < 0) return 0
+    return (eq.bb * Math.LN2 / eq.theta) * Math.pow(2, -dose / eq.theta)
   }
   return dose <= eq.theta ? eq.bb : eq.ba
 }

@@ -10,7 +10,14 @@ import type { StructuralEdge } from '../dataValue/types'
 
 // ─── Curve types (matching edgeSummaryRaw.json) ─────────────────
 
-export type CurveType = 'linear' | 'plateau_up' | 'plateau_down' | 'v_min' | 'v_max' | 'sigmoid'
+export type CurveType =
+  | 'linear'
+  | 'plateau_up'
+  | 'plateau_down'
+  | 'v_min'
+  | 'v_max'
+  | 'sigmoid'
+  | 'smooth_saturating'
 
 // ─── DAG primitives ─────────────────────────────────────────────
 

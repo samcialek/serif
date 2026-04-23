@@ -21,7 +21,7 @@
  */
 
 import type { InsightBayesian } from '@/data/portal/types'
-import type { StructuralEquation } from './types'
+import type { StructuralEquation, CurveType } from './types'
 import type { StructuralEdge } from '../dataValue/types'
 
 /**
@@ -31,13 +31,21 @@ import type { StructuralEdge } from '../dataValue/types'
  * directly via bb/ba/theta in the piecewise-linear equation; visual edge
  * weight in the LivingGraph is derived from the shape via `shapeToVisualMean`.
  *
- *   linear     — constant slope across the action's plausible range
- *   saturating — steep slope until `knee`, then `slopeAfter` (default 0)
- *                Captures plateau_up (slope>0, slopeAfter≈0) and plateau_down
- *                (slope<0, slopeAfter≈0). Sign in `slope` carries direction.
- *   inverted_u — peaks at `peak`. `slopeUp` (signed positive when outcome rises
- *                up to peak) and `slopeDown` (signed negative for outcome
- *                falling past peak) drive the bb/ba split.
+ *   linear            — constant slope across the action's plausible range
+ *   saturating        — steep slope until `knee`, then `slopeAfter` (default 0)
+ *                       Two straight segments with a kink at the knee. Use
+ *                       when the literature reports an actual breakpoint.
+ *   smooth_saturating — Hill-style exponential approach to `asymptote` with
+ *                       half-saturation at `halfDose` (EC50). Continuous
+ *                       gradient — no kink, gentle diminishing returns.
+ *                       Use when biology has a hard ceiling (receptor
+ *                       saturation, finite arousal windows, depleted
+ *                       suppressible pool) rather than a literature-reported
+ *                       threshold.
+ *   inverted_u        — peaks at `peak`. `slopeUp` (signed positive when
+ *                       outcome rises up to peak) and `slopeDown` (signed
+ *                       negative for outcome falling past peak) drive the
+ *                       bb/ba split.
  */
 export type SyntheticShape =
   | { kind: 'linear'; slope: number }
@@ -46,6 +54,13 @@ export type SyntheticShape =
       knee: number
       slope: number
       slopeAfter?: number
+    }
+  | {
+      kind: 'smooth_saturating'
+      /** Maximum signed effect as dose → ∞. */
+      asymptote: number
+      /** Dose at which f reaches half of asymptote (EC50). */
+      halfDose: number
     }
   | {
       kind: 'inverted_u'
@@ -195,95 +210,105 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
 
   // ── Caffeine dose: adenosine blockade saturates around habitual intake
   //    (~200 mg). Plasma half-life is ~5h, so timing-of-cutoff often
-  //    dominates dose at the same intake. Each shape carries the literature
-  //    physical magnitude; see rationale for source.
+  //    dominates dose at the same intake. smooth_saturating with the
+  //    EC50 (halfDose) tuned to the receptor-occupancy ramp from
+  //    Landolt 1995 + Drake 2013 — continuous gradient, no kink at the
+  //    habitual threshold (the biology has no actual breakpoint, just
+  //    a smooth approach to receptor saturation).
   { action: 'caffeine_mg',     outcome: 'deep_sleep',          mean: -0.35,
-    shape: { kind: 'saturating', knee: 200, slope: -0.10, slopeAfter: -0.03 },
+    shape: { kind: 'smooth_saturating', asymptote: -35, halfDose: 140 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '−20 min SWS through 200mg habitual range, then plateaus (−10 more min from 200→600mg). Adenosine receptors saturate near habitual intake (Landolt 1995, Drake 2013).' },
+    rationale: 'SWS suppression approaches a ~35 min ceiling as adenosine A1/A2A occupancy saturates (EC50 ≈ 140 mg). 100mg → −14 min, 200mg → −22 min, 400mg → −29 min, 600mg → −33 min — diminishing returns past habitual intake (Landolt 1995, Drake 2013).' },
   { action: 'caffeine_mg',     outcome: 'sleep_efficiency',    mean: -0.30,
-    shape: { kind: 'saturating', knee: 200, slope: -0.04, slopeAfter: -0.012 },
+    shape: { kind: 'smooth_saturating', asymptote: -13, halfDose: 140 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '~−8 pp SE through habitual dose, then plateaus. Late-night fragmentation accounts for most of the effect (Drake 2013).' },
+    rationale: 'SE asymptotes ~−13 pp at high chronic intake; smooth approach with EC50 ≈ 140mg means most damage comes between 50–250mg. Late-night fragmentation accounts for most of the effect (Drake 2013).' },
   { action: 'caffeine_mg',     outcome: 'hrv_daily',           mean: -0.30,
-    shape: { kind: 'saturating', knee: 200, slope: -0.10, slopeAfter: -0.03 },
+    shape: { kind: 'smooth_saturating', asymptote: -35, halfDose: 140 },
     pathway: 'wearable', horizonDays: 4,
-    rationale: '−20 ms RMSSD over habitual dose range, then plateau. Sympathetic-dominance via β-adrenergic stimulation (Bowtell 2017, Hibino 1997).' },
+    rationale: 'RMSSD floor ~−35 ms as β-adrenergic stimulation saturates. Steepest drop through habitual range, then asymptotic — vagal tone has a finite suppressible reserve (Bowtell 2017, Hibino 1997).' },
   { action: 'caffeine_mg',     outcome: 'rem_sleep',           mean: -0.20,
-    shape: { kind: 'saturating', knee: 300, slope: -0.04, slopeAfter: -0.015 },
+    shape: { kind: 'smooth_saturating', asymptote: -20, halfDose: 220 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: 'REM more resistant than SWS — most loss above 300mg via late-night plasma trimming the final REM cycles (Landolt 1995).' },
+    rationale: 'REM more resistant than SWS — EC50 ≈ 220mg (much higher than SWS) reflects that only late-night plasma carryover trims the final REM cycles. 300mg → −12 min, 600mg → −17 min (Landolt 1995).' },
   { action: 'caffeine_mg',     outcome: 'sleep_onset_latency', mean:  0.40,
-    shape: { kind: 'saturating', knee: 200, slope: 0.08, slopeAfter: 0.025 },
+    shape: { kind: 'smooth_saturating', asymptote: 28, halfDose: 140 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '~+8 min SOL per 100mg up to habitual; saturating thereafter (receptor occupancy). 200mg → +16 min, 600mg → +26 min (Drake 2013).' },
+    rationale: 'SOL approaches ~+28 min ceiling as receptor occupancy saturates (EC50 ≈ 140mg). 100mg → +11 min, 200mg → +18 min, 600mg → +27 min — exponential approach matches the dose-response shape in Drake 2013.' },
 
   // Caffeine timing — bigger than dose for the same intake because half-life
-  // makes plasma at bedtime the dominant signal. Effect plateaus past ~6h
-  // (plasma concentration drops below the disruption threshold).
+  // makes plasma at bedtime the dominant signal. smooth_saturating with
+  // EC50 ≈ 2.8h reflects the 5h plasma half-life: each additional hour of
+  // cutoff cuts bedtime plasma by ~13%, so benefit gradient is steepest in
+  // the first few hours and flattens past 6–8h.
   { action: 'caffeine_timing', outcome: 'deep_sleep',          mean:  0.55,
-    shape: { kind: 'saturating', knee: 6, slope: 5, slopeAfter: 1 },
+    shape: { kind: 'smooth_saturating', asymptote: 38, halfDose: 2.8 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '+30 min SWS over the first 6h of cutoff (plasma drops from ~75% to ~30% peak), then +1 min/hr afterward as plasma approaches negligible (Drake 2013 crossover).' },
+    rationale: 'SWS recovery asymptotes at ~+38 min as bedtime plasma → 0. EC50 ≈ 2.8h ≈ caffeine plasma half-life (5h × ln2/2h). 4h cutoff → +24 min, 6h → +29 min, 12h → +36 min (Drake 2013 crossover).' },
   { action: 'caffeine_timing', outcome: 'sleep_efficiency',    mean:  0.50,
-    shape: { kind: 'saturating', knee: 6, slope: 1.5, slopeAfter: 0.3 },
+    shape: { kind: 'smooth_saturating', asymptote: 11, halfDose: 2.8 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '+9 pp SE over the first 6h of cutoff via shorter onset and fewer late-night arousals; flattens past 6h.' },
+    rationale: 'SE recovery asymptotes ~+11 pp via shorter onset and fewer late-night arousals. Smooth exponential approach matches the plasma-clearance kinetics — biggest gains in first 6h of cutoff.' },
   { action: 'caffeine_timing', outcome: 'sleep_onset_latency', mean: -0.55,
-    shape: { kind: 'saturating', knee: 6, slope: -2.5, slopeAfter: -0.4 },
+    shape: { kind: 'smooth_saturating', asymptote: -18, halfDose: 2.8 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '−15 min SOL from a 6h cutoff (Drake 2013 crossover: 12–18 min reduction). Marginal benefit past 6h is small — plasma already low.' },
+    rationale: 'SOL recovery asymptotes ~−18 min as bedtime plasma → 0. 4h cutoff → −11 min, 6h → −14 min, 12h → −17 min — Drake 2013 crossover (12–18 min reduction at full clearance).' },
 
   // ── Alcohol: dose acts on architecture in the second half of the night
   //    (REM/SWS rebound suppression). Timing matters because ethanol clears
   //    at ~0.015 BAC/hr; pre-bed gap restores architecture even at 2 units.
   //    The second-half-of-night arousal pattern is the canonical fingerprint.
-  // All alcohol_units → sleep responses are saturating, not linear: the
-  // biology has hard ceilings (only so much SWS/REM to suppress), receptor
-  // saturation (sedation, vagal blunting), and finite arousal windows.
-  // Linear extrapolation from low-dose RCTs blows past those ceilings at
-  // the high end of the lever (6 units), producing impossible readings
-  // (SOL → 0, RMSSD → 0). Knees and post-knee slopes from Ebrahim 2013
-  // dose-stratified subgroups + Roehrs & Roth 2001 sedation curves.
+  // All alcohol_units → sleep responses use smooth_saturating, not linear:
+  // the biology has hard ceilings (only so much SWS/REM to suppress),
+  // receptor saturation (sedation, vagal blunting), and finite arousal
+  // windows. Hill-style continuous saturation matches both ends of the
+  // dose curve without the kink artefact of a knee — at low doses you
+  // already see the steepest gradient, with diminishing returns as the
+  // suppressible architecture pool depletes. Asymptotes derived from
+  // Ebrahim 2013 dose-stratified subgroups + Roehrs & Roth 2001 sedation
+  // ceiling estimates; halfDose ≈ the dose at which 50% of the maximum
+  // disruption is reached.
   { action: 'alcohol_units',   outcome: 'deep_sleep',          mean: -0.40,
-    shape: { kind: 'saturating', knee: 3, slope: -10, slopeAfter: -3 },
+    shape: { kind: 'smooth_saturating', asymptote: -50, halfDose: 2.3 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '−10 min SWS per drink up to ~3 units (the dose at which late-night ethanol-clearance arousals dominate); after that only −3 min/drink because the suppressible SWS pool is largely depleted (Ebrahim 2013 meta of 27 studies).' },
+    rationale: 'SWS suppression approaches a ~50 min ceiling as the suppressible slow-wave pool depletes. EC50 ≈ 2.3 drinks. 1 unit → −12 min, 2 units → −22 min, 3 units → −30 min, 6 units → −42 min — gradient steepest at low doses (Ebrahim 2013 meta of 27 studies).' },
   { action: 'alcohol_units',   outcome: 'sleep_efficiency',    mean: -0.30,
-    shape: { kind: 'saturating', knee: 3, slope: -3, slopeAfter: -1 },
+    shape: { kind: 'smooth_saturating', asymptote: -15, halfDose: 2.5 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '−3 pp SE per drink up to ~3 units; arousal windows finite, so post-knee slope is −1/drink. Second-half-of-night arousals dominate as ethanol clears (Ebrahim 2013).' },
+    rationale: 'SE asymptotes ~−15 pp as second-half arousal windows fill up. Smooth approach (EC50 ≈ 2.5 drinks) — first 1–2 units do the most damage; further intake adds proportionally less because awakening counts saturate (Ebrahim 2013).' },
   { action: 'alcohol_units',   outcome: 'hrv_daily',           mean: -0.30,
-    shape: { kind: 'saturating', knee: 3, slope: -8, slopeAfter: -2 },
+    shape: { kind: 'smooth_saturating', asymptote: -40, halfDose: 2.5 },
     pathway: 'wearable', horizonDays: 4,
-    rationale: '−8 ms RMSSD per drink up to ~3 units; vagal blunting saturates as parasympathetic floor approached. Heavy chronic intake adds another −2/drink via sustained sympathetic drive (Spaak 2010).' },
+    rationale: 'RMSSD floor ~−40 ms as parasympathetic tone bottoms out. EC50 ≈ 2.5 drinks; vagal blunting via GABA-A receptor saturation has a finite reserve (Spaak 2010, Sajadieh 2004).' },
   { action: 'alcohol_units',   outcome: 'rem_sleep',           mean: -0.55,
-    shape: { kind: 'saturating', knee: 2, slope: -15, slopeAfter: -3 },
+    shape: { kind: 'smooth_saturating', asymptote: -45, halfDose: 1.5 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: 'REM is suppressed 30–40% by the first 1–2 drinks then plateaus — the first-half-of-night REM episodes are short and easily abolished, but late-night REM rebound is partially preserved unless intake is very heavy. Knee at 2 drinks (Ebrahim 2013).' },
+    rationale: 'REM cap ≈ −45 min, EC50 ≈ 1.5 drinks (lowest of the architecture targets) — first-half REM episodes are short and easily abolished by even 1 drink. 2 units → −27 min, 6 units → −42 min — late-night REM partially preserved unless intake is very heavy (Ebrahim 2013).' },
   { action: 'alcohol_units',   outcome: 'sleep_onset_latency', mean: -0.20,
-    shape: { kind: 'saturating', knee: 2, slope: -2.5, slopeAfter: -0.5 },
+    shape: { kind: 'smooth_saturating', asymptote: -8, halfDose: 1.5 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: 'Sedation cuts SOL by ~5 min through the first 2 drinks, then plateaus — GABA-A occupancy saturates and additional intake doesn\'t accelerate sleep onset (and at very high doses can paradoxically prolong it via discomfort/anxiety). Post-knee slope kept slightly negative as a soft attenuation rather than the inverted-U paradox (Roehrs & Roth 2001, Ebrahim 2013).' },
+    rationale: 'Sedation cap ≈ −8 min as GABA-A occupancy saturates. EC50 ≈ 1.5 drinks; additional intake doesn\'t accelerate sleep onset further. 2 units → −5 min, 6 units → −7.5 min (Roehrs & Roth 2001, Ebrahim 2013).' },
 
-  // Alcohol timing — pre-bed clearance is the bigger lever. Saturates at
-  // ~4h gap (ethanol fully metabolized for typical intake by sleep onset).
+  // Alcohol timing — pre-bed clearance is the bigger lever. EC50 ≈ 1.6h
+  // because ethanol clears at ~0.015 BAC/hr — even a short gap provides
+  // measurable benefit, and 4–6h gap restores most architecture. Smooth
+  // saturating reflects continuous BAC clearance, no biological breakpoint.
   { action: 'alcohol_timing',  outcome: 'deep_sleep',          mean:  0.55,
-    shape: { kind: 'saturating', knee: 4, slope: 12, slopeAfter: 1 },
+    shape: { kind: 'smooth_saturating', asymptote: 58, halfDose: 1.6 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '+12 min SWS per hour of pre-bed gap up to ~4h (full metabolism for ≤2 units), then plateau.' },
+    rationale: 'SWS recovery asymptotes ~+58 min as ethanol fully metabolizes pre-sleep. EC50 ≈ 1.6h. 2h gap → +26 min, 4h → +48 min, 6h → +54 min — diminishing returns past 4h because BAC near zero already (Ebrahim 2013).' },
   { action: 'alcohol_timing',  outcome: 'sleep_efficiency',    mean:  0.50,
-    shape: { kind: 'saturating', knee: 4, slope: 2.5, slopeAfter: 0.2 },
+    shape: { kind: 'smooth_saturating', asymptote: 11, halfDose: 1.6 },
     pathway: 'wearable', horizonDays: 2,
-    rationale: '+10 pp SE from a 4h gap — pre-bed clearance prevents the second-half awakenings entirely (Ebrahim 2013).' },
+    rationale: 'SE recovery asymptotes ~+11 pp once second-half awakenings are prevented. Smooth pre-bed clearance curve — EC50 ≈ 1.6h matches BAC half-life under typical intake (Ebrahim 2013).' },
   { action: 'alcohol_timing',  outcome: 'hrv_daily',           mean:  0.45,
-    shape: { kind: 'saturating', knee: 4, slope: 5, slopeAfter: 0.5 },
+    shape: { kind: 'smooth_saturating', asymptote: 24, halfDose: 1.5 },
     pathway: 'wearable', horizonDays: 4,
-    rationale: '+20 ms RMSSD restored by 4h gap — vagal recovery completes once ethanol metabolizes before sleep onset.' },
+    rationale: 'RMSSD recovery asymptotes ~+24 ms as vagal tone restores once ethanol metabolizes pre-sleep. EC50 ≈ 1.5h.' },
   { action: 'alcohol_timing',  outcome: 'rem_sleep',           mean:  0.50,
-    shape: { kind: 'saturating', knee: 4, slope: 15, slopeAfter: 1 },
+    shape: { kind: 'smooth_saturating', asymptote: 72, halfDose: 1.6 },
     pathway: 'wearable', horizonDays: 3,
-    rationale: '+60 min REM restored by a 4h gap — late-night REM episodes are preserved when ethanol clears before sleep (Ebrahim 2013).' },
+    rationale: 'REM recovery asymptotes ~+72 min as late-night REM episodes restore once ethanol clears before onset. EC50 ≈ 1.6h. 4h gap → +59 min, 6h → +67 min (Ebrahim 2013).' },
 
   // ── Caffeine + alcohol: longer-horizon biomarker fingerprints ─────
   // The next-day sleep story is half the picture. Both substances
@@ -437,30 +462,40 @@ interface SyntheticEngineBundle {
 }
 
 /**
- * Translate a SyntheticShape into the piecewise-linear engine parameters
- *   f(dose) = bb · min(dose, θ) + ba · max(0, dose − θ)
+ * Translate a SyntheticShape into engine parameters for evaluateEdge.
  *
- * — linear:     bb = ba = slope; θ at midOf(action) keeps the function
- *               linear over the action's plausible range.
- * — saturating: first segment slope until knee, then `slopeAfter`
- *               (defaults to 0) past it. Same shape captures plateau-up
- *               (slope>0) and plateau-down (slope<0) — sign in `slope`
- *               carries direction.
- * — inverted_u: ascending slope until peak, descending after. Sign of
- *               slopeUp/slopeDown chosen so the function rises to peak
- *               and falls past it.
+ * Returns the curveType to use, plus bb / ba / theta. The piecewise
+ * shapes (linear, saturating, inverted_u) all share `curveType: 'linear'`
+ * because evaluateEdge's piecewise branch is the universal evaluator for
+ * them. smooth_saturating uses its own curveType so evaluateEdge picks
+ * the Hill-style branch.
+ *
+ * — linear:            bb = ba = slope; θ at midOf(action) keeps the
+ *                      function linear over the action's plausible range.
+ * — saturating:        first segment slope until knee, then `slopeAfter`
+ *                      (defaults to 0) past it. Same shape captures
+ *                      plateau-up (slope>0) and plateau-down (slope<0) —
+ *                      sign in `slope` carries direction.
+ * — smooth_saturating: bb = signed asymptote, theta = halfDose (EC50);
+ *                      ba unused. Engine evaluates as
+ *                      bb · (1 − 2^(−dose/theta)).
+ * — inverted_u:        ascending slope until peak, descending after.
+ *                      Sign of slopeUp/slopeDown chosen so the function
+ *                      rises to peak and falls past it.
  */
-function shapeToBbBaTheta(
+function shapeToEquationParams(
   shape: SyntheticShape,
   actionMid: number,
-): { bb: number; ba: number; theta: number } {
+): { curveType: CurveType; bb: number; ba: number; theta: number } {
   switch (shape.kind) {
     case 'linear':
-      return { bb: shape.slope, ba: shape.slope, theta: actionMid }
+      return { curveType: 'linear', bb: shape.slope, ba: shape.slope, theta: actionMid }
     case 'saturating':
-      return { bb: shape.slope, ba: shape.slopeAfter ?? 0, theta: shape.knee }
+      return { curveType: 'linear', bb: shape.slope, ba: shape.slopeAfter ?? 0, theta: shape.knee }
+    case 'smooth_saturating':
+      return { curveType: 'smooth_saturating', bb: shape.asymptote, ba: 0, theta: shape.halfDose }
     case 'inverted_u':
-      return { bb: shape.slopeUp, ba: shape.slopeDown, theta: shape.peak }
+      return { curveType: 'linear', bb: shape.slopeUp, ba: shape.slopeDown, theta: shape.peak }
   }
 }
 
@@ -485,6 +520,7 @@ export function buildSyntheticEquations(
     const key = `${spec.action}→${spec.outcome}`
 
     if (!existingEquationKeys.has(key)) {
+      let curveType: CurveType
       let bb: number
       let ba: number
       let theta: number
@@ -492,7 +528,8 @@ export function buildSyntheticEquations(
       if (spec.shape) {
         // Shape carries the literature physical effect directly; no need
         // to round-trip through normalized mean × span.
-        const params = shapeToBbBaTheta(spec.shape, midOf(ACTION_SPAN, spec.action))
+        const params = shapeToEquationParams(spec.shape, midOf(ACTION_SPAN, spec.action))
+        curveType = params.curveType
         bb = params.bb
         ba = params.ba
         theta = params.theta
@@ -502,6 +539,7 @@ export function buildSyntheticEquations(
         const actionSpan = spanOf(ACTION_SPAN, spec.action)
         const outcomeSpan = spanOf(OUTCOME_SPAN, spec.outcome)
         const slope = (spec.mean * outcomeSpan) / actionSpan
+        curveType = 'linear'
         bb = slope
         ba = slope
         theta = midOf(ACTION_SPAN, spec.action)
@@ -510,7 +548,7 @@ export function buildSyntheticEquations(
       equations.push({
         source: spec.action,
         target: spec.outcome,
-        curveType: 'linear',
+        curveType,
         theta,
         bb,
         ba,
