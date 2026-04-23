@@ -13,7 +13,7 @@ Concrete experiments to validate design decisions and resolve open questions. Ea
 The regime model (with overreaching_state, iron_deficiency_state) produces more accurate counterfactual predictions than the flat model (current, no regime nodes) when the athlete crosses a physiological threshold.
 
 ### Method
-1. Split Oron's time series into train (first 80%) and test (last 20%).
+1. Split Caspian's time series into train (first 80%) and test (last 20%).
 2. Fit both models (flat, regime) on the training set.
 3. For each week in the test set:
    - Use factual observed values at t-1 to predict biomarkers at t.
@@ -119,7 +119,7 @@ Given 12+ months of daily data with at least 2 excursions above the overreaching
 1. Generate synthetic data from a known regime model (θ=1.5, k=5, overreaching effects on 4 markers).
 2. Fit the NumPyro regime model. Check parameter recovery.
 3. Fit a no-regime model (just piecewise edges). Compare ELPD.
-4. Repeat with Oron's actual data. Check whether posterior θ and k are identifiable (credible intervals don't span the entire prior range).
+4. Repeat with Caspian's actual data. Check whether posterior θ and k are identifiable (credible intervals don't span the entire prior range).
 
 ### Success Criterion
 - Synthetic: parameters recovered within 20% of ground truth.
@@ -141,7 +141,7 @@ Given 12+ months of daily data with at least 2 excursions above the overreaching
 Below ferritin=30, the relationship between ferritin and downstream markers is qualitatively different (steeper, affecting more targets) than above 30. A regime node captures this better than a single piecewise curve.
 
 ### Method
-1. From Oron's bloodwork, split data points into ferritin < 30 and ferritin ≥ 30.
+1. From Caspian's bloodwork, split data points into ferritin < 30 and ferritin ≥ 30.
 2. Fit separate piecewise models for each group.
 3. Compare: are the slopes (bb, ba) statistically different between groups?
 4. Fit the regime model and compare ELPD against the no-regime model.

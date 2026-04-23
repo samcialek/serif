@@ -239,7 +239,7 @@ export interface PortalManifest {
 - Task #5 UI wiring (spec only)
 - Task #6 ParticipantBrowser + regime chips
 - Task #7 View integration (InsightsView + LoadLeverPanel)
-- Task #8 Archive serif-oron/ (done 2026-04-17 — renamed to `../serif-oron.archived/`, see ARCHIVED.md inside)
+- Task #8 Archive serif-caspian/ (done 2026-04-17 — renamed to `../serif-caspian.archived/`, see ARCHIVED.md inside)
 
 ---
 
@@ -547,7 +547,7 @@ exposed_total regression below 4,555.
 
 ### LoadLeverPanel decision
 Original spec asked for grouped LoadLeverPanel. On inspection, `LoadLever` is
-curated Oron-persona content (`src/data/oronCampaigns.ts`) with no pathway
+curated Caspian-persona content (`src/data/caspianCampaigns.ts`) with no pathway
 field; its data model is unrelated to the Bayesian portal export. The real
 biomarker integration point is `InsightRow`/`ParticipantDetail`, which I
 grouped instead. LoadLeverPanel left untouched.

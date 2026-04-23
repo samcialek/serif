@@ -67,7 +67,7 @@ Keeping them **exogenous** means:
 2. Internalizing loads requires deciding on the aggregation function (EMA vs rolling sum vs exponential decay), window sizes, and how to handle missing data. These are empirical questions that should be answered with real data.
 3. For the demo, manually setting `acwr = 1.7` in the observed values achieves the same end state as propagating `training_volume = 2000 → acwr = 1.7`.
 
-**Revisit trigger:** When the NumPyro backend has access to Oron's daily time series and can fit temporal aggregation parameters.
+**Revisit trigger:** When the NumPyro backend has access to Caspian's daily time series and can fit temporal aggregation parameters.
 
 ---
 
