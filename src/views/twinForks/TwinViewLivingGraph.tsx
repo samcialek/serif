@@ -52,6 +52,7 @@ import {
   CausalGraphCanvas,
   buildGraph,
   outcomeDeltasAt,
+  outcomeStatesAt,
   type EdgeStyle,
   type GraphLayout,
 } from './_graph'
@@ -236,6 +237,11 @@ export function TwinViewLivingGraph() {
 
   const outcomeDeltas = useMemo(
     () => outcomeDeltasAt(state, atDays, graphOutcomeIds),
+    [state, graphOutcomeIds, atDays],
+  )
+
+  const outcomeStats = useMemo(
+    () => outcomeStatesAt(state, atDays, graphOutcomeIds),
     [state, graphOutcomeIds, atDays],
   )
 
@@ -626,6 +632,7 @@ export function TwinViewLivingGraph() {
                 nodes={graph.nodes}
                 edges={graph.edges}
                 outcomeDeltas={outcomeDeltas}
+                outcomeStats={outcomeStats}
                 activeLever={activeLever}
                 goalOutcomeId={goalOutcomeId}
                 particleDirection={inSolverMode && solver.isSolving ? 'reverse' : 'forward'}
@@ -646,7 +653,7 @@ export function TwinViewLivingGraph() {
                     handleOptimize(id)
                   }
                 }}
-                renderOutcomeOverlay={({ id, label, delta, tone, deltaNorm }) => {
+                renderOutcomeOverlay={({ id, label, delta, tone, deltaNorm, factual, after }) => {
                   const fill =
                     tone === 'benefit'
                       ? '#10b981'
@@ -661,6 +668,7 @@ export function TwinViewLivingGraph() {
                   const dark = stylePreset.dark
                   const labelFill = dark ? '#f1f5f9' : '#0f172a'
                   const circleFill = dark ? '#0f172a' : '#ffffff'
+                  const dimFill = dark ? '#94a3b8' : '#64748b'
                   const deltaFill = dark
                     ? tone === 'benefit'
                       ? '#34d399'
@@ -672,6 +680,20 @@ export function TwinViewLivingGraph() {
                       : tone === 'harm'
                         ? '#e11d48'
                         : '#64748b'
+                  const meta = OUTCOME_META[key]
+                  const unit = meta?.unit ?? ''
+                  const hasDelta = Math.abs(delta) > 1e-6
+                  const hasStats = factual != null && after != null
+                  const factualStr = hasStats ? formatOutcomeValue(factual!, key) : null
+                  const afterStr = hasStats ? formatOutcomeValue(after!, key) : null
+                  const deltaSign = delta > 0 ? '+' : delta < 0 ? '−' : ''
+                  const deltaStr = formatOutcomeValue(Math.abs(delta), key)
+                  const monoStyle = {
+                    pointerEvents: 'none' as const,
+                    fontFamily:
+                      'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontVariantNumeric: 'tabular-nums' as const,
+                  }
                   return (
                     <>
                       {deltaNorm > 0.05 && (
@@ -694,7 +716,37 @@ export function TwinViewLivingGraph() {
                       >
                         {label}
                       </text>
-                      {Math.abs(delta) > 1e-6 && (
+                      {hasStats && (
+                        <text
+                          x={baseR + 10}
+                          y={19}
+                          textAnchor="start"
+                          fontSize={11}
+                          fontWeight={600}
+                          style={monoStyle}
+                        >
+                          <tspan fill={dimFill}>{factualStr}</tspan>
+                          <tspan fill={dimFill} dx={4}>→</tspan>
+                          <tspan
+                            fill={hasDelta ? deltaFill : dimFill}
+                            fontWeight={hasDelta ? 700 : 600}
+                            dx={4}
+                          >
+                            {afterStr}
+                          </tspan>
+                          {unit && (
+                            <tspan fill={dimFill} dx={3} fontSize={10}>
+                              {unit}
+                            </tspan>
+                          )}
+                          {hasDelta && (
+                            <tspan fill={deltaFill} dx={8} fontWeight={700}>
+                              Δ{deltaSign}{deltaStr}
+                            </tspan>
+                          )}
+                        </text>
+                      )}
+                      {!hasStats && hasDelta && (
                         <text
                           x={baseR + 10}
                           y={19}
@@ -702,7 +754,7 @@ export function TwinViewLivingGraph() {
                           fontSize={11}
                           fontWeight={600}
                           fill={deltaFill}
-                          style={{ pointerEvents: 'none' }}
+                          style={monoStyle}
                         >
                           {formatEffectDelta(delta, label)}
                         </text>

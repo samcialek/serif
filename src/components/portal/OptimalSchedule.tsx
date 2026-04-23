@@ -48,7 +48,7 @@ const REGIME_LABEL: Record<RegimeKey, string> = {
 
 const OUTCOME_DISPLAY: Record<string, string> = {
   sleep_quality: 'Sleep quality',
-  hrv_daily: 'HRV',
+  hrv_daily: 'Overnight RMSSD',
   cortisol: 'Cortisol',
   glucose: 'Glucose',
   apob: 'ApoB',

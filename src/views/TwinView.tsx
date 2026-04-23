@@ -174,7 +174,7 @@ interface GoalCandidate {
 }
 
 const GOAL_CANDIDATES: GoalCandidate[] = [
-  { outcomeId: 'hrv_daily', label: 'Raise HRV', group: 'Wearable & sleep', direction: 'higher' },
+  { outcomeId: 'hrv_daily', label: 'Raise overnight RMSSD', group: 'Wearable & sleep', direction: 'higher' },
   { outcomeId: 'resting_hr', label: 'Lower resting heart rate', group: 'Wearable & sleep', direction: 'lower' },
   { outcomeId: 'sleep_quality', label: 'Improve sleep quality', group: 'Wearable & sleep', direction: 'higher' },
   { outcomeId: 'deep_sleep', label: 'More deep sleep', group: 'Wearable & sleep', direction: 'higher' },

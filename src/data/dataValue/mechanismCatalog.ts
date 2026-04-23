@@ -203,7 +203,7 @@ export const RESPONSE_FAMILIES: Record<string, ResponseFamilyDef> = {
     unit: 'hrs', compleCategory: 'O', biologicalTimescale: 'fast',
   },
   hrv_daily: {
-    id: 'hrv_daily', label: 'Daily HRV',
+    id: 'hrv_daily', label: 'Overnight RMSSD',
     columns: ['hrv_daily_mean', 'sleep_hrv_ms', 'hrv_ms'],
     unit: 'ms', compleCategory: 'O', biologicalTimescale: 'fast',
   },

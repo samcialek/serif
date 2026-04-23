@@ -174,7 +174,15 @@ export interface OutcomeOverlaySlot {
   delta: number
   deltaNorm: number
   tone: 'benefit' | 'harm' | 'neutral'
+  /** Factual (pre-intervention) value at the chosen horizon. Present when
+   *  the parent passed `outcomeStats`; undefined otherwise. */
+  factual?: number
+  /** Counterfactual (post-intervention) value at the chosen horizon. */
+  after?: number
 }
+
+/** Per-outcome before/after/delta values, indexed by canonical outcome key. */
+export type OutcomeStateMap = Map<string, { factual: number; after: number; delta: number }>
 
 /** How edges visualize energy flow. Each style trades off fidelity, density,
  *  and perf.
@@ -189,6 +197,10 @@ interface CausalGraphCanvasProps {
   nodes: GraphNode[]
   edges: GraphEdge[]
   outcomeDeltas?: Map<string, number>
+  /** Optional before/after/delta per outcome. When provided, the
+   *  `OutcomeOverlaySlot.factual` / `after` fields are populated and the
+   *  default outcome render shows the values inline next to the label. */
+  outcomeStats?: OutcomeStateMap
   activeLever?: string | null
   goalOutcomeId?: string | null
   onLeverClick?: (id: string) => void
@@ -222,6 +234,7 @@ export function CausalGraphCanvas({
   nodes,
   edges,
   outcomeDeltas,
+  outcomeStats,
   activeLever,
   goalOutcomeId,
   onLeverClick,
@@ -686,6 +699,7 @@ export function CausalGraphCanvas({
           const baseR = 14
           const pulseR = baseR + deltaNorm * 12
 
+          const stats = outcomeStats?.get(n.id)
           if (renderOutcomeOverlay) {
             return (
               <g
@@ -702,6 +716,8 @@ export function CausalGraphCanvas({
                   delta,
                   deltaNorm,
                   tone,
+                  factual: stats?.factual,
+                  after: stats?.after,
                 })}
               </g>
             )
@@ -790,6 +806,36 @@ export function outcomeDeltasAt(
     const timed = e.totalEffect * fraction
     const prev = out.get(key) ?? 0
     if (Math.abs(timed) > Math.abs(prev)) out.set(key, timed)
+  }
+  return out
+}
+
+/** Like outcomeDeltasAt but returns the full {factual, after, delta} triple
+ *  per outcome — needed when the UI wants to surface absolute pre/post values
+ *  (e.g., LivingGraph showing "42 → 51" alongside the colored Δ). The same
+ *  horizon phase-in (cumulativeEffectFraction) is applied, so `after` is the
+ *  factual value plus the timed effect, not the asymptotic counterfactual. */
+export function outcomeStatesAt(
+  state: FullCounterfactualState | null,
+  atDays: number,
+  outcomeIdSet?: Set<string>,
+): OutcomeStateMap {
+  const out: OutcomeStateMap = new Map()
+  if (!state) return out
+  for (const e of state.allEffects.values()) {
+    const key = canonicalOutcomeKey(e.nodeId)
+    if (outcomeIdSet && !outcomeIdSet.has(key)) continue
+    const horizonDays = horizonDaysFor(key) ?? 30
+    const fraction = cumulativeEffectFraction(atDays, horizonDays)
+    const timed = e.totalEffect * fraction
+    const prev = out.get(key)
+    if (!prev || Math.abs(timed) > Math.abs(prev.delta)) {
+      out.set(key, {
+        factual: e.factualValue,
+        after: e.factualValue + timed,
+        delta: timed,
+      })
+    }
   }
   return out
 }

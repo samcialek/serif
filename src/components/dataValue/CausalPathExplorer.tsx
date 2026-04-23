@@ -38,7 +38,7 @@ const friendlyNodeName = (id: string): string => {
     sleep_quality: 'Sleep Quality',
     sleep_efficiency: 'Sleep Efficiency',
     deep_sleep: 'Deep Sleep',
-    hrv_daily: 'Daily HRV',
+    hrv_daily: 'Overnight RMSSD',
     resting_hr: 'Resting HR',
     wbc: 'White Blood Cells',
     body_fat_pct: 'Body Fat %',

@@ -167,7 +167,7 @@ const FRIENDLY_NAMES: Record<string, string> = {
   hdl: 'HDL',
   ldl: 'LDL',
   hscrp: 'hsCRP',
-  hrv_daily: 'Daily HRV',
+  hrv_daily: 'Overnight RMSSD',
   resting_hr: 'Resting HR',
   wbc: 'White Blood Cells',
   body_fat_pct: 'Body Fat %',
