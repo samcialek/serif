@@ -22,10 +22,8 @@ import {
   ChevronUp,
   Calendar,
   Lightbulb,
-  RotateCcw,
   TrendingDown,
   TrendingUp,
-  Wand2,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import {
@@ -55,7 +53,6 @@ import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
 import type { ChipVariant } from '@/components/portal/ProtocolContextChip'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import type { AuditPlacement } from '@/components/portal/ProtocolAuditTrail'
-import type { RegimeOverrides } from '@/components/portal/CounterfactualSliders'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
@@ -161,16 +158,6 @@ interface OptimalScheduleProps {
   wakeTime: number
   chipVariant: ChipVariant
   auditPlacement: AuditPlacement
-  /** True when at least one regime slider has been moved away from
-   * baseline. Gates the counterfactual banner above the timeline. */
-  isCounterfactual?: boolean
-  /** Current override map — which regimes have been moved and to where. */
-  overrides?: RegimeOverrides
-  /** Real (non-overridden) regime activations, for the "X → Y" diff
-   * displayed in the counterfactual banner. */
-  realBaselines?: Partial<Record<RegimeKey, number>>
-  /** Called when the user clicks Reset in the banner. */
-  onResetCounterfactual?: () => void
 }
 
 export function OptimalSchedule({
@@ -184,10 +171,6 @@ export function OptimalSchedule({
   wakeTime,
   chipVariant,
   auditPlacement,
-  isCounterfactual = false,
-  overrides = {},
-  realBaselines = {},
-  onResetCounterfactual,
 }: OptimalScheduleProps) {
   const { best, alternatives } = result
   const [altOpen, setAltOpen] = useState<boolean>(false)
@@ -289,15 +272,6 @@ export function OptimalSchedule({
             — protocol is tuned accordingly.
           </span>
         </div>
-      )}
-
-      {/* Counterfactual banner */}
-      {isCounterfactual && (
-        <CounterfactualBanner
-          overrides={overrides}
-          realBaselines={realBaselines}
-          onReset={onResetCounterfactual}
-        />
       )}
 
       {/* Compact outcomes strip */}
@@ -662,63 +636,6 @@ function ProjectionRow({ projection: p }: { projection: OutcomeProjection }) {
               </p>
             ))}
         </div>
-      )}
-    </div>
-  )
-}
-
-const REGIME_SHORT_LABEL: Record<RegimeKey, string> = {
-  overreaching_state: 'overreaching',
-  iron_deficiency_state: 'iron-def',
-  sleep_deprivation_state: 'sleep-dep',
-  inflammation_state: 'inflamed',
-}
-
-function CounterfactualBanner({
-  overrides,
-  realBaselines,
-  onReset,
-}: {
-  overrides: RegimeOverrides
-  realBaselines: Partial<Record<RegimeKey, number>>
-  onReset?: () => void
-}) {
-  const entries = (Object.entries(overrides) as Array<[RegimeKey, number]>).filter(
-    ([key, value]) => {
-      const baseline = realBaselines[key] ?? 0
-      return Math.abs(value - baseline) > 0.005
-    },
-  )
-  if (entries.length === 0) return null
-  return (
-    <div className="flex items-start gap-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-xs text-indigo-900">
-      <Wand2 className="w-3.5 h-3.5 flex-shrink-0 text-indigo-600 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold mb-0.5">
-          Counterfactual — today re-picked under these overrides:
-        </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums">
-          {entries.map(([key, value]) => {
-            const baseline = realBaselines[key] ?? 0
-            return (
-              <span key={key}>
-                <span className="font-medium">{REGIME_SHORT_LABEL[key]}</span>{' '}
-                <span className="text-indigo-600">
-                  {Math.round(baseline * 100)}% → {Math.round(value * 100)}%
-                </span>
-              </span>
-            )
-          })}
-        </div>
-      </div>
-      {onReset && (
-        <button
-          onClick={onReset}
-          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-indigo-300 bg-white text-indigo-700 hover:bg-indigo-100"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset
-        </button>
       )}
     </div>
   )
