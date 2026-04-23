@@ -35,16 +35,19 @@ interface SyntheticEdgeSpec {
 
 const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   // ── Training → VO2max (canonical aerobic adaptation) ───────────────
-  { action: 'zone2_volume',    outcome: 'vo2_peak',      mean:  0.80, pathway: 'biomarker', horizonDays: 84, rationale: 'Zone-2 mitochondrial adaptation → VO2max (Seiler 2010)' },
+  { action: 'zone2_minutes',   outcome: 'vo2_peak',      mean:  0.80, pathway: 'biomarker', horizonDays: 84, rationale: 'Zone-2 mitochondrial adaptation → VO2max (Seiler 2010)' },
+  { action: 'zone4_5_minutes', outcome: 'vo2_peak',      mean:  0.85, pathway: 'biomarker', horizonDays: 56, rationale: 'Minute-for-minute the strongest VO2max stimulus — 4×4-min Z4 intervals (Helgerud 2007 RCT) saturate central adaptations faster than Z2 volume.' },
   { action: 'training_volume', outcome: 'vo2_peak',      mean:  0.60, pathway: 'biomarker', horizonDays: 84, rationale: 'Total training volume → VO2max (Milanović 2015 meta-analysis)' },
 
   // ── Training → lipids (LPL clearance, body-composition pathway) ────
-  { action: 'zone2_volume',    outcome: 'triglycerides', mean: -0.50, pathway: 'biomarker', horizonDays: 60, rationale: 'Aerobic training activates LPL → TG clearance' },
-  { action: 'zone2_volume',    outcome: 'hdl',           mean:  0.40, pathway: 'biomarker', horizonDays: 90, rationale: 'Z2 raises HDL via apoA-I (Kodama 2007)' },
-  { action: 'running_volume',  outcome: 'triglycerides', mean: -0.40, pathway: 'biomarker', horizonDays: 60, rationale: 'Running volume → LPL/TG clearance (dose-response)' },
-  { action: 'running_volume',  outcome: 'hdl',           mean:  0.35, pathway: 'biomarker', horizonDays: 90, rationale: 'Running → HDL (Kraus HERITAGE)' },
-  { action: 'running_volume',  outcome: 'apob',          mean: -0.30, pathway: 'biomarker', horizonDays: 90, rationale: 'Endurance lowers apoB via LPL + body comp' },
-  { action: 'running_volume',  outcome: 'hscrp',         mean: -0.35, pathway: 'biomarker', horizonDays: 60, rationale: 'Endurance training lowers chronic inflammation' },
+  { action: 'zone2_minutes',   outcome: 'triglycerides', mean: -0.50, pathway: 'biomarker', horizonDays: 60, rationale: 'Aerobic training activates LPL → TG clearance' },
+  { action: 'zone2_minutes',   outcome: 'hdl',           mean:  0.40, pathway: 'biomarker', horizonDays: 90, rationale: 'Z2 raises HDL via apoA-I (Kodama 2007)' },
+  { action: 'zone2_minutes',   outcome: 'apob',          mean: -0.30, pathway: 'biomarker', horizonDays: 90, rationale: 'Aerobic volume lowers apoB via LPL + body comp pathway.' },
+  { action: 'zone4_5_minutes', outcome: 'apob',          mean: -0.25, pathway: 'biomarker', horizonDays: 60, rationale: 'HIIT lowers apoB via LDL receptor upregulation; smaller absolute effect than Z2 volume but compounds faster.' },
+
+  // ── Training → inflammation + glycemic control ────────────────────
+  { action: 'zone4_5_minutes', outcome: 'hscrp',         mean: -0.40, pathway: 'biomarker', horizonDays: 56, rationale: 'HIIT lowers chronic inflammation more efficiently per minute than Z2 — IL-6 myokine pulse → IL-10 anti-inflammatory cascade (Petersen 2005).' },
+  { action: 'zone4_5_minutes', outcome: 'glucose',       mean: -0.35, pathway: 'biomarker', horizonDays: 28, rationale: 'Single HIIT bout boosts insulin sensitivity for 24-48h via GLUT4 translocation; sustained protocols lower fasting glucose (Little 2011 RCT).' },
 
   // ── Diet (protein) → iron status (heme pathway) ────────────────────
   { action: 'dietary_protein', outcome: 'ferritin',      mean:  0.50, pathway: 'biomarker', horizonDays: 90, rationale: 'Heme iron from animal protein → ferritin stores' },
@@ -120,9 +123,9 @@ const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   { action: 'alcohol_units',   outcome: 'alt',              mean:  0.40, pathway: 'biomarker', horizonDays: 42, rationale: 'Hepatocellular stress marker rises within weeks of sustained intake above ~2 units/day; reverses on abstinence (Klatsky meta).' },
 
   // ── Training → quotidian (autonomic adaptation, week-scale) ────────
-  { action: 'zone2_volume',    outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Endurance training raises parasympathetic tone (Plews 2013)' },
-  { action: 'zone2_volume',    outcome: 'sleep_efficiency', mean:  0.25, pathway: 'wearable', horizonDays: 2, rationale: 'Moderate aerobic exercise improves sleep (Kredlow 2015 meta)' },
-  { action: 'running_volume',  outcome: 'hrv_daily',        mean:  0.35, pathway: 'wearable', horizonDays: 4, rationale: 'Running volume → vagal tone, diminishing returns above LT1' },
+  { action: 'zone2_minutes',   outcome: 'hrv_daily',        mean:  0.45, pathway: 'wearable', horizonDays: 4, rationale: 'Endurance training raises parasympathetic tone (Plews 2013)' },
+  { action: 'zone2_minutes',   outcome: 'sleep_efficiency', mean:  0.25, pathway: 'wearable', horizonDays: 2, rationale: 'Moderate aerobic exercise improves sleep (Kredlow 2015 meta)' },
+  { action: 'zone4_5_minutes', outcome: 'hrv_daily',        mean: -0.20, pathway: 'wearable', horizonDays: 4, rationale: 'Opposite sign to Z2: HIIT triggers 24-48h sympathetic-dominance recovery debt — daily HRV drops on the day-after a high-intensity session (Stanley 2013, Bishop 2015).' },
 
   // ── Sleep duration → other quotidian outcomes ──────────────────────
   { action: 'sleep_duration',  outcome: 'sleep_efficiency', mean:  0.30, pathway: 'wearable', horizonDays: 2, rationale: 'Longer sleep opportunity supports consolidation' },

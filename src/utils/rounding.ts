@@ -22,8 +22,10 @@ const ACTION_INCREMENT: Record<string, number> = {
   workout_time: 0.25,
   sleep_duration: 0.25,     // hours (15 min)
   training_volume: 0.25,    // hours
-  running_volume: 0.25,     // km/day
-  zone2_volume: 0.25,       // km/day
+  running_volume: 0.25,     // km/day (legacy, used by Protocols sem)
+  zone2_volume: 0.25,       // km/day (legacy, used by Protocols sem)
+  zone2_minutes: 5,         // min/day (LivingGraph)
+  zone4_5_minutes: 1,       // min/day (LivingGraph)
   training_load: 10,        // load units/day
   steps: 500,
   dietary_protein: 5,       // g/day
@@ -300,6 +302,9 @@ export function formatActionValue(value: number, action: string): string {
     case 'running_volume':
     case 'zone2_volume':
       return `${rounded.toFixed(2)} km/day`
+    case 'zone2_minutes':
+    case 'zone4_5_minutes':
+      return `${Math.round(rounded)} min/day`
     case 'training_load':
       return `${rounded.toFixed(0)} load units/day`
     case 'steps':
@@ -325,6 +330,8 @@ function actionPhrase(action: string): string {
     training_volume: 'training',
     running_volume: 'running',
     zone2_volume: 'Zone 2 volume',
+    zone2_minutes: 'Zone 2',
+    zone4_5_minutes: 'Zone 4-5',
     training_load: 'training load',
     steps: 'steps',
     dietary_protein: 'protein',
@@ -387,6 +394,17 @@ export function formatRecommendedAction(
     }
     const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
     return `${verb} ${actionPhrase(action)} to ${target.toFixed(2)} km/day`
+  }
+
+  if (action === 'zone2_minutes' || action === 'zone4_5_minutes') {
+    const mins = Math.round(rounded)
+    if (noCurrent) {
+      return raise
+        ? `Add ~${mins} min/day of ${actionPhrase(action)}`
+        : `Reduce ${actionPhrase(action)} by ~${mins} min/day`
+    }
+    const target = Math.round(roundForAction(Math.max(0, applyDelta(currentValue as number)), action))
+    return `${verb} ${actionPhrase(action)} to ${target} min/day`
   }
 
   if (action === 'training_load') {

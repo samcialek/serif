@@ -29,8 +29,8 @@ export interface ManipulableNode {
 
 export const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'sleep_duration', label: 'Sleep Duration', unit: 'hrs', step: 0.25, defaultValue: 7 },
-  { id: 'running_volume', label: 'Running Volume', unit: 'km/day', step: 0.5, defaultValue: 6 },
-  { id: 'zone2_volume', label: 'Zone 2 Volume', unit: 'km/day', step: 0.5, defaultValue: 3 },
+  { id: 'zone2_minutes', label: 'Zone 2', unit: 'min/day', step: 5, defaultValue: 30, fixedRange: { min: 0, max: 120 } },
+  { id: 'zone4_5_minutes', label: 'Zone 4-5', unit: 'min/day', step: 1, defaultValue: 5, fixedRange: { min: 0, max: 30 } },
   { id: 'training_volume', label: 'Training Volume', unit: 'hrs/day', step: 0.25, defaultValue: 1 },
   { id: 'steps', label: 'Daily Steps', unit: 'steps', step: 500, defaultValue: 8000 },
   { id: 'active_energy', label: 'Active Energy', unit: 'kcal/day', step: 50, defaultValue: 600 },

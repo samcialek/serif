@@ -85,6 +85,18 @@ export const LEVER_CREDIBILITY: Record<string, LeverCredibility> = {
     reason:
       'Aerobic base work holds at sustainable volumes for ~3 months; longer horizons require periodization the static lever does not model.',
   },
+  zone2_minutes: {
+    intervention: 90,
+    stateOverride: null,
+    reason:
+      'Aerobic base work (Z2 minutes) holds at sustainable volumes for ~3 months; longer horizons require periodization the static lever does not model.',
+  },
+  zone4_5_minutes: {
+    intervention: 60,
+    stateOverride: null,
+    reason:
+      'High-intensity work (Z4-5) is the most fragile lever — overuse risk and recovery debt cap sustainable daily prescription beyond ~2 months at constant dose.',
+  },
   active_energy: {
     intervention: 90,
     stateOverride: null,

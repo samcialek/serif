@@ -54,6 +54,20 @@ const SHAPE_OVERRIDE: Record<string, Record<string, DoseShape>> = {
   zone2_volume: {
     vo2_peak: 'plateau_up',
   },
+  zone2_minutes: {
+    vo2_peak: 'plateau_up',
+    hrv_daily: 'plateau_up',
+  },
+  // High-intensity is the canonical inverted-U lever: too little misses
+  // the VO2max stimulus, too much suppresses parasympathetic recovery
+  // and disrupts sleep architecture (Stanley 2013, Bishop 2015).
+  zone4_5_minutes: {
+    vo2_peak: 'plateau_up',
+    hrv_daily: 'inverted_u',
+    sleep_efficiency: 'inverted_u',
+    deep_sleep: 'inverted_u',
+    cortisol: 'inverted_u',
+  },
   training_volume: {
     vo2_peak: 'plateau_up',
     hdl: 'plateau_up',

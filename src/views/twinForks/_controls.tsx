@@ -767,6 +767,8 @@ export function defaultVariantFor(nodeId: string): ControlVariant {
       return 'fader-v'
     case 'running_volume':
     case 'zone2_volume':
+    case 'zone2_minutes':
+    case 'zone4_5_minutes':
       return 'fader-h'
     case 'active_energy':
     case 'dietary_energy':
