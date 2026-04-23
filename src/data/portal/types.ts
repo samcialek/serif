@@ -58,6 +58,14 @@ export interface GateInfo {
   tier: GateTier
 }
 
+/** Where the prior on this (action, outcome) pair came from in the
+ *  backend pipeline. `synthetic` = fitted from a real DAG path.
+ *  `weak_default` = Layer 0 fallback (N(0, 0.25·pop_SD²)) for pairs the
+ *  DAG doesn't yet model — surface only with a "From your data" caveat
+ *  because there's no causal adjustment set behind the user OLS.
+ *  `synthetic+literature` = DAG fit pooled with a published prior. */
+export type PriorProvenance = 'synthetic' | 'weak_default' | 'synthetic+literature'
+
 export interface InsightBayesian {
   action: string
   outcome: string
@@ -66,6 +74,10 @@ export interface InsightBayesian {
   /** Direction of effect supported by established RCT / mechanistic literature,
    * not just the cohort fit. Rendered as a small "Lit" badge in the UI. */
   literature_backed?: boolean
+  /** Backend Layer 0 / Layer 1 / Layer 1+lit provenance. Optional for
+   * defensive parsing of pre-2026-04-22 fixtures (those rows are all
+   * effectively `synthetic` since Layer 0 didn't exist yet). */
+  prior_provenance?: PriorProvenance
   horizon_days?: number
   horizon_display?: string
   supporting_data_description?: string

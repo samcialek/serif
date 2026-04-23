@@ -280,6 +280,7 @@ export function InsightRow({
   const pathway: Pathway = insight.pathway ?? 'wearable'
   const evidenceTier: EvidenceTier = insight.evidence_tier ?? 'cohort_level'
   const literatureBacked = insight.literature_backed === true
+  const isWeakDefault = insight.prior_provenance === 'weak_default'
   const meta = OUTCOME_META[outcome]
   const beneficial: BeneficialDir = meta?.beneficial ?? 'neutral'
 
@@ -412,7 +413,10 @@ export function InsightRow({
   if (density === 'compact') {
     return (
       <div
-        className="bg-white border border-slate-200 rounded-md overflow-hidden"
+        className={cn(
+          'bg-white border border-slate-200 rounded-md overflow-hidden',
+          isWeakDefault && 'opacity-80',
+        )}
         style={{ borderLeftColor: borderColor, borderLeftWidth: borderWidth }}
       >
         <button
@@ -446,7 +450,7 @@ export function InsightRow({
           >
             {outcomeLabel}
           </span>
-          <InlineShapeGauge insight={insight} />
+          {!isWeakDefault && <InlineShapeGauge insight={insight} />}
           <TierBadge tier={tier} />
           <span
             className={cn(
@@ -462,6 +466,14 @@ export function InsightRow({
               title="Direction of effect supported by established literature (RCTs or mechanistic studies)"
             >
               Lit
+            </span>
+          )}
+          {isWeakDefault && (
+            <span
+              className="inline-flex items-center px-1.5 py-0 text-[10px] font-medium border rounded border-slate-300 bg-slate-100 text-slate-600"
+              title="This pattern comes from your data. The mechanism isn't yet in the causal model, so the effect isn't backed by causal adjustment."
+            >
+              From your data
             </span>
           )}
           <PathwayIcon

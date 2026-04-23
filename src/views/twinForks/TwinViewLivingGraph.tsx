@@ -119,6 +119,10 @@ export function TwinViewLivingGraph() {
   const [targetSize, setTargetSize] = useState(5)
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('circuit')
   const stylePreset = EDGE_STYLE_PRESETS[edgeStyle]
+  // Backend Layer 0 added ~468 weak-default edges/participant. They
+  // surface a confounded OLS, not a causal effect — keep the graph
+  // causal-by-default and let the user reveal them via the toggle.
+  const [showExploratory, setShowExploratory] = useState(false)
 
   const atDays = regime === 'quotidian' ? QUOTIDIAN_AT_DAYS : LONGEVITY_AT_DAYS
 
@@ -179,11 +183,18 @@ export function TwinViewLivingGraph() {
       (e) => !realKeys.has(`${e.action}|${canonicalOutcomeKey(e.outcome)}`),
     )
     const allEffects = [...participant.effects_bayesian, ...syntheticEdges]
-    const regimeEffects = allEffects.filter((e) =>
+    // Drop Layer 0 weak-default rows by default. They have no DAG path,
+    // so the implied edge is an unadjusted confounded slope (e.g. naive
+    // bedtime → triglycerides). The "Show exploratory" toggle reveals
+    // them with the same caveat the Insights tab applies.
+    const causalOnly = showExploratory
+      ? allEffects
+      : allEffects.filter((e) => e.prior_provenance !== 'weak_default')
+    const regimeEffects = causalOnly.filter((e) =>
       outcomeInRegime(canonicalOutcomeKey(e.outcome)),
     )
     return buildGraph(regimeEffects, manipulableIds, layout)
-  }, [participant, layout, manipulableIds, outcomeInRegime])
+  }, [participant, layout, manipulableIds, outcomeInRegime, showExploratory])
   const graphOutcomeIds = useMemo(
     () => new Set(graph.nodes.filter((n) => n.kind === 'outcome').map((n) => n.id)),
     [graph],
@@ -384,6 +395,21 @@ export function TwinViewLivingGraph() {
               <span className="ml-1 text-[9px] font-normal text-slate-400">6 mo</span>
             </button>
           </div>
+
+          {/* Exploratory toggle — Layer 0 weak-default edges (no DAG path,
+              confounded user OLS) are hidden by default. Mirrors the
+              Insights-tab toggle. */}
+          <label className="ml-2 inline-flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="w-3 h-3 rounded border-slate-300"
+              checked={showExploratory}
+              onChange={(e) => setShowExploratory(e.target.checked)}
+            />
+            <span title="Reveal Layer 0 weak-default edges — patterns from your data the causal model doesn't yet cover. Direction is suggestive, not adjusted.">
+              Show exploratory
+            </span>
+          </label>
 
           {/* Edge-style picker — "particles" is the classic dot-flow, the
               others render edges as flowing energy with different feel. */}

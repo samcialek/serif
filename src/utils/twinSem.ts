@@ -256,7 +256,17 @@ function findEffect(
   action: string,
   outcome: string,
 ): InsightBayesian | null {
-  const matches = effects.filter((e) => e.action === action && e.outcome === outcome)
+  // Protocols (dose-targeting) require a causal mechanism: dose curves,
+  // direction-conflict logic, and the dose-effectiveness gauge all assume
+  // the edge has a structural fit. Layer 0 weak-default rows are an
+  // unadjusted confounded slope — exclude them from scoring so a strong
+  // OLS signal on a non-mechanistic pair never drives a recommendation.
+  const matches = effects.filter(
+    (e) =>
+      e.action === action &&
+      e.outcome === outcome &&
+      e.prior_provenance !== 'weak_default',
+  )
   if (matches.length === 0) return null
   const tierOrder = ['personal_established', 'personal_emerging', 'cohort_level']
   matches.sort(

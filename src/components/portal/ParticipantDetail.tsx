@@ -109,6 +109,11 @@ export function ParticipantDetail() {
   const { displayName, kind, persona } = useActiveParticipant()
   const [density, setDensity] = useState<'compact' | 'detailed'>('detailed')
   const [totalParticipants, setTotalParticipants] = useState<number | null>(null)
+  // Layer 0 weak-default rows are hidden by default — they have no DAG
+  // path so the "effect" is an unadjusted confounded slope, not causal.
+  // Toggle reveals them with the "From your data" badge + tighter tier
+  // thresholds (insightTier.ts INSIGHT_TIER_THRESHOLDS_WEAK).
+  const [showExploratory, setShowExploratory] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -176,16 +181,29 @@ export function ParticipantDetail() {
         return false
       return true
     })
+    const afterProvenance = showExploratory
+      ? afterMin
+      : afterMin.filter((i) => i.prior_provenance !== 'weak_default')
     const filtered =
       tierFilter.size === 0
-        ? afterMin
-        : afterMin.filter((i) => tierFilter.has(insightTierFor(i)))
+        ? afterProvenance
+        : afterProvenance.filter((i) => tierFilter.has(insightTierFor(i)))
+    // Sort: tier first, then provenance (causal/literature ahead of
+    // weak-default exploratory), then action order.
+    const provRank = (i: typeof filtered[number]) =>
+      i.prior_provenance === 'synthetic+literature'
+        ? 0
+        : i.prior_provenance === 'weak_default'
+        ? 2
+        : 1
     return [...filtered].sort((a, b) => {
       const t = TIER_RANK[insightTierFor(a)] - TIER_RANK[insightTierFor(b)]
       if (t !== 0) return t
+      const p = provRank(a) - provRank(b)
+      if (p !== 0) return p
       return actionRank(a.action) - actionRank(b.action)
     })
-  }, [participant, tierFilter])
+  }, [participant, tierFilter, showExploratory])
 
   // Counts the chip row displays. Derived from the same sign-probability
   // rule used for filtering, not the published protocol-side gate.tier.
@@ -322,11 +340,24 @@ export function ParticipantDetail() {
 
       {/* Insights — behavioural actions first, then load-driven context */}
       <section>
-        <div className="flex items-baseline justify-between mb-3">
+        <div className="flex items-baseline justify-between mb-3 gap-3">
           <h3 className="text-sm font-semibold text-slate-700">
             Insights <span className="text-slate-400 font-normal">({insights.length})</span>
           </h3>
-          <DensityToggle density={density} onChange={setDensity} />
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-3 h-3 rounded border-slate-300"
+                checked={showExploratory}
+                onChange={(e) => setShowExploratory(e.target.checked)}
+              />
+              <span title="Show pairs from your data that the causal model doesn't yet cover (Layer 0 weak-default priors). Tighter sign-probability cutoffs apply.">
+                Show exploratory
+              </span>
+            </label>
+            <DensityToggle density={density} onChange={setDensity} />
+          </div>
         </div>
         {insights.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl">

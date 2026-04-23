@@ -39,10 +39,24 @@ export const INSIGHT_TIER_THRESHOLDS = {
   suggested: 0.8,
 } as const
 
+/** Stricter cutoffs for `prior_provenance === 'weak_default'` insights.
+ *  Weak-default rows have no DAG path → user OLS is an unadjusted
+ *  confounded slope, not a causal effect. Backend doc (2026-04-22)
+ *  recommends pick *one* lever — prior-widening or threshold-tightening,
+ *  not both. We hold the backend prior at 0.25·pop_SD and tighten here. */
+export const INSIGHT_TIER_THRESHOLDS_WEAK = {
+  actionable: 0.99,
+  suggested: 0.9,
+} as const
+
 export function insightTierFor(insight: InsightBayesian): GateTier {
   const p = signProbability(insight.posterior.mean, insight.posterior.sd)
-  if (p >= INSIGHT_TIER_THRESHOLDS.actionable) return 'recommended'
-  if (p >= INSIGHT_TIER_THRESHOLDS.suggested) return 'possible'
+  const t =
+    insight.prior_provenance === 'weak_default'
+      ? INSIGHT_TIER_THRESHOLDS_WEAK
+      : INSIGHT_TIER_THRESHOLDS
+  if (p >= t.actionable) return 'recommended'
+  if (p >= t.suggested) return 'possible'
   return 'not_exposed'
 }
 

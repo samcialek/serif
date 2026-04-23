@@ -148,6 +148,9 @@ export function buildPhase1SyntheticEdges(): InsightBayesian[] {
       pathway: spec.pathway,
       evidence_tier: 'cohort_level',
       literature_backed: true,
+      // Frontend-injected edges all sit on a published mechanism + the
+      // pretend-DAG, so they map to the backend's pooled tier.
+      prior_provenance: 'synthetic+literature',
       horizon_days: spec.horizonDays,
       horizon_display: horizonDisplay(spec.horizonDays),
       supporting_data_description: spec.rationale,
