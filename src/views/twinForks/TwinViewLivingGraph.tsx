@@ -40,6 +40,7 @@ import { buildPhase1SyntheticEdges } from '@/data/scm/syntheticEdges'
 import {
   MANIPULABLE_NODES,
   GOAL_CANDIDATES,
+  type GoalCandidate,
   rangeFor,
   formatNodeValue,
   formatHorizonShort,
@@ -245,14 +246,33 @@ export function TwinViewLivingGraph() {
     atDays,
     runFullCounterfactual,
   })
-  const goalCandidate = useMemo(() => {
-    if (!goalOutcomeId) return null
-    return (
-      GOAL_CANDIDATES.find((g) => canonicalOutcomeKey(g.outcomeId) === goalOutcomeId) ??
-      GOAL_CANDIDATES.find((g) => g.outcomeId === goalOutcomeId) ??
-      null
-    )
-  }, [goalOutcomeId])
+  // Build a goal candidate for any outcome on the fly. If the outcome is
+  // pre-registered in GOAL_CANDIDATES we use it; otherwise we synthesize
+  // one from OUTCOME_META so the per-outcome Optimize button works for
+  // every directional outcome (including newer additions like cortisol,
+  // alt, etc. that haven't been added to GOAL_CANDIDATES).
+  const goalCandidateFor = useCallback(
+    (outcomeId: string): GoalCandidate | null => {
+      const key = canonicalOutcomeKey(outcomeId)
+      const found =
+        GOAL_CANDIDATES.find((g) => canonicalOutcomeKey(g.outcomeId) === key) ??
+        GOAL_CANDIDATES.find((g) => g.outcomeId === key)
+      if (found) return found
+      const meta = OUTCOME_META[key]
+      if (!meta || meta.beneficial === 'neutral') return null
+      return {
+        outcomeId: key,
+        label: `Optimize ${meta.noun}`,
+        group: 'Wearable & sleep',
+        direction: meta.beneficial,
+      }
+    },
+    [],
+  )
+  const goalCandidate = useMemo(
+    () => (goalOutcomeId ? goalCandidateFor(goalOutcomeId) : null),
+    [goalOutcomeId, goalCandidateFor],
+  )
   const goalUnit = goalCandidate
     ? OUTCOME_META[canonicalOutcomeKey(goalCandidate.outcomeId)]?.unit ?? ''
     : ''
@@ -310,6 +330,30 @@ export function TwinViewLivingGraph() {
     setProposedValues({ ...solver.values })
     setGoalOutcomeId(null)
   }, [solver.values])
+
+  // One-click Optimize: enter solver mode for `outcomeId` and immediately
+  // start the solver. The user's proposedValues stay in state and are
+  // restored on Exit, so the action is non-destructive (the Exit button
+  // surfaces this when there are pending changes).
+  const handleOptimize = useCallback(
+    (outcomeId: string) => {
+      const goal = goalCandidateFor(outcomeId)
+      if (!goal) return
+      const key = canonicalOutcomeKey(outcomeId)
+      setGoalOutcomeId(key)
+      // Defer to the next frame so goalCandidate updates before solving.
+      requestAnimationFrame(() => solver.start(goal, targetSize))
+    },
+    [goalCandidateFor, solver, targetSize],
+  )
+
+  // Cancel solver and restore the user's proposed values (the visual
+  // restoration happens automatically because effectiveValues falls back
+  // to proposedValues when goalOutcomeId is null).
+  const exitSolver = useCallback(() => {
+    solver.cancel()
+    setGoalOutcomeId(null)
+  }, [solver])
 
   if (pid == null) {
     return (
@@ -446,14 +490,23 @@ export function TwinViewLivingGraph() {
           <div className="ml-auto flex items-center gap-2">
             {inSolverMode ? (
               <button
-                onClick={() => {
-                  solver.cancel()
-                  setGoalOutcomeId(null)
-                }}
-                className="text-[11px] flex items-center gap-1 px-2 py-1.5 rounded border text-slate-600 border-slate-200 hover:bg-slate-50"
+                onClick={exitSolver}
+                className={cn(
+                  'text-[11px] flex items-center gap-1 px-2 py-1.5 rounded border',
+                  deltas.length > 0
+                    ? 'text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 font-semibold'
+                    : 'text-slate-600 border-slate-200 hover:bg-slate-50',
+                )}
+                title={
+                  deltas.length > 0
+                    ? `Exit solver and restore your ${deltas.length} pending change${deltas.length === 1 ? '' : 's'}`
+                    : 'Exit solver mode'
+                }
               >
                 <X className="w-3 h-3" />
-                Exit solver
+                {deltas.length > 0
+                  ? `Exit & restore your ${deltas.length} change${deltas.length === 1 ? '' : 's'}`
+                  : 'Exit solver'}
               </button>
             ) : (
               deltas.length > 0 && (
@@ -585,16 +638,25 @@ export function TwinViewLivingGraph() {
                 leverDeltas={leverDeltas}
                 renderLeverOverlay={() => null}
                 onOutcomeClick={(id) => {
-                  setGoalOutcomeId((prev) => (prev === id ? null : id))
+                  // Click outcome circle = same as Optimize button (auto-start
+                  // solver). Cleaner affordance than the old toggle behavior.
+                  if (goalOutcomeId === canonicalOutcomeKey(id)) {
+                    exitSolver()
+                  } else {
+                    handleOptimize(id)
+                  }
                 }}
-                renderOutcomeOverlay={({ label, delta, tone, deltaNorm }) => {
+                renderOutcomeOverlay={({ id, label, delta, tone, deltaNorm }) => {
                   const fill =
                     tone === 'benefit'
                       ? '#10b981'
                       : tone === 'harm'
                         ? '#f43f5e'
                         : '#94a3b8'
-                  const isGoal = goalOutcomeId != null
+                  const key = canonicalOutcomeKey(id)
+                  const isGoal = goalOutcomeId === key
+                  const canOptimize = !inSolverMode && goalCandidateFor(id) != null
+                  const hasPendingChanges = deltas.length > 0
                   const baseR = 18
                   const dark = stylePreset.dark
                   const labelFill = dark ? '#f1f5f9' : '#0f172a'
@@ -645,6 +707,57 @@ export function TwinViewLivingGraph() {
                           {formatEffectDelta(delta, label)}
                         </text>
                       )}
+                      {/* Optimize button — sits below the label. Tinted amber
+                          when the user has pending lever changes so the
+                          replace-and-restore-on-Exit affordance is visible
+                          before the click. */}
+                      {canOptimize && (
+                        <g
+                          transform={`translate(${baseR + 10}, 28)`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOptimize(id)
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <rect
+                            width={86}
+                            height={20}
+                            rx={10}
+                            fill={
+                              hasPendingChanges
+                                ? dark ? '#7c2d12' : '#fff7ed'
+                                : dark ? '#1e293b' : '#f1f5f9'
+                            }
+                            stroke={
+                              hasPendingChanges
+                                ? '#f59e0b'
+                                : dark ? '#475569' : '#cbd5e1'
+                            }
+                            strokeWidth={1.25}
+                          />
+                          <text
+                            x={43}
+                            y={14}
+                            textAnchor="middle"
+                            fontSize={10.5}
+                            fontWeight={700}
+                            fill={
+                              hasPendingChanges
+                                ? dark ? '#fed7aa' : '#9a3412'
+                                : dark ? '#f1f5f9' : '#334155'
+                            }
+                            style={{ pointerEvents: 'none', letterSpacing: '0.04em' }}
+                          >
+                            ⚡ OPTIMIZE
+                          </text>
+                          <title>
+                            {hasPendingChanges
+                              ? `Replace your ${deltas.length} pending change${deltas.length === 1 ? '' : 's'} with the optimum for ${label}. Restorable via Exit.`
+                              : `Find the lever set that best moves ${label}.`}
+                          </title>
+                        </g>
+                      )}
                     </>
                   )
                 }}
@@ -694,8 +807,10 @@ export function TwinViewLivingGraph() {
             </div>
             <div className="px-2 pt-1 text-[10px] text-slate-400">
               {inSolverMode
-                ? 'Solver mode: violet particles sweep backward from the goal, levers animate to the plan. Click "Apply" in the bar above to load it into the controls.'
-                : 'Forward mode: turn any inline control, watch particles flow and outcomes pulse. Click an outcome to flip into solver mode.'}
+                ? deltas.length > 0
+                  ? 'Solver mode: levers are animating to the optimum. Apply locks the plan; Exit restores your previous changes.'
+                  : 'Solver mode: levers are animating to the optimum. Apply locks the plan; Exit returns to baseline.'
+                : 'Forward mode: turn any lever, watch particles flow and outcomes pulse. Click ⚡ Optimize on an outcome to have Serif find the best lever set.'}
             </div>
           </div>
         </Card>
