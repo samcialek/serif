@@ -59,6 +59,44 @@ export const OUTCOME_HORIZON_DAYS: Record<string, number> = {
   total_cholesterol: 84,
 }
 
+/**
+ * Curated longevity outcome list — what surfaces in the LivingGraph
+ * "Longevity" regime. Keeping this explicit (rather than "everything not
+ * today-band") because the longevity tab is a curatorial decision: drop
+ * redundant downstream-of-other-markers outcomes (total_cholesterol /
+ * non_hdl_cholesterol with apob/ldl/hdl present, iron_total with ferritin,
+ * ast with alt, mcv/rbc as hematology detail) and low-coverage / low-
+ * interpretability rows (estradiol, shbg, platelets, wbc, zinc,
+ * body_mass_kg). Horizon entries above are kept intact so the engine can
+ * still reason about them when needed.
+ *
+ * 20 outcomes — 10 weeks band, 10 months band.
+ */
+export const CURATED_LONGEVITY_OUTCOMES = new Set<string>([
+  // Weeks band (8-42d)
+  'cortisol',
+  'glucose',
+  'insulin',
+  'nlr',
+  'triglycerides',
+  'alt',
+  'dhea_s',
+  'hscrp',
+  'testosterone',
+  'uric_acid',
+  // Months band (>= 43d)
+  'ferritin',
+  'homocysteine',
+  'rdw',
+  'vo2_peak',
+  'hdl',
+  'apob',
+  'body_fat_pct',
+  'hemoglobin',
+  'ldl',
+  'magnesium_rbc',
+])
+
 export type HorizonBand = 'today' | 'weeks' | 'months' | 'unknown'
 
 export const HORIZON_BAND_ORDER: HorizonBand[] = ['today', 'weeks', 'months', 'unknown']

@@ -35,7 +35,7 @@ import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { friendlyName } from '@/data/scm/fullCounterfactual'
 import { formatOutcomeValue } from '@/utils/rounding'
-import { horizonBandFor } from '@/data/scm/outcomeHorizons'
+import { horizonBandFor, CURATED_LONGEVITY_OUTCOMES } from '@/data/scm/outcomeHorizons'
 import { buildPhase1SyntheticEdges } from '@/data/scm/syntheticEdges'
 import {
   MANIPULABLE_NODES,
@@ -134,12 +134,15 @@ export function TwinViewLivingGraph() {
   const atDays = regime === 'quotidian' ? QUOTIDIAN_AT_DAYS : LONGEVITY_AT_DAYS
 
   // Predicate for which outcomes belong in this regime's subgraph. The
-  // wearable-responsive band ('today', ≤7d) is the only quotidian one; all
-  // biomarker-class outcomes (weeks + months bands) belong to longevity.
+  // wearable-responsive band ('today', ≤7d) is the only quotidian one;
+  // longevity is the curated 20 (CURATED_LONGEVITY_OUTCOMES) — explicit
+  // whitelist rather than "anything not today-band" so we can drop
+  // redundant or low-interpretability biomarkers without deleting their
+  // engine horizon entries.
   const outcomeInRegime = useCallback(
     (outcomeKey: string) => {
-      const band = horizonBandFor(outcomeKey)
-      return regime === 'quotidian' ? band === 'today' : band !== 'today'
+      if (regime === 'quotidian') return horizonBandFor(outcomeKey) === 'today'
+      return CURATED_LONGEVITY_OUTCOMES.has(outcomeKey)
     },
     [regime],
   )
