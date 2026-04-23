@@ -1,13 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, MemberAvatar } from '@/components/common'
 import {
+  CounterfactualSliders,
   OptimalSchedule,
   ProtocolContextVariantToggle,
   useContextVariants,
 } from '@/components/portal'
+import type { RegimeOverrides } from '@/components/portal'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { usePortalStore } from '@/stores/portalStore'
@@ -17,7 +19,7 @@ import {
   pickOptimalSchedule,
   OBJECTIVE_ORON,
 } from '@/utils/twinSem'
-import type { RegimeKey } from '@/data/portal/types'
+import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 
 const DAY_OF_WEEK = [
   'Sunday',
@@ -29,11 +31,27 @@ const DAY_OF_WEEK = [
   'Saturday',
 ]
 
+/** Merge user overrides onto the participant's real regime activations. */
+function applyOverrides(
+  participant: ParticipantPortal,
+  overrides: RegimeOverrides,
+): ParticipantPortal {
+  if (Object.keys(overrides).length === 0) return participant
+  return {
+    ...participant,
+    regime_activations: {
+      ...(participant.regime_activations ?? {}),
+      ...overrides,
+    },
+  }
+}
+
 export function ProtocolsView() {
   const activePid = usePortalStore((s) => s.activePid)
   const { participant, isLoading, error } = useParticipant()
   const { displayName, persona } = useActiveParticipant()
   const [variants, setVariants] = useContextVariants()
+  const [overrides, setOverrides] = useState<RegimeOverrides>({})
 
   const titleAccessory = (
     <MemberAvatar persona={persona} displayName={displayName} size="lg" />
@@ -41,18 +59,23 @@ export function ProtocolsView() {
 
   const today = useMemo(() => new Date(), [])
 
+  const effectiveParticipant = useMemo(
+    () => (participant ? applyOverrides(participant, overrides) : null),
+    [participant, overrides],
+  )
+
   const twin = useMemo(() => {
-    if (!participant) return null
-    const result = pickOptimalSchedule(participant, OBJECTIVE_ORON)
-    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON)
-    const wakeTime = derivedWakeTime(participant)
-    const regimes = participant.regime_activations ?? {}
+    if (!effectiveParticipant) return null
+    const result = pickOptimalSchedule(effectiveParticipant, OBJECTIVE_ORON)
+    const neutralBaseline = pickNeutralBaseline(effectiveParticipant, OBJECTIVE_ORON)
+    const wakeTime = derivedWakeTime(effectiveParticipant)
+    const regimes = effectiveParticipant.regime_activations ?? {}
     const activeRegimes = (Object.entries(regimes) as Array<[RegimeKey, number]>)
       .filter(([, v]) => v >= 0.3)
       .sort((a, b) => b[1] - a[1])
       .map(([key, activation]) => ({ key, activation }))
     return { result, neutralBaseline, wakeTime, activeRegimes }
-  }, [participant])
+  }, [effectiveParticipant])
 
   if (activePid == null) {
     return (
@@ -98,7 +121,7 @@ export function ProtocolsView() {
     )
   }
 
-  if (!participant || !twin) return null
+  if (!participant || !effectiveParticipant || !twin) return null
 
   const dateLabel = today.toLocaleDateString('en-US', {
     month: 'long',
@@ -113,6 +136,8 @@ export function ProtocolsView() {
     />
   )
 
+  const isCounterfactual = Object.keys(overrides).length > 0
+
   return (
     <PageLayout
       title={`${displayName} — today's plan`}
@@ -126,8 +151,15 @@ export function ProtocolsView() {
         transition={{ duration: 0.2 }}
       >
         <Card padding="md" className="rounded-xl">
+          <div className="mb-4">
+            <CounterfactualSliders
+              baselines={participant.regime_activations ?? {}}
+              overrides={overrides}
+              onOverridesChange={setOverrides}
+            />
+          </div>
           <OptimalSchedule
-            participant={participant}
+            participant={effectiveParticipant}
             result={twin.result}
             neutralBaseline={twin.neutralBaseline}
             dateLabel={dateLabel}
@@ -136,6 +168,10 @@ export function ProtocolsView() {
             wakeTime={twin.wakeTime}
             chipVariant={variants.chip}
             auditPlacement={variants.audit}
+            isCounterfactual={isCounterfactual}
+            overrides={overrides}
+            realBaselines={participant.regime_activations ?? {}}
+            onResetCounterfactual={() => setOverrides({})}
           />
         </Card>
       </motion.div>

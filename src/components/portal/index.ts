@@ -18,3 +18,5 @@ export {
   useContextVariants,
 } from './ProtocolContextVariantToggle'
 export type { ContextVariants } from './ProtocolContextVariantToggle'
+export { CounterfactualSliders } from './CounterfactualSliders'
+export type { RegimeOverrides } from './CounterfactualSliders'
