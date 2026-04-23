@@ -442,6 +442,28 @@ export function pickOptimalSchedule(
   }
 }
 
+/** Neutral-state counterfactual — what the engine would pick if regimes
+ * weren't active and loads weren't off-baseline. Used by the Protocols tab
+ * audit trail to frame today's picks against "what would you get if today
+ * were a boring Tuesday?"
+ *
+ * Implementation: clones the participant with regime_activations zeroed and
+ * loads_today cleared, then runs pickOptimalSchedule. Leaves every other
+ * field (effects, current_values, baselines) untouched so the posterior
+ * ranking is still this participant's ranking — only the regime-penalty
+ * term and load-driven protocol nudges are neutralized. */
+export function pickNeutralBaseline(
+  participant: ParticipantPortal,
+  objective: ObjectiveOutcome[] = OBJECTIVE_ORON,
+): CounterfactualResult {
+  const neutral: ParticipantPortal = {
+    ...participant,
+    regime_activations: {},
+    loads_today: undefined,
+  }
+  return pickOptimalSchedule(neutral, objective)
+}
+
 // Human-readable diff between two schedules ("vs chosen: +0.4 HRV, −0.3 cortisol").
 export interface ScheduleDiff {
   bedtimeDelta: number // hours

@@ -6,6 +6,13 @@
  *   1. Protocol timeline — dominant content (10–14 concrete actions)
  *   2. Projected outcomes — compact strip, one line per outcome
  *   3. Alternatives considered — collapsed accordion
+ *
+ * Each timeline row carries a `context` field (driving loads, active regimes,
+ * DAG confounders). Two surfaces explain that context to the user:
+ *   - ProtocolContextChip: inline one-glance summary on every row.
+ *   - ProtocolAuditTrail:  three-block "how we chose this" (baseline →
+ *                          modifiers → final) behind a disclosure button.
+ * Both have prototype variants; see ProtocolContextVariantToggle.
  */
 
 import { useMemo, useState } from 'react'
@@ -33,13 +40,19 @@ import type {
 } from '@/utils/twinSem'
 import { SESSION_PRESETS, diffSchedules } from '@/utils/twinSem'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
-import type { ProtocolItem } from '@/utils/dailyProtocol'
+import type { MatchedProtocolItem, ProtocolItem } from '@/utils/dailyProtocol'
 import {
   buildDailyProtocol,
+  matchProtocolItems,
   sourceLabel,
   tagColor,
+  userConfoundersForItem,
 } from '@/utils/dailyProtocol'
 import { ContextStrip } from '@/components/portal/ContextStrip'
+import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
+import type { ChipVariant } from '@/components/portal/ProtocolContextChip'
+import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
+import type { AuditPlacement } from '@/components/portal/ProtocolAuditTrail'
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'Overreaching',
@@ -81,32 +94,52 @@ const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
 interface OptimalScheduleProps {
   participant: ParticipantPortal
   result: CounterfactualResult
+  neutralBaseline: CounterfactualResult | null
   dateLabel: string
   dayOfWeek: string
   activeRegimes: Array<{ key: RegimeKey; activation: number }>
   wakeTime: number
+  chipVariant: ChipVariant
+  auditPlacement: AuditPlacement
 }
 
 export function OptimalSchedule({
   participant,
   result,
+  neutralBaseline,
   dateLabel,
   dayOfWeek,
   activeRegimes,
   wakeTime,
+  chipVariant,
+  auditPlacement,
 }: OptimalScheduleProps) {
   const { best, alternatives } = result
   const [altOpen, setAltOpen] = useState<boolean>(false)
   const [outcomesOpen, setOutcomesOpen] = useState<boolean>(false)
   const session = SESSION_PRESETS[best.schedule.session]
+  const today = useMemo(() => new Date(), [])
 
-  const protocol = useMemo(
-    () =>
-      buildDailyProtocol(participant, best.schedule, {
-        wakeTime,
-      }),
-    [participant, best.schedule, wakeTime],
-  )
+  const matched: MatchedProtocolItem[] = useMemo(() => {
+    const real = buildDailyProtocol(participant, best.schedule, {
+      wakeTime,
+      date: today,
+    })
+    if (!neutralBaseline) {
+      return real.map((r) => ({ real: r, neutral: null }))
+    }
+    const neutralParticipant: ParticipantPortal = {
+      ...participant,
+      regime_activations: {},
+      loads_today: undefined,
+    }
+    const neutral = buildDailyProtocol(
+      neutralParticipant,
+      neutralBaseline.best.schedule,
+      { wakeTime, date: today },
+    )
+    return matchProtocolItems(real, neutral)
+  }, [participant, best.schedule, neutralBaseline, wakeTime, today])
 
   // Top 3 beneficial projections for the compact outcomes strip.
   const topProjections = useMemo(() => {
@@ -213,7 +246,7 @@ export function OptimalSchedule({
             Today's protocol
           </p>
           <p className="text-[11px] text-slate-400 tabular-nums">
-            {protocol.length} actions · wake {formatClockTime(wakeTime)} → lights out{' '}
+            {matched.length} actions · wake {formatClockTime(wakeTime)} → lights out{' '}
             {formatClockTime(best.schedule.bedtime)}
           </p>
         </div>
@@ -221,8 +254,14 @@ export function OptimalSchedule({
           {/* Timeline spine */}
           <div className="absolute left-[22px] top-2 bottom-2 w-px bg-slate-200" />
           <ul className="space-y-2.5">
-            {protocol.map((p, i) => (
-              <ProtocolRow key={i} item={p} />
+            {matched.map((m, i) => (
+              <ProtocolRow
+                key={i}
+                matched={m}
+                participant={participant}
+                chipVariant={chipVariant}
+                auditPlacement={auditPlacement}
+              />
             ))}
           </ul>
         </div>
@@ -275,9 +314,34 @@ export function OptimalSchedule({
   )
 }
 
-function ProtocolRow({ item }: { item: ProtocolItem }) {
+interface ProtocolRowProps {
+  matched: MatchedProtocolItem
+  participant: ParticipantPortal
+  chipVariant: ChipVariant
+  auditPlacement: AuditPlacement
+}
+
+function ProtocolRow({
+  matched,
+  participant,
+  chipVariant,
+  auditPlacement,
+}: ProtocolRowProps) {
+  const { real, neutral } = matched
   const [suggestOpen, setSuggestOpen] = useState<boolean>(false)
-  const hasSuggestions = item.suggestions && item.suggestions.length > 0
+  const [auditOpen, setAuditOpen] = useState<boolean>(false)
+  const hasSuggestions = real.suggestions && real.suggestions.length > 0
+
+  const userConfounders = useMemo(
+    () => userConfoundersForItem(real, participant.effects_bayesian),
+    [real, participant.effects_bayesian],
+  )
+
+  const hasContext =
+    real.context.active_regimes.length > 0 ||
+    real.context.driving_loads.length > 0 ||
+    real.context.confounders_adjusted.some((c) => c.value)
+
   return (
     <li className="relative pl-12">
       {/* Time + source dot on the spine */}
@@ -285,35 +349,40 @@ function ProtocolRow({ item }: { item: ProtocolItem }) {
         <span
           className={cn(
             'w-2 h-2 rounded-full flex-shrink-0 ring-2 ring-white relative z-10',
-            SOURCE_DOT[item.source],
+            SOURCE_DOT[real.source],
           )}
         />
       </div>
       <div className="flex items-baseline gap-2 mb-0.5">
         <span className="text-[11px] font-medium tabular-nums text-slate-500 w-14 flex-shrink-0">
-          {item.displayTime}
+          {real.displayTime}
         </span>
-        <span className="text-base leading-none">{item.icon}</span>
-        <span className="text-sm font-semibold text-slate-800">{item.title}</span>
+        <span className="text-base leading-none">{real.icon}</span>
+        <span className="text-sm font-semibold text-slate-800">{real.title}</span>
         <span className="text-sm text-slate-600">·</span>
-        <span className="text-sm text-slate-700">{item.dose}</span>
+        <span className="text-sm text-slate-700">{real.dose}</span>
       </div>
-      {item.details && item.details.length > 0 && (
+      {real.details && real.details.length > 0 && (
         <ul className="ml-[72px] space-y-0.5 mb-1">
-          {item.details.map((d, i) => (
+          {real.details.map((d, i) => (
             <li key={i} className="text-[12px] text-slate-600 leading-snug">
               · {d}
             </li>
           ))}
         </ul>
       )}
-      {item.rationale && (
+      {real.rationale && (
         <p className="ml-[72px] text-[11px] text-slate-500 italic leading-snug mb-1">
-          {item.rationale}
+          {real.rationale}
         </p>
       )}
+      {hasContext && (
+        <div className="ml-[72px] mb-1">
+          <ProtocolContextChip context={real.context} variant={chipVariant} />
+        </div>
+      )}
       <div className="ml-[72px] flex items-center gap-1.5 flex-wrap">
-        {item.tags.map((t) => (
+        {real.tags.map((t) => (
           <span
             key={t}
             className={cn(
@@ -339,8 +408,19 @@ function ProtocolRow({ item }: { item: ProtocolItem }) {
             )}
           </button>
         )}
+        {hasContext && (
+          <ProtocolAuditTrail
+            real={real}
+            neutral={neutral}
+            userConfounders={userConfounders}
+            placement={auditPlacement}
+            open={auditOpen}
+            onToggle={() => setAuditOpen((v) => !v)}
+            onClose={() => setAuditOpen(false)}
+          />
+        )}
         <span className="text-[10px] text-slate-400 ml-auto">
-          {sourceLabel(item.source)}
+          {sourceLabel(real.source)}
         </span>
       </div>
       {hasSuggestions && suggestOpen && (
@@ -349,7 +429,7 @@ function ProtocolRow({ item }: { item: ProtocolItem }) {
             Non-engine suggestions
           </p>
           <ul className="space-y-0.5">
-            {item.suggestions!.map((s, i) => (
+            {real.suggestions!.map((s, i) => (
               <li key={i} className="text-[12px] text-slate-600 leading-snug">
                 · {s}
               </li>

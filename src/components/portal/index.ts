@@ -9,3 +9,12 @@ export { DoseGauge } from './DoseGauge'
 export { ParticipantSelector } from './ParticipantSelector'
 export { DailySchedule } from './DailySchedule'
 export { OptimalSchedule } from './OptimalSchedule'
+export { ProtocolContextChip } from './ProtocolContextChip'
+export type { ChipVariant } from './ProtocolContextChip'
+export { ProtocolAuditTrail } from './ProtocolAuditTrail'
+export type { AuditPlacement } from './ProtocolAuditTrail'
+export {
+  ProtocolContextVariantToggle,
+  useContextVariants,
+} from './ProtocolContextVariantToggle'
+export type { ContextVariants } from './ProtocolContextVariantToggle'

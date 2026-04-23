@@ -3,11 +3,20 @@ import { motion } from 'framer-motion'
 import { AlertCircle, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, MemberAvatar } from '@/components/common'
-import { OptimalSchedule } from '@/components/portal'
+import {
+  OptimalSchedule,
+  ProtocolContextVariantToggle,
+  useContextVariants,
+} from '@/components/portal'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { usePortalStore } from '@/stores/portalStore'
-import { derivedWakeTime, pickOptimalSchedule, OBJECTIVE_ORON } from '@/utils/twinSem'
+import {
+  derivedWakeTime,
+  pickNeutralBaseline,
+  pickOptimalSchedule,
+  OBJECTIVE_ORON,
+} from '@/utils/twinSem'
 import type { RegimeKey } from '@/data/portal/types'
 
 const DAY_OF_WEEK = [
@@ -24,6 +33,7 @@ export function ProtocolsView() {
   const activePid = usePortalStore((s) => s.activePid)
   const { participant, isLoading, error } = useParticipant()
   const { displayName, persona } = useActiveParticipant()
+  const [variants, setVariants] = useContextVariants()
 
   const titleAccessory = (
     <MemberAvatar persona={persona} displayName={displayName} size="lg" />
@@ -34,13 +44,14 @@ export function ProtocolsView() {
   const twin = useMemo(() => {
     if (!participant) return null
     const result = pickOptimalSchedule(participant, OBJECTIVE_ORON)
+    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON)
     const wakeTime = derivedWakeTime(participant)
     const regimes = participant.regime_activations ?? {}
     const activeRegimes = (Object.entries(regimes) as Array<[RegimeKey, number]>)
       .filter(([, v]) => v >= 0.3)
       .sort((a, b) => b[1] - a[1])
       .map(([key, activation]) => ({ key, activation }))
-    return { result, wakeTime, activeRegimes }
+    return { result, neutralBaseline, wakeTime, activeRegimes }
   }, [participant])
 
   if (activePid == null) {
@@ -95,10 +106,18 @@ export function ProtocolsView() {
     year: 'numeric',
   })
 
+  const actions = (
+    <ProtocolContextVariantToggle
+      variants={variants}
+      onChange={setVariants}
+    />
+  )
+
   return (
     <PageLayout
       title={`${displayName} — today's plan`}
       titleAccessory={titleAccessory}
+      actions={actions}
       subtitle="Today's schedule, chosen for this member's current loads and regime state."
     >
       <motion.div
@@ -110,10 +129,13 @@ export function ProtocolsView() {
           <OptimalSchedule
             participant={participant}
             result={twin.result}
+            neutralBaseline={twin.neutralBaseline}
             dateLabel={dateLabel}
             dayOfWeek={DAY_OF_WEEK[today.getDay()]}
             activeRegimes={twin.activeRegimes}
             wakeTime={twin.wakeTime}
+            chipVariant={variants.chip}
+            auditPlacement={variants.audit}
           />
         </Card>
       </motion.div>
