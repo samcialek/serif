@@ -610,7 +610,10 @@ export function TwinViewLivingGraph() {
             </span>
           )}
           {bartStatus === 'ready' && mcState && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5"
+              title="BART surfaces are observational fits until backdoor-confounder re-fit ships. Bands reflect posterior spread, not causal identification."
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
               BART · {mcState.kSamples} draws · {mcState.bartOutcomes.length} outcomes
             </span>

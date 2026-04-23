@@ -53,6 +53,66 @@ REGIME_TO_DRIVER: dict[str, str] = {
 }
 
 
+# ── Backdoor confounders per outcome ───────────────────────────────
+#
+# Mirrors the `edgeType: 'confounds'` entries in
+# `src/data/dataValue/mechanismCatalog.ts` (14 edges at time of writing).
+# Including these in BART's `parent_names` lets the surface condition on
+# the confounder alongside the causal parent, so the do-side evaluation
+# at MC time is closer to the causal effect rather than the observational
+# conditional expectation.
+#
+# Motivating example: testosterone has `season` + `vitamin_d` as observed
+# confounders. Without them in `parent_names`, BART's `do(acwr=1.5)`
+# surface flipped sign versus the piecewise causal estimate because the
+# fit was picking up the seasonal co-movement of training load and
+# androgen rhythm. With them in `parent_names`, the MC loop holds
+# confounders at observed values (they're non-descendants of the
+# intervention, so `readParent` falls back to `observedValues` in
+# `bartMonteCarlo.ts`) and BART returns the partial effect of acwr
+# conditional on season + vitamin_d.
+#
+# Only `confounds` edges are listed here — `causal` edges already enter
+# via the SCM equations and are picked up by `discover_fit_targets`.
+CONFOUNDERS_BY_OUTCOME: dict[str, list[str]] = {
+    "training_volume":  ["season", "location", "is_weekend"],
+    "vitamin_d":        ["season"],
+    "testosterone":     ["season", "vitamin_d"],
+    "sleep_duration":   ["season", "is_weekend"],
+    "sleep_quality":    ["location", "travel_load"],
+    "hrv_daily":        ["travel_load"],
+    "resting_hr":       ["travel_load"],
+    "bedtime":          ["is_weekend"],
+    "omega3_index":     ["season"],
+}
+
+
+def add_confounders(
+    outcome: str,
+    parents: list[str],
+    *,
+    enabled: bool,
+) -> list[str]:
+    """Union observable confounders into the parent list for an outcome.
+
+    Order-preserving: existing parents come first (alphabetical from
+    `discover_fit_targets`), confounders appended in catalogue order.
+    De-duplicates if a confounder is already a DAG-causal parent.
+    """
+    if not enabled:
+        return parents
+    confounders = CONFOUNDERS_BY_OUTCOME.get(outcome, [])
+    if not confounders:
+        return parents
+    seen = set(parents)
+    combined = list(parents)
+    for c in confounders:
+        if c not in seen:
+            combined.append(c)
+            seen.add(c)
+    return combined
+
+
 def substitute_regime_parents(parents: list[str]) -> list[str]:
     """Swap regime-latent parents for their observable drivers. De-dup.
 
@@ -126,6 +186,7 @@ def discover_fit_targets(
     *,
     min_parents: int,
     observable: set[str] | None = None,
+    include_confounders: bool = True,
 ) -> dict[str, list[str]]:
     """Map outcome → ordered parent list, filtered to nodes with >=min_parents.
 
@@ -136,6 +197,11 @@ def discover_fit_targets(
     with a silent skip — they leave the DAG edge unrepresented in BART,
     and the Twin should fall back to the piecewise-linear fit for that
     edge.
+
+    When `include_confounders=True` (default), observable confounders from
+    `CONFOUNDERS_BY_OUTCOME` are unioned into the parent list so BART can
+    condition on them. The observability filter still applies — missing
+    confounders are dropped silently.
     """
     by_target = build_equations_by_target(equations)
     targets: dict[str, list[str]] = {}
@@ -147,6 +213,8 @@ def discover_fit_targets(
         # Skip self-loops introduced by the swap (e.g. hscrp ← inflammation_state
         # rewrites to hscrp ← hscrp).
         parents = [p for p in parents if p != outcome]
+        # Append observable backdoor confounders if requested.
+        parents = add_confounders(outcome, parents, enabled=include_confounders)
         if observable is not None:
             parents = [p for p in parents if p in observable]
         if len(parents) >= min_parents:
@@ -203,6 +271,7 @@ def audit_outcomes(
     *,
     min_parents: int = 2,
     outcomes: list[str] | None = None,
+    include_confounders: bool = True,
 ) -> dict[str, dict]:
     """Report (X, y) shapes per outcome without fitting. Cheap sanity check.
 
@@ -211,7 +280,10 @@ def audit_outcomes(
     """
     observable = observable_parent_names(participants)
     targets = discover_fit_targets(
-        equations, min_parents=min_parents, observable=observable,
+        equations,
+        min_parents=min_parents,
+        observable=observable,
+        include_confounders=include_confounders,
     )
     if outcomes is not None:
         targets = {o: targets[o] for o in outcomes if o in targets}
@@ -248,6 +320,7 @@ def export_all_outcomes(
     n_trees: int = 50,
     outcomes: list[str] | None = None,
     seed: int = 42,
+    include_confounders: bool = True,
 ) -> dict[str, dict]:
     """Fit BART per outcome node and write draws. Returns manifest dict."""
     output_dir = Path(output_dir)
@@ -255,7 +328,10 @@ def export_all_outcomes(
 
     observable = observable_parent_names(participants)
     targets = discover_fit_targets(
-        equations, min_parents=min_parents, observable=observable,
+        equations,
+        min_parents=min_parents,
+        observable=observable,
+        include_confounders=include_confounders,
     )
     if outcomes is not None:
         targets = {o: targets[o] for o in outcomes if o in targets}
@@ -347,6 +423,9 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--dry-run", action="store_true",
                         help="Audit (X, y) shapes per outcome; no MCMC.")
+    parser.add_argument("--no-confounders", action="store_true",
+                        help="Skip backdoor-confounder inclusion "
+                             "(observational fit only). Default: include.")
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -362,12 +441,15 @@ def main() -> None:
     equations = build_equations()
     print(f"  {len(equations)} structural equations")
 
+    include_confounders = not args.no_confounders
+
     if args.dry_run:
         audit_outcomes(
             participants,
             equations,
             min_parents=args.min_parents,
             outcomes=args.outcomes,
+            include_confounders=include_confounders,
         )
         return
 
@@ -383,6 +465,7 @@ def main() -> None:
         n_trees=args.n_trees,
         outcomes=args.outcomes,
         seed=args.seed,
+        include_confounders=include_confounders,
     )
 
 

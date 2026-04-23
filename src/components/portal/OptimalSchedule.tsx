@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
+  Lightbulb,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react'
@@ -38,6 +39,7 @@ import {
   sourceLabel,
   tagColor,
 } from '@/utils/dailyProtocol'
+import { ContextStrip } from '@/components/portal/ContextStrip'
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'Overreaching',
@@ -143,6 +145,11 @@ export function OptimalSchedule({
           </div>
         </div>
       </div>
+
+      {/* Loads strip — today's rolling-load context */}
+      {participant.loads_today && (
+        <ContextStrip loads={participant.loads_today} />
+      )}
 
       {/* Regime banner */}
       {activeRegimes.length > 0 && (
@@ -269,6 +276,8 @@ export function OptimalSchedule({
 }
 
 function ProtocolRow({ item }: { item: ProtocolItem }) {
+  const [suggestOpen, setSuggestOpen] = useState<boolean>(false)
+  const hasSuggestions = item.suggestions && item.suggestions.length > 0
   return (
     <li className="relative pl-12">
       {/* Time + source dot on the spine */}
@@ -315,10 +324,42 @@ function ProtocolRow({ item }: { item: ProtocolItem }) {
             {t}
           </span>
         ))}
+        {hasSuggestions && (
+          <button
+            onClick={() => setSuggestOpen((v) => !v)}
+            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+            aria-expanded={suggestOpen}
+          >
+            <Lightbulb className="w-3 h-3" />
+            {suggestOpen ? 'Hide options' : 'Suggest options'}
+            {suggestOpen ? (
+              <ChevronUp className="w-3 h-3" />
+            ) : (
+              <ChevronDown className="w-3 h-3" />
+            )}
+          </button>
+        )}
         <span className="text-[10px] text-slate-400 ml-auto">
           {sourceLabel(item.source)}
         </span>
       </div>
+      {hasSuggestions && suggestOpen && (
+        <div className="ml-[72px] mt-1.5 p-2 bg-slate-50 border border-dashed border-slate-300 rounded">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">
+            Non-engine suggestions
+          </p>
+          <ul className="space-y-0.5">
+            {item.suggestions!.map((s, i) => (
+              <li key={i} className="text-[12px] text-slate-600 leading-snug">
+                · {s}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-[10px] text-slate-400 leading-snug">
+            These ideas are outside the engine’s scope — pick what suits you.
+          </p>
+        </div>
+      )}
     </li>
   )
 }

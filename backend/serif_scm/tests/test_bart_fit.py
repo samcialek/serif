@@ -114,6 +114,37 @@ def test_product_grid_shape_and_ordering():
     assert col1 == [0.0, 10.0]
 
 
+def test_add_confounders_appends_and_dedups():
+    from ..export_bart_draws import add_confounders
+
+    # Testosterone: confounders = season, vitamin_d
+    parents = ["acwr", "cortisol", "sleep_duration"]
+    combined = add_confounders("testosterone", parents, enabled=True)
+    assert combined == ["acwr", "cortisol", "sleep_duration", "season", "vitamin_d"]
+
+    # Dedup when a confounder is already a causal parent
+    parents_with_dup = ["season", "acwr"]
+    combined = add_confounders("testosterone", parents_with_dup, enabled=True)
+    assert combined == ["season", "acwr", "vitamin_d"]
+
+    # Disabled → pass-through
+    parents = ["acwr"]
+    assert add_confounders("testosterone", parents, enabled=False) == ["acwr"]
+
+    # Outcome with no confounders → pass-through
+    parents = ["glucose", "insulin"]
+    combined = add_confounders("body_fat_pct", parents, enabled=True)
+    assert combined == parents
+
+
+def test_discover_fit_targets_includes_confounders_when_enabled():
+    from ..export_bart_draws import CONFOUNDERS_BY_OUTCOME
+
+    # Sanity: the testosterone entry we rely on is present.
+    assert "season" in CONFOUNDERS_BY_OUTCOME.get("testosterone", [])
+    assert "vitamin_d" in CONFOUNDERS_BY_OUTCOME.get("testosterone", [])
+
+
 # ── PyMC-backed tests (skipped if pymc missing) ────────────────────
 
 
@@ -215,6 +246,8 @@ if __name__ == "__main__":
         test_posterior_draws_dataclass_shapes,
         test_posterior_draws_roundtrip_npz,
         test_product_grid_shape_and_ordering,
+        test_add_confounders_appends_and_dedups,
+        test_discover_fit_targets_includes_confounders_when_enabled,
         test_fit_node_bart_runs_end_to_end,
         test_fit_node_bart_custom_grid,
     ])
