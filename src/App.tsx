@@ -13,18 +13,7 @@ import {
   CurveStyleDemoView,
   DataValueView,
   PortalView,
-  TwinView,
-  TwinViewDirect,
-  TwinViewDragDrop,
-  TwinViewGraph,
-  TwinViewLive,
-  TwinViewCascade,
-  TwinViewCompare,
-  TwinViewSolve,
-  TwinViewSpatial,
-  TwinViewDeck,
   TwinViewLivingGraph,
-  TwinViewWorkspace,
   BaselineView,
   ExplorationView,
 } from '@/views'
@@ -43,19 +32,19 @@ function App() {
           <Route path="/insights" element={<PortalView />} />
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
-          <Route path="/twin" element={<TwinView />} />
+          <Route path="/twin" element={<TwinViewLivingGraph />} />
           <Route path="/twin-preview" element={<Navigate to="/twin" replace />} />
-          <Route path="/twin-direct" element={<TwinViewDirect />} />
-          <Route path="/twin-dragdrop" element={<TwinViewDragDrop />} />
-          <Route path="/twin-graph" element={<TwinViewGraph />} />
-          <Route path="/twin-live" element={<TwinViewLive />} />
-          <Route path="/twin-cascade" element={<TwinViewCascade />} />
-          <Route path="/twin-compare" element={<TwinViewCompare />} />
-          <Route path="/twin-solve" element={<TwinViewSolve />} />
-          <Route path="/twin-spatial" element={<TwinViewSpatial />} />
-          <Route path="/twin-deck" element={<TwinViewDeck />} />
-          <Route path="/twin-living" element={<TwinViewLivingGraph />} />
-          <Route path="/twin-workspace" element={<TwinViewWorkspace />} />
+          <Route path="/twin-direct" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-dragdrop" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-graph" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-live" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-cascade" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-compare" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-solve" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-spatial" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-deck" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-living" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin-workspace" element={<Navigate to="/twin" replace />} />
           <Route path="/protocols" element={<ProtocolsView />} />
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />

@@ -27,7 +27,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
-import { Card, Button, Slider, MemberAvatar } from '@/components/common'
+import { Card, Button, Slider, PersonaPortrait } from '@/components/common'
+import type { PersonaPortraitStat } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSCM } from '@/hooks/useSCM'
@@ -430,16 +431,26 @@ export function TwinViewLivingGraph() {
         className="space-y-3"
       >
         <div className="flex items-center gap-3 flex-wrap">
-          <MemberAvatar persona={persona} displayName={displayName} size="md" />
-          <div>
-            <div className="text-sm font-semibold text-slate-800">{displayName}</div>
-            <div className="text-xs text-slate-500">
-              {cohort ? `Cohort ${cohort} · ` : ''}
-              {inSolverMode
-                ? `Abduction · solver working back through the DAG`
-                : `Propagation · tweak any inline control`}
-            </div>
-          </div>
+          <PersonaPortrait
+            persona={persona}
+            displayName={displayName}
+            cohort={cohort}
+            subtitle={
+              inSolverMode
+                ? 'Abduction · solver working back through the DAG'
+                : 'Propagation · tweak any inline control'
+            }
+            stats={(() => {
+              const m = persona?.currentMetrics
+              if (!m) return []
+              const out: PersonaPortraitStat[] = []
+              if (m.hrv) out.push({ label: 'HRV', value: m.hrv, unit: 'ms' })
+              if (m.restingHr) out.push({ label: 'RHR', value: m.restingHr, unit: 'bpm' })
+              if (m.deepSleepMin) out.push({ label: 'Deep', value: m.deepSleepMin, unit: 'min' })
+              if (m.remSleepMin) out.push({ label: 'REM', value: m.remSleepMin, unit: 'min' })
+              return out
+            })()}
+          />
 
           {/* Regime toggle — determines which outcome subgraph is shown. */}
           <div className="ml-4 inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
