@@ -1,10 +1,8 @@
 /**
- * Today's-context strip above the Insights list.
- *
- * Shows rolling-load values (ACWR, sleep debt, SRI, consistency) alongside
- * the person's own 28-day baseline. Loads are confounders and moderators
- * for most action→outcome edges; surfacing them at the section level means
- * a user can read any individual insight in the context of today's state.
+ * Today's-context strip — rolling-load values (ACWR, sleep debt, SRI,
+ * consistency) alongside the person's own 28-day baseline. Used on its
+ * own above the Insights list, and embedded (via <LoadGrid />) inside
+ * the unified TodayContext panel on the Protocols tab.
  */
 
 import type { LoadKey, LoadValue } from '@/data/portal/types'
@@ -100,7 +98,10 @@ function formatDeviation(lv: LoadValue, key: LoadKey): string | null {
   return `${arrow} ${Math.abs(lv.z).toFixed(1)}σ`
 }
 
-export function ContextStrip({
+/** Just the load-chip grid, without an outer card. Used on its own
+ * inside TodayContext (Protocols tab) and wrapped with a card header
+ * by ContextStrip (Insights tab). */
+export function LoadGrid({
   loads,
 }: {
   loads: Partial<Record<LoadKey, LoadValue>>
@@ -108,7 +109,48 @@ export function ContextStrip({
   const entries = LOAD_SPECS.map((spec) => ({ spec, lv: loads[spec.key] })).filter(
     (e): e is { spec: LoadSpec; lv: LoadValue } => e.lv !== undefined,
   )
+  if (entries.length === 0) return null
 
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      {entries.map(({ spec, lv }) => {
+        const band = spec.band(lv.value)
+        const styles = BAND_STYLES[band]
+        const dev = formatDeviation(lv, spec.key)
+        const hint = spec.hint(lv)
+        return (
+          <div
+            key={spec.key}
+            className={`rounded-lg border px-2.5 py-2 ${styles.chip}`}
+            title={hint ?? undefined}
+          >
+            <div className={`text-[10px] uppercase tracking-wide font-semibold ${styles.label}`}>
+              {spec.label}
+            </div>
+            <div className="mt-0.5 flex items-baseline gap-1.5">
+              <div className="text-base font-semibold tabular-nums">
+                {spec.format(lv.value)}
+              </div>
+              {dev && (
+                <div className={`text-[10px] ${styles.label} tabular-nums`}>{dev}</div>
+              )}
+            </div>
+            {hint && (
+              <div className={`mt-0.5 text-[10px] leading-tight ${styles.label}`}>{hint}</div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export function ContextStrip({
+  loads,
+}: {
+  loads: Partial<Record<LoadKey, LoadValue>>
+}) {
+  const entries = LOAD_SPECS.map((spec) => loads[spec.key]).filter(Boolean)
   if (entries.length === 0) return null
 
   return (
@@ -121,35 +163,8 @@ export function ContextStrip({
           rolling loads · personal baseline
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 p-3">
-        {entries.map(({ spec, lv }) => {
-          const band = spec.band(lv.value)
-          const styles = BAND_STYLES[band]
-          const dev = formatDeviation(lv, spec.key)
-          const hint = spec.hint(lv)
-          return (
-            <div
-              key={spec.key}
-              className={`rounded-lg border px-2.5 py-2 ${styles.chip}`}
-              title={hint ?? undefined}
-            >
-              <div className={`text-[10px] uppercase tracking-wide font-semibold ${styles.label}`}>
-                {spec.label}
-              </div>
-              <div className="mt-0.5 flex items-baseline gap-1.5">
-                <div className="text-base font-semibold tabular-nums">
-                  {spec.format(lv.value)}
-                </div>
-                {dev && (
-                  <div className={`text-[10px] ${styles.label} tabular-nums`}>{dev}</div>
-                )}
-              </div>
-              {hint && (
-                <div className={`mt-0.5 text-[10px] leading-tight ${styles.label}`}>{hint}</div>
-              )}
-            </div>
-          )
-        })}
+      <div className="p-3">
+        <LoadGrid loads={loads} />
       </div>
     </div>
   )

@@ -48,19 +48,12 @@ import {
   tagColor,
   userConfoundersForItem,
 } from '@/utils/dailyProtocol'
-import { ContextStrip } from '@/components/portal/ContextStrip'
+import { TodayContext } from '@/components/portal/TodayContext'
 import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
 import type { ChipVariant } from '@/components/portal/ProtocolContextChip'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import type { AuditPlacement } from '@/components/portal/ProtocolAuditTrail'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
-
-const REGIME_LABEL: Record<RegimeKey, string> = {
-  overreaching_state: 'Overreaching',
-  iron_deficiency_state: 'Iron-deficient',
-  sleep_deprivation_state: 'Sleep-deprived',
-  inflammation_state: 'Inflamed',
-}
 
 const OUTCOME_DISPLAY: Record<string, string> = {
   sleep_quality: 'Sleep quality',
@@ -250,29 +243,12 @@ export function OptimalSchedule({
         </div>
       </div>
 
-      {/* Loads strip — today's rolling-load context */}
-      {participant.loads_today && (
-        <ContextStrip loads={participant.loads_today} />
-      )}
-
-      {/* Regime banner */}
-      {activeRegimes.length > 0 && (
-        <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
-          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
-          <span>
-            <span className="font-semibold">
-              Active regime{activeRegimes.length > 1 ? 's' : ''}:
-            </span>{' '}
-            {activeRegimes
-              .map(
-                (r) =>
-                  `${REGIME_LABEL[r.key]} (${(r.activation * 100).toFixed(0)}%)`,
-              )
-              .join(' · ')}{' '}
-            — protocol is tuned accordingly.
-          </span>
-        </div>
-      )}
+      {/* Today's context — unified loads + regimes + confounders panel */}
+      <TodayContext
+        participant={participant}
+        activeRegimes={activeRegimes}
+        date={today}
+      />
 
       {/* Compact outcomes strip */}
       {topProjections.length > 0 && (
