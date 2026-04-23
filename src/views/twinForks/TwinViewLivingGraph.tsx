@@ -65,8 +65,10 @@ const LONGEVITY_AT_DAYS = 180
 
 type Regime = 'quotidian' | 'longevity'
 
-const LEVER_CARD_W = 240
-const LEVER_CARD_H = 78
+// Lever bars sit directly in the SVG space (no card chrome). Width sets the
+// rail length; height is just used for vertical spacing between rows.
+const LEVER_CARD_W = 360
+const LEVER_CARD_H = 64
 
 // Presets for the edge-style picker. Each chooses an accent used by the
 // sleek lever bar (thumb glow, fill gradient, changed-value highlight) —
@@ -665,32 +667,22 @@ export function TwinViewLivingGraph() {
                         top: `${yPct}%`,
                         transform: `translate(-50%, -50%)`,
                         width: LEVER_CARD_W,
+                        // Subtle text-shadow halo so labels stay legible
+                        // against the SVG edge bundle behind them.
+                        filter: changed
+                          ? `drop-shadow(0 0 6px ${stylePreset.accent}66)`
+                          : 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
                       }}
                     >
-                      <div
-                        className={cn(
-                          'rounded-xl border-2 px-4 py-3 shadow-xl backdrop-blur-md transition-all',
-                          'bg-slate-900/90 border-slate-600/80',
-                          'hover:border-slate-500',
-                        )}
-                        style={{
-                          boxShadow: changed
-                            ? `0 0 0 2px ${stylePreset.accent}AA, 0 6px 24px ${stylePreset.accent}55, 0 3px 10px rgba(0,0,0,0.5)`
-                            : locked
-                              ? '0 0 0 2px rgba(16,185,129,0.7), 0 3px 12px rgba(0,0,0,0.5)'
-                              : '0 4px 14px rgba(0,0,0,0.5)',
-                        }}
-                      >
-                        <SleekLeverBar
-                          node={row.node}
-                          current={row.current}
-                          value={value}
-                          accent={stylePreset.accent}
-                          highlight={stylePreset.highlight}
-                          disabled={locked}
-                          onChange={(v) => handleLeverChange(n.id, v)}
-                        />
-                      </div>
+                      <SleekLeverBar
+                        node={row.node}
+                        current={row.current}
+                        value={value}
+                        accent={stylePreset.accent}
+                        highlight={stylePreset.highlight}
+                        disabled={locked}
+                        onChange={(v) => handleLeverChange(n.id, v)}
+                      />
                     </div>
                   )
                 })}

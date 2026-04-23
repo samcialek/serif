@@ -60,23 +60,33 @@ export function SleekLeverBar({
 
   return (
     <div className="w-full select-none">
-      {/* Header: label + value */}
-      <div className="flex items-baseline justify-between mb-1.5 px-0.5 gap-2">
-        <div className="text-[12px] font-bold uppercase tracking-wider text-slate-200 truncate">
+      {/* Header: label + value. Strong text-shadow keeps these legible
+          against the SVG edge bundle since the lever no longer has a
+          card backdrop. */}
+      <div className="flex items-baseline justify-between mb-2 px-0.5 gap-2">
+        <div
+          className="text-[13px] font-bold uppercase tracking-wider text-slate-100 truncate"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.6)' }}
+        >
           {node.label}
         </div>
         <div
-          className="text-[15px] font-bold tabular-nums whitespace-nowrap"
-          style={{ color: changed ? accent : '#f1f5f9', textShadow: changed ? `0 0 10px ${accent}99` : 'none' }}
+          className="text-[16px] font-bold tabular-nums whitespace-nowrap"
+          style={{
+            color: changed ? accent : '#f8fafc',
+            textShadow: changed
+              ? `0 0 12px ${accent}cc, 0 1px 3px rgba(0,0,0,0.85)`
+              : '0 1px 3px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.6)',
+          }}
         >
           {formatValue(value)}
         </div>
       </div>
 
-      {/* Rail */}
+      {/* Rail — taller now that the bar stands on its own */}
       <div
         ref={railRef}
-        className="relative h-2.5 touch-none rounded-full"
+        className="relative h-3 touch-none rounded-full"
         onPointerDown={(e) => {
           if (disabled) return
           setDragging(true)
@@ -118,16 +128,17 @@ export function SleekLeverBar({
           }}
         />
 
-        {/* Thumb — small pill with outer glow */}
+        {/* Thumb — pill with outer glow. Slightly bigger now that the
+            rail has thickened. */}
         <div
           className="absolute top-1/2 rounded-full"
           style={{
-            left: `calc(${valueFrac * 100}% - 5px)`,
+            left: `calc(${valueFrac * 100}% - 6px)`,
             transform: 'translateY(-50%)',
-            width: 10,
-            height: 14,
+            width: 12,
+            height: 18,
             background: `linear-gradient(180deg, ${highlight} 0%, ${accent} 100%)`,
-            boxShadow: `0 0 8px ${accent}, 0 0 16px ${accent}80, 0 0 2px ${highlight}`,
+            boxShadow: `0 0 10px ${accent}, 0 0 20px ${accent}80, 0 0 2px ${highlight}`,
             border: `1px solid ${highlight}`,
             transition: dragging ? 'none' : 'left 240ms cubic-bezier(0.4,0,0.2,1)',
           }}
@@ -136,13 +147,16 @@ export function SleekLeverBar({
 
       {/* Sublabel: current baseline value */}
       <div className="flex items-center justify-between mt-1 px-0.5">
-        <div className="text-[9px] text-slate-500 tabular-nums">
+        <div
+          className="text-[10px] text-slate-300 tabular-nums"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+        >
           now {formatValue(current)}
         </div>
         {changed && (
           <div
-            className="text-[9px] font-semibold tabular-nums"
-            style={{ color: accent }}
+            className="text-[10px] font-semibold tabular-nums"
+            style={{ color: accent, textShadow: `0 0 8px ${accent}99, 0 1px 2px rgba(0,0,0,0.8)` }}
           >
             {value > current ? '▲' : '▼'} {formatValue(Math.abs(value - current))}
           </div>
