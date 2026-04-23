@@ -806,6 +806,13 @@ export function TwinViewLivingGraph() {
                     Math.abs(afterHigh - afterLow) > 1e-6
                   const bandHalf = hasBand ? (afterHigh! - afterLow!) / 2 : 0
                   const bandStr = hasBand ? formatOutcomeValue(bandHalf, key) : null
+                  // Tooltip text spelt out so SVG-native title gives a complete
+                  // band readout on hover ("Posterior 95% credible band: 47.5 to
+                  // 52.5 ms"). Surfaces precise BART quantiles without
+                  // crowding the visible label.
+                  const bandTooltip = hasBand
+                    ? `Posterior 95% credible band: ${formatOutcomeValue(afterLow!, key)}${unit ? ' ' + unit : ''} to ${formatOutcomeValue(afterHigh!, key)}${unit ? ' ' + unit : ''} (BART, K draws)`
+                    : null
                   const deltaSign = delta > 0 ? '+' : delta < 0 ? '−' : ''
                   const deltaStr = formatOutcomeValue(Math.abs(delta), key)
                   const arrowGlyph = delta > 0 ? '▲' : delta < 0 ? '▼' : '•'
@@ -887,6 +894,7 @@ export function TwinViewLivingGraph() {
                                 opacity={0.75}
                               >
                                 ±{bandStr}
+                                <title>{bandTooltip}</title>
                               </tspan>
                             )}
                           </text>
