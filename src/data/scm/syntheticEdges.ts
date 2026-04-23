@@ -1,23 +1,28 @@
 /**
- * Phase 1 synthetic edges — textbook causal arrows that should already
- * appear in the Bayesian export but don't, because the real cohort either
- * lacks sustained variation in that lever or doesn't yet collect the
- * target biomarker.
+ * Phase 1 synthetic edges — textbook causal arrows that fill gaps in
+ * the cohort fit, either because the lever lacks sustained variation in
+ * the real data or the target biomarker isn't sampled densely enough.
  *
- * These are injected on the frontend *only* into the LivingGraph view
- * (merged before buildGraph) so the graph reads like a real metabolic
- * causal model instead of a sparse subset. Insights / Protocols still
- * ignore them because they're gated on real user_obs + posterior
- * contraction, which synthetic edges don't have.
+ * These are first-class members of the SCM. Insights, Protocols, and
+ * the LivingGraph treat them as peers of cohort-fit edges; the only
+ * marker is `prior_provenance: 'synthetic+literature'` and the
+ * `posterior.source: 'literature'` flag, which are provenance metadata,
+ * not a tier of trust.
  *
- * Each edge carries a plausible sign + magnitude + horizon from published
- * dose-response literature. Cohort-fit magnitudes matter less than sign
- * because the LivingGraph normalizes strength within the visible edge set.
+ * The same spec drives:
+ *   - InsightBayesian rows (via buildPhase1SyntheticEdges) — the
+ *     normalized [-1, 1] `mean` carries direction + strength for the
+ *     LivingGraph and Insights tooltip.
+ *   - StructuralEquation entries (via buildSyntheticEquations) — `mean`
+ *     converts to a physical-unit slope using action and outcome spans
+ *     so the Twin engine produces real counterfactual deltas.
  *
  * DEMO ONLY. Do not use for prescribing.
  */
 
 import type { InsightBayesian } from '@/data/portal/types'
+import type { StructuralEquation } from './types'
+import type { StructuralEdge } from '../dataValue/types'
 
 interface SyntheticEdgeSpec {
   action: string
@@ -188,4 +193,129 @@ export function buildPhase1SyntheticEdges(): InsightBayesian[] {
  *  of the synthetic Phase 1 edges. */
 export function isPhase1SyntheticEdge(e: InsightBayesian): boolean {
   return e.posterior?.source === 'literature' && e.literature_backed === true
+}
+
+// ─── Engine integration ────────────────────────────────────────────
+//
+// Convert each synthetic spec into a StructuralEquation + StructuralEdge
+// so runFullCounterfactual treats these arrows the same as cohort-fit
+// edges. The piecewise model uses bb = ba = physicalSlope (the theta
+// changepoint is irrelevant when both segments share a slope).
+//
+// physicalSlope = mean × outcomeSpan / actionSpan
+//   semantic: mean = ±1 means moving the action through its full
+//   plausible span moves the outcome through its full plausible span.
+
+const ACTION_SPAN: Record<string, [number, number]> = {
+  // MANIPULABLE_NODES with an explicit fixedRange — kept in sync with
+  // _shared.tsx so the slope semantic matches the lever's UI extent.
+  zone2_minutes: [0, 120],
+  zone4_5_minutes: [0, 30],
+  caffeine_mg: [0, 600],
+  caffeine_timing: [0, 14],
+  alcohol_units: [0, 6],
+  alcohol_timing: [0, 8],
+  bedtime: [20, 28],
+  // MANIPULABLE_NODES without fixedRange — typical-use spans.
+  sleep_duration: [5, 10],
+  training_volume: [0, 3],
+  steps: [2000, 15000],
+  active_energy: [200, 1500],
+  dietary_protein: [50, 200],
+  dietary_energy: [1500, 3500],
+  // Loads / non-lever drivers — typical observed ranges in the cohort.
+  acwr: [0.5, 2.0],
+  training_load: [30, 200],
+}
+
+const OUTCOME_SPAN: Record<string, [number, number]> = {
+  // Wearable / sleep
+  hrv_daily: [10, 150],
+  sleep_efficiency: [50, 100],
+  deep_sleep: [20, 180],
+  rem_sleep: [30, 180],
+  sleep_onset_latency: [0, 90],
+  // Lipids / metabolic
+  triglycerides: [40, 500],
+  hdl: [20, 120],
+  ldl: [30, 250],
+  apob: [30, 200],
+  glucose: [50, 250],
+  hscrp: [0, 15],
+  // Iron panel
+  ferritin: [5, 500],
+  hemoglobin: [8, 19],
+  iron_total: [30, 250],
+  // Performance / hormones / liver
+  vo2_peak: [30, 60],
+  cortisol: [3, 30],
+  alt: [10, 100],
+}
+
+function spanOf(table: Record<string, [number, number]>, key: string): number {
+  const range = table[key]
+  if (!range) return 1
+  const span = range[1] - range[0]
+  return span > 0 ? span : 1
+}
+
+function midOf(table: Record<string, [number, number]>, key: string): number {
+  const range = table[key]
+  if (!range) return 0
+  return (range[0] + range[1]) / 2
+}
+
+interface SyntheticEngineBundle {
+  equations: StructuralEquation[]
+  structuralEdges: StructuralEdge[]
+}
+
+/**
+ * Build engine-consumable equations + DAG edges from PHASE_1_EDGES.
+ *
+ * Pass `existingEquationKeys` (a Set of "source→target" strings already
+ * covered by fitted equations) to skip synthetic equations whose slope
+ * would double-count an effect the cohort fit already estimates. The
+ * structural-edge side is always emitted so the DAG knows the path
+ * exists for descendant queries; duplicates are de-duped against
+ * `existingEdgeKeys`.
+ */
+export function buildSyntheticEquations(
+  existingEquationKeys: Set<string> = new Set(),
+  existingEdgeKeys: Set<string> = new Set(),
+): SyntheticEngineBundle {
+  const equations: StructuralEquation[] = []
+  const structuralEdges: StructuralEdge[] = []
+
+  for (const spec of PHASE_1_EDGES) {
+    const key = `${spec.action}→${spec.outcome}`
+
+    const actionSpan = spanOf(ACTION_SPAN, spec.action)
+    const outcomeSpan = spanOf(OUTCOME_SPAN, spec.outcome)
+    const slope = (spec.mean * outcomeSpan) / actionSpan
+
+    if (!existingEquationKeys.has(key)) {
+      equations.push({
+        source: spec.action,
+        target: spec.outcome,
+        curveType: 'linear',
+        theta: midOf(ACTION_SPAN, spec.action),
+        bb: slope,
+        ba: slope,
+        effN: 0,
+        personalPct: 0,
+        provenance: 'literature',
+      })
+    }
+
+    if (!existingEdgeKeys.has(key)) {
+      structuralEdges.push({
+        source: spec.action,
+        target: spec.outcome,
+        edgeType: 'causal',
+      })
+    }
+  }
+
+  return { equations, structuralEdges }
 }
