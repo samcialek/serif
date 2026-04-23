@@ -154,7 +154,14 @@ export function decodeBartDraws(json: BartDrawsJson): BartDraws {
 // a trailing slash — '/' for root deploys, '/serif/' for the GitHub Pages
 // project-page subpath. Prefixing with it (instead of using a relative path)
 // keeps fetches correct regardless of the current SPA route.
-const DEFAULT_BASE_PATH = `${import.meta.env.BASE_URL}data/bartDraws`
+//
+// In a Node test runner (tsx) `import.meta.env` is undefined; fall back to
+// '/data/bartDraws' so the module loads. Tests typically call
+// `setBartDrawsBasePath` to redirect to a disk path anyway.
+const DEFAULT_BASE_PATH =
+  typeof import.meta.env !== 'undefined' && import.meta.env?.BASE_URL
+    ? `${import.meta.env.BASE_URL}data/bartDraws`
+    : '/data/bartDraws'
 
 const drawsCache = new Map<string, Promise<BartDraws>>()
 let manifestCache: Promise<BartBundleManifest> | null = null

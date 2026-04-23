@@ -249,10 +249,70 @@ function testMCLoopPerformance(): void {
   assert(avg < 1000, `MC loop under 1s per call (got ${avg.toFixed(0)} ms)`)
 }
 
+function testBandsAreTightAtSmallIntervention(): void {
+  console.log('\n[testBandsAreTightAtSmallIntervention]')
+
+  // Sanity check: when the intervention is tiny relative to the observed
+  // value, the MC posterior band should sit close to the observed value
+  // (the BART surface shouldn't drift wildly between adjacent grid
+  // cells). Loose tolerance — BART is non-parametric and grid-based, so
+  // small perturbations can land on a different nearest neighbour.
+
+  const edgeResults = loadJsonFromDisk<EdgeResult[]>(EDGE_SUMMARY_PATH)
+  const equations = buildEquationsWithRegimes(edgeResults)
+  const topoOrder = topologicalSort(STRUCTURAL_EDGES)
+  const bartDraws = loadAllBartDraws()
+
+  // A small kick to acwr — typical parameter range. This propagates to 6
+  // BART-fit downstream outcomes (see testMCVsPointEstimateDivergence).
+  const interventions = [
+    { nodeId: 'acwr', value: 1.20, originalValue: 1.15 },
+  ]
+
+  const mcState = computeMonteCarloFullCounterfactual(
+    OBSERVED,
+    interventions,
+    equations,
+    STRUCTURAL_EDGES,
+    bartDraws,
+    { kSamples: 200, topoOrder },
+  )
+
+  let nChecked = 0
+  let nReasonable = 0
+  for (const [outcome, effect] of mcState.allEffects) {
+    const observed = OBSERVED[outcome]
+    if (observed == null || !effect.posteriorSummary) continue
+    if (!effect.hasBartAncestor) continue
+    nChecked++
+    const median = effect.posteriorSummary.p50
+    // 50% relative tolerance — BART median can shift meaningfully on a
+    // small intervention because of grid-cell transitions. This test
+    // catches blow-ups (e.g., units errors, sign flips of parameters)
+    // not fine-grained accuracy.
+    const relErr = Math.abs(median - observed) / Math.max(Math.abs(observed), 1)
+    const reasonable = relErr < 0.5
+    if (reasonable) nReasonable++
+    console.log(
+      `  ${outcome.padEnd(20)} obs=${observed.toFixed(2).padStart(8)}  ` +
+      `MC p50=${median.toFixed(2).padStart(8)}  relErr=${(relErr * 100).toFixed(1)}%  ${reasonable ? 'ok' : 'BLOWUP'}`,
+    )
+  }
+  assert(
+    nChecked > 0,
+    `at least one BART-descended outcome reached via do(acwr=1.20) (got ${nChecked})`,
+  )
+  assert(
+    nChecked === 0 || nReasonable === nChecked,
+    `all ${nChecked} reached BART outcomes within 50% of observed (got ${nReasonable}/${nChecked})`,
+  )
+}
+
 // ── Main ────────────────────────────────────────────────────────────
 
 console.log('Running BART MC loop smoke tests...')
 testMCLoopBasics()
 testMCVsPointEstimateDivergence()
 testMCLoopPerformance()
+testBandsAreTightAtSmallIntervention()
 console.log('\nDone.')
