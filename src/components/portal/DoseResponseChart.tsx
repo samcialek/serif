@@ -326,9 +326,12 @@ export function DoseResponseChart({
 function shapeName(shape: { kind: string }): string {
   switch (shape.kind) {
     case 'linear': return 'linear'
-    case 'saturating': return 'piecewise saturating'
-    case 'smooth_saturating': return 'smooth saturating (Hill)'
-    case 'inverted_u': return 'inverted-U (optimum)'
+    case 'saturating':
+    case 'smooth_saturating':
+      return 'saturating (Hill)'
+    case 'inverted_u':
+    case 'smooth_inverted_u':
+      return 'inverted-U (optimum)'
     default: return ''
   }
 }

@@ -1,45 +1,46 @@
 /**
- * Every action × outcome edge gets a plausible nonlinear response
- * shape — not just a linear fallback — so the curve in the row
- * preview and the expanded chart has actual structure to look at.
+ * Every action × outcome edge gets a plausible SMOOTH nonlinear
+ * response shape — no hard kinks — so the curve in the Insights v2
+ * row preview and the expanded chart has actual structure for the
+ * tangent line to lie against.
  *
- * Three kinds of shapes:
+ * Shapes used:
+ *   smooth_saturating   — Hill approach to an asymptote. For
+ *                         monotonic "more is better (with diminishing
+ *                         returns)" or "less is worse (with floor)".
+ *                         Form: asymptote × (1 − 2^(−x/halfDose)).
+ *   smooth_inverted_u   — Symmetric downward parabola centered at
+ *                         `peakX`. Peak value = `amplitude`, zero
+ *                         crossings at peakX ± halfWidth. Tangent at
+ *                         the peak is naturally 0 — no corner. For
+ *                         actions with a clear optimum (training load,
+ *                         ACWR, dietary energy).
  *
- *   saturating_up  : f increases with diminishing returns — used for
- *                    most positive-slope edges (sleep_duration →
- *                    deep_sleep, dietary_protein → ferritin, etc.).
- *                    Hill form: slope × domain × (1 − 2^(−x/halfDose)).
- *
- *   saturating_down: f decreases toward a floor — mirror of the above
- *                    for negative-slope edges (caffeine_mg → hrv_daily
- *                    before any explicit shape lands).
- *
- *   inverted_u     : f rises then falls — for action-outcome pairs
- *                    with a clear optimum (training_load, ACWR,
- *                    dietary_energy for body comp). Peak at action's
- *                    typical "sweet spot".
- *
- *   threshold_up/down: sharp change past a threshold — bedtime for
- *                      sleep outcomes, sleep_debt for HRV.
- *
- * Where an explicit shape is already registered in PHASE_1_EDGES
- * (caffeine_mg edges, alcohol_units edges), that shape wins and the
- * inference is skipped.
- *
- * The inferred shapes are calibrated so:
- *   1. The slope averaged across the action's plausible domain
- *      matches the engine's posterior.mean / nominal_step.
- *   2. The curve is meaningful at the user's typical operating point
- *      (so the tangent isn't on a flat part by accident).
+ * PHASE_1_EDGES explicit shapes (caffeine_mg / alcohol_units Hill
+ * curves) pass through unchanged. The legacy piecewise `saturating`
+ * and `inverted_u` kinds get smoothed for visualisation but the
+ * backend engine keeps its exact piecewise semantics elsewhere.
  */
 
 import type { SyntheticShape } from '@/data/scm/syntheticEdges'
 import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
 import type { InsightBayesian } from '@/data/portal/types'
 
-/** Plot-domain per action (same table MiniDoseResponse and
- * DoseResponseChart use for their x-axis). Exported so both can
- * import it without duplicating. */
+/** Extended shape type used by the Insights v2 curves. Adds
+ * smooth_inverted_u on top of the engine's SyntheticShape union. */
+export type InferredShape =
+  | SyntheticShape
+  | {
+      kind: 'smooth_inverted_u'
+      /** x-location of the peak. */
+      peakX: number
+      /** signed peak value — positive for a max, negative for a min. */
+      amplitude: number
+      /** x-distance from peak to the zero-crossings. */
+      halfWidth: number
+    }
+
+/** Plot-domain per action — shared with the chart components. */
 export const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
   bedtime: { min: 21.5, max: 24.5 },
   sleep_duration: { min: 4, max: 10 },
@@ -60,47 +61,56 @@ export const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
   sleep_debt: { min: 0, max: 20 },
 }
 
-/** Actions whose response is characteristically inverted-U (too
- * little = no effect, too much = maladaptation). */
+/** Actions whose response is characteristically inverted-U. */
 const INVERTED_U_ACTIONS = new Set<string>([
   'training_load',
   'training_volume',
   'zone4_5_minutes',
   'acwr',
-  'dietary_energy', // above maintenance = gain, far above = harm
+  'dietary_energy',
 ])
 
-/** Evaluate a SyntheticShape at a given dose — same semantics as
- * doseResponse.ts but local so callers don't need the full engine. */
-export function evaluateShape(shape: SyntheticShape, dose: number): number {
+/** Evaluate an InferredShape at a given dose. Smooth everywhere — no
+ * piecewise kinks — so the curve has clear tangents across its full
+ * range and the user's tangent line is visually distinct from the
+ * curve even when they intersect at the operating point. */
+export function evaluateShape(shape: InferredShape, dose: number): number {
   switch (shape.kind) {
     case 'linear':
       return shape.slope * dose
     case 'saturating': {
-      if (dose <= shape.knee) return shape.slope * dose
-      const after = shape.slopeAfter ?? 0
-      return shape.slope * shape.knee + after * (dose - shape.knee)
+      // Smoothed to a Hill approach for visualisation.
+      if (dose <= 0) return 0
+      const plateau = shape.slope * shape.knee
+      return plateau * (1 - Math.pow(2, -dose / Math.max(shape.knee, 1e-9)))
     }
     case 'smooth_saturating':
       if (dose <= 0) return 0
       return shape.asymptote * (1 - Math.pow(2, -dose / shape.halfDose))
     case 'inverted_u': {
-      if (dose <= shape.peak) return shape.slopeUp * dose
-      return shape.slopeUp * shape.peak + shape.slopeDown * (dose - shape.peak)
+      // Smoothed to a parabola. The legacy piecewise params
+      // `peak` (x-location) + `slopeUp` × `slopeDown` are reinterpreted:
+      // amplitude = slopeUp × peak, symmetric half-width = peak.
+      const amplitude = shape.slopeUp * shape.peak
+      const halfWidth = shape.peak || 1
+      const t = (dose - shape.peak) / halfWidth
+      return amplitude * (1 - t * t)
+    }
+    case 'smooth_inverted_u': {
+      const t = (dose - shape.peakX) / Math.max(shape.halfWidth, 1e-9)
+      return shape.amplitude * (1 - t * t)
     }
   }
 }
 
-/** Numerical derivative of a shape at a given dose. */
-export function slopeOfShape(shape: SyntheticShape, dose: number, h = 0.01): number {
+/** Numerical derivative of a shape at a given dose (central difference). */
+export function slopeOfShape(shape: InferredShape, dose: number, h = 0.01): number {
   const hh = Math.max(h, Math.abs(dose) * 0.01)
   return (evaluateShape(shape, dose + hh) - evaluateShape(shape, dose - hh)) / (2 * hh)
 }
 
-const SHAPE_CACHE = new Map<string, SyntheticShape>()
+const SHAPE_CACHE = new Map<string, InferredShape>()
 
-/** Pull an explicit shape from PHASE_1_EDGES if one exists for this
- * (action, outcome) pair. Returns null when none is registered. */
 function lookupExplicitShape(
   action: string,
   outcome: string,
@@ -111,19 +121,13 @@ function lookupExplicitShape(
   return spec?.shape ?? null
 }
 
-/** Infer a plausible response shape for an edge based on action
- * category and the sign of its posterior mean. The inferred curve's
- * average-slope-over-the-action's-domain is calibrated to match the
- * engine's posterior.mean so the big-picture magnitude stays honest,
- * but the curve has structure (knees, peaks, saturation) where a
- * linear fallback would have had none.
- *
- * Shapes are coarse by design — the point is for the user to see
- * "this is a saturating relationship with diminishing returns past
- * my current operating point" at a glance, not to match a specific
- * Hill equation to three decimal places. The backend's actual fitted
- * curves (when eventually exposed) should override this. */
-export function inferShape(edge: InsightBayesian): SyntheticShape {
+/** Return a smooth nonlinear shape for any edge. Falls through to
+ * explicit PHASE_1_EDGES shapes, then to the inverted-U parabola for
+ * training/load actions, then to a Hill saturating curve for
+ * everything else. Calibrated so the curve's amplitude reflects the
+ * engine's posterior.mean × domain span — big-picture magnitude
+ * honest, shape coarse. */
+export function inferShape(edge: InsightBayesian): InferredShape {
   const cacheKey = `${edge.action}::${edge.outcome}`
   const cached = SHAPE_CACHE.get(cacheKey)
   if (cached) return cached
@@ -136,38 +140,38 @@ export function inferShape(edge: InsightBayesian): SyntheticShape {
 
   const domain = ACTION_DOMAIN[edge.action]
   const span = domain ? domain.max - domain.min : 1
-  // The engine's posterior.mean is the predicted change per
-  // nominal_step; the total span-wide change ≈ mean * (span / nominal_step).
   const step = edge.nominal_step || 1
   const spanChange = (edge.posterior.mean / step) * span
-  // If the posterior is effectively zero, fabricate a tiny non-zero
-  // span-change so the curve still has visible shape.
-  const signedSpanChange = Math.abs(spanChange) < 1e-6 ? 0.01 : spanChange
-  const sign = Math.sign(signedSpanChange) || 1
-  const magnitude = Math.abs(signedSpanChange)
+  const signedAmp = Math.abs(spanChange) < 1e-6 ? 0.01 : spanChange
 
-  let shape: SyntheticShape
+  let shape: InferredShape
 
-  if (INVERTED_U_ACTIONS.has(edge.action)) {
-    // Peak at ~60% of the domain — biology's sweet spot is usually
-    // between the action's minimum and maximum but not at the center.
-    const peakFrac = 0.55
-    const peak = domain ? domain.min + span * peakFrac : 0.55
-    // Rising segment carries the full magnitude; falling segment
-    // declines to about half the peak by the domain max.
-    const slopeUp = (magnitude * sign) / (peak - (domain?.min ?? 0) + 1e-9)
-    const slopeDown = -((magnitude * sign) * 0.5) / (span * (1 - peakFrac))
-    shape = { kind: 'inverted_u', peak, slopeUp, slopeDown }
-  } else {
-    // Smooth-saturating (Hill) — asymptote = total span change,
-    // halfDose = 40% of the action's range (EC50 close to the lower
-    // third so most of the action happens in the user's operating
-    // zone, not out at the edges).
-    const halfDose = domain ? domain.min + span * 0.4 : 0.4
+  if (INVERTED_U_ACTIONS.has(edge.action) && domain) {
+    // Peak at ~55% of the action's domain. Symmetric parabola with
+    // half-width reaching the nearest zero-crossing at the domain
+    // min (or the equivalent on the far side). Tangent at the peak
+    // is zero; tangent on the wings is non-zero and signed.
+    const peakX = domain.min + span * 0.55
+    const halfWidth = Math.min(peakX - domain.min, domain.max - peakX)
+    shape = {
+      kind: 'smooth_inverted_u',
+      peakX,
+      amplitude: signedAmp,
+      halfWidth: Math.max(halfWidth, 1e-3),
+    }
+  } else if (domain) {
+    // Smooth-saturating (Hill). EC50 at 40% of the domain so the user
+    // sits in the steep part of the curve in most realistic cases.
     shape = {
       kind: 'smooth_saturating',
-      asymptote: signedSpanChange,
-      halfDose: Math.max(halfDose, 1e-3),
+      asymptote: signedAmp,
+      halfDose: Math.max(span * 0.4, 1e-3),
+    }
+  } else {
+    shape = {
+      kind: 'smooth_saturating',
+      asymptote: signedAmp,
+      halfDose: 0.4,
     }
   }
 
