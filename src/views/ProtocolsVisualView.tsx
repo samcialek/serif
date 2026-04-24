@@ -1,67 +1,35 @@
 /**
- * ProtocolsVisualView — experimental visual-magnitude fork of the
- * canonical /protocols route.
+ * VisualSchedule — compact / timeline schedule body.
  *
- * Keeps the full vertical-spine layout from ProtocolsView, but per row:
- *   - Drops the text "details" bullet list + italic rationale.
- *   - Replaces them with a ProtocolMagnitude visualization: a
- *     day-axis bar with the item's time as a marker, plus (for
- *     bedtime-derived items) a dimmed "current" marker and an arrow
- *     showing the shift. Training items get a duration-span bar.
- *   - Keeps the context chip, sparkline, yesterday-diff, tags, and
- *     audit-trail button.
+ * Vertical spine with one row per protocol item. Each row shows the
+ * time, icon, title, dose, tags, and an expandable details panel that
+ * includes:
+ *   - ProtocolMagnitude: day-axis bar with shift arrow / duration band.
+ *   - Yesterday-diff pill when dose or time changed overnight.
+ *   - Context chip + sparkline for the driving load.
+ *   - Audit trail + suggestion options.
  *
- * The point: dose sentences become dose shapes. "Target 8 h of sleep"
- * reads as a highlighted sleep-window band; "caffeine cutoff pulled
- * from 4:30pm to 2:30pm" reads as a leftward arrow on the day-axis.
+ * Renders only the schedule — the participant load, page layout,
+ * header, and shared top-of-card sections are owned by `ProtocolsView`.
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import {
-  AlertCircle,
-  Calendar,
   ChevronDown,
   ChevronUp,
   Lightbulb,
-  Loader2,
   Minimize2,
   Maximize2,
-  Users,
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
-import { PageLayout } from '@/components/layout'
-import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
-import { useDataMode } from '@/hooks/useDataMode'
-import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
-import {
-  ProtocolContextVariantToggle,
-  StorylinePanel,
-  TodayContext,
-  TunedProtocolsSection,
-  useContextVariants,
-} from '@/components/portal'
-import { buildTodaysStory } from '@/utils/storyline'
-import { useTwinSnapshotStore } from '@/stores/twinSnapshotStore'
+import type { ParticipantPortal } from '@/data/portal/types'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
 import { ProtocolMagnitude } from '@/components/portal/ProtocolMagnitude'
 import { RegimeGlyphs } from '@/components/portal/RegimeGlyphs'
-import { useActiveParticipant } from '@/hooks/useActiveParticipant'
-import { useParticipant } from '@/hooks/useParticipant'
-import { usePortalStore } from '@/stores/portalStore'
-import {
-  derivedWakeTime,
-  pickNeutralBaseline,
-  pickOptimalSchedule,
-  pickYesterdayProtocol,
-  OBJECTIVE_ORON,
-} from '@/utils/twinSem'
 import type { CandidateSchedule } from '@/utils/twinSem'
 import {
-  buildDailyProtocol,
-  matchProtocolItems,
   sourceLabel,
   tagColor,
   userConfoundersForItem,
@@ -70,16 +38,6 @@ import type {
   MatchedProtocolItem,
   ProtocolItem,
 } from '@/utils/dailyProtocol'
-
-const DAY_OF_WEEK = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-]
 
 const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
   twin_sem: 'bg-emerald-500',
@@ -120,23 +78,23 @@ function writeExpandedToStorage(titles: Set<string>): void {
   }
 }
 
-export interface ProtocolsVisualViewProps {
-  /** Optional control rendered to the left of the existing actions —
-   *  used by the unified Protocols wrapper to inject the lanes/visual
-   *  mode toggle so it lives in the same row as the data-mode pill. */
-  modeToggle?: React.ReactNode
+export interface VisualScheduleProps {
+  matched: MatchedProtocolItem[]
+  yesterdayByTitle: Map<string, ProtocolItem> | null
+  participant: ParticipantPortal
+  schedule: CandidateSchedule
+  wakeTime: number
+  chipVariant: 'minimal' | 'detailed'
 }
 
-export function ProtocolsVisualView({ modeToggle }: ProtocolsVisualViewProps = {}) {
-  const activePid = usePortalStore((s) => s.activePid)
-  const { participant, isLoading, error } = useParticipant()
-  const { displayName, persona } = useActiveParticipant()
-  const [variants, setVariants] = useContextVariants()
-  const dataMode = useDataMode()
-  const tunedSnapshots = useTwinSnapshotStore((s) =>
-    activePid != null ? s.snapshots.filter((x) => x.participantPid === activePid) : [],
-  )
-  const removeSnapshot = useTwinSnapshotStore((s) => s.remove)
+export function VisualSchedule({
+  matched,
+  yesterdayByTitle,
+  participant,
+  schedule,
+  wakeTime,
+  chipVariant,
+}: VisualScheduleProps) {
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() =>
     readExpandedFromStorage(),
   )
@@ -160,230 +118,53 @@ export function ProtocolsVisualView({ modeToggle }: ProtocolsVisualViewProps = {
     setExpandedTitles(new Set())
   }
 
-  const titleAccessory = (
-    <MemberAvatar persona={persona} displayName={displayName} size="xl" />
-  )
-
-  const today = useMemo(() => new Date(), [])
-
-  const twin = useMemo(() => {
-    if (!participant) return null
-    const result = pickOptimalSchedule(participant, OBJECTIVE_ORON, dataMode)
-    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON, dataMode)
-    const yesterday = variants.yesterdayDiff
-      ? pickYesterdayProtocol(participant, OBJECTIVE_ORON, dataMode)
-      : null
-    const wakeTime = derivedWakeTime(participant)
-    const regimes = participant.regime_activations ?? {}
-    const activeRegimes = (Object.entries(regimes) as Array<[RegimeKey, number]>)
-      .filter(([, v]) => v >= 0.3)
-      .sort((a, b) => b[1] - a[1])
-      .map(([key, activation]) => ({ key, activation }))
-    return { result, neutralBaseline, yesterday, wakeTime, activeRegimes }
-  }, [participant, variants.yesterdayDiff, dataMode])
-
-  const { matched, yesterdayByTitle } = useMemo(() => {
-    if (!participant || !twin) {
-      return {
-        matched: [] as MatchedProtocolItem[],
-        yesterdayByTitle: null as Map<string, ProtocolItem> | null,
-      }
-    }
-    const real = buildDailyProtocol(participant, twin.result.best.schedule, {
-      wakeTime: twin.wakeTime,
-      date: today,
-    })
-    let matched: MatchedProtocolItem[]
-    if (twin.neutralBaseline) {
-      const neutralParticipant: ParticipantPortal = {
-        ...participant,
-        regime_activations: {},
-        loads_today: undefined,
-      }
-      const neutral = buildDailyProtocol(
-        neutralParticipant,
-        twin.neutralBaseline.best.schedule,
-        { wakeTime: twin.wakeTime, date: today },
-      )
-      matched = matchProtocolItems(real, neutral)
-    } else {
-      matched = real.map((r) => ({ real: r, neutral: null }))
-    }
-
-    let map: Map<string, ProtocolItem> | null = null
-    if (twin.yesterday) {
-      const yItems = buildDailyProtocol(
-        twin.yesterday.yesterdayParticipant,
-        twin.yesterday.result.best.schedule,
-        { wakeTime: twin.wakeTime, date: today },
-      )
-      map = new Map<string, ProtocolItem>()
-      for (const it of yItems) map.set(it.title, it)
-    }
-    return { matched, yesterdayByTitle: map }
-  }, [participant, twin, today])
-
-  if (activePid == null) {
-    return (
-      <PageLayout
-        title="Today's plan (visual)"
-        subtitle="Experimental dose-as-magnitude fork of the protocols timeline."
-      >
-        <Card padding="md" className="flex flex-col items-center text-center py-12">
-          <div className="w-14 h-14 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center mb-3">
-            <Users className="w-6 h-6 text-primary-500" />
-          </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Select a member</h3>
-          <p className="text-sm text-slate-500 max-w-sm">
-            Pick a member from the Insights tab to see their daily schedule.
-          </p>
-        </Card>
-      </PageLayout>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <PageLayout title={`${displayName} — today's plan (visual)`} titleAccessory={titleAccessory}>
-        <Card padding="md" className="flex flex-col items-center text-slate-500 py-12">
-          <Loader2 className="w-5 h-5 animate-spin mb-2" />
-          <span className="text-sm">Loading {displayName}…</span>
-        </Card>
-      </PageLayout>
-    )
-  }
-
-  if (error) {
-    return (
-      <PageLayout title={`${displayName} — today's plan (visual)`} titleAccessory={titleAccessory}>
-        <Card padding="md" className="flex flex-col items-center text-center py-12">
-          <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-3">
-            <AlertCircle className="w-6 h-6 text-rose-500" />
-          </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Failed to load</h3>
-          <p className="text-sm text-slate-500 font-mono">{error.message}</p>
-        </Card>
-      </PageLayout>
-    )
-  }
-
-  if (!participant || !twin) return null
-
-  const dateLabel = today.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
-  const actions = (
-    <div className="flex items-center gap-2">
-      {modeToggle}
-      <DataModeToggle />
-      <ProtocolContextVariantToggle variants={variants} onChange={setVariants} />
-    </div>
-  )
-
   return (
-    <PageLayout
-      title={`${displayName} — today's plan (visual)`}
-      titleAccessory={titleAccessory}
-      actions={actions}
-      subtitle="Dose-as-shape: text turns into day-axis markers, duration bars, and before/after arrows."
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Card padding="md" className="rounded-xl space-y-5">
-          {/* Date header */}
-          <div className="flex items-baseline justify-between gap-3 pb-3 border-b border-slate-200">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                {DAY_OF_WEEK[today.getDay()]}
-              </h2>
-              <p className="text-xs text-slate-500 tabular-nums">{dateLabel}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                  Twin-SEM score
-                </p>
-                <p className="text-lg font-bold tabular-nums text-emerald-700">
-                  {twin.result.best.total >= 0 ? '+' : ''}
-                  {twin.result.best.total.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Today's story — three-sentence summary of what's active
-               and why the protocol looks the way it does. */}
-          <StorylinePanel story={buildTodaysStory(participant)} mode="today" />
-
-          <TodayContext
-            participant={participant}
-            activeRegimes={twin.activeRegimes}
-            date={today}
-          />
-
-          {/* Tuned-from-Twin protocol cards */}
-          <TunedProtocolsSection
-            snapshots={tunedSnapshots}
-            onRemove={removeSnapshot}
-          />
-
-          {/* Timeline */}
-          <div>
-            <div className="flex items-baseline justify-between mb-3 gap-3">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-medium">
-                Today's protocol
-              </p>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => expandAll(matched.map((m) => m.real.title))}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
-                  title="Expand all rows"
-                >
-                  <Maximize2 className="w-3 h-3" />
-                  Expand all
-                </button>
-                <button
-                  onClick={collapseAll}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
-                  title="Collapse all rows"
-                >
-                  <Minimize2 className="w-3 h-3" />
-                  Collapse
-                </button>
-                <p className="text-[11px] text-slate-400 tabular-nums ml-1">
-                  {matched.length} actions
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute left-[22px] top-2 bottom-2 w-px bg-slate-200" />
-              <ul className="space-y-2">
-                {matched.map((m, i) => (
-                  <VisualProtocolRow
-                    key={i}
-                    matched={m}
-                    yesterdayItem={yesterdayByTitle?.get(m.real.title) ?? null}
-                    participant={participant}
-                    schedule={twin.result.best.schedule}
-                    wakeTime={twin.wakeTime}
-                    chipVariant={variants.chip}
-                    expanded={expandedTitles.has(m.real.title)}
-                    onToggleExpanded={() => toggleExpanded(m.real.title)}
-                  />
-                ))}
-              </ul>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-    </PageLayout>
+    <div>
+      <div className="flex items-baseline justify-between mb-3 gap-3">
+        <p className="text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+          Today's protocol
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => expandAll(matched.map((m) => m.real.title))}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+            title="Expand all rows"
+          >
+            <Maximize2 className="w-3 h-3" />
+            Expand all
+          </button>
+          <button
+            onClick={collapseAll}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+            title="Collapse all rows"
+          >
+            <Minimize2 className="w-3 h-3" />
+            Collapse
+          </button>
+          <p className="text-[11px] text-slate-400 tabular-nums ml-1">
+            {matched.length} actions
+          </p>
+        </div>
+      </div>
+      <div className="relative">
+        <div className="absolute left-[22px] top-2 bottom-2 w-px bg-slate-200" />
+        <ul className="space-y-2">
+          {matched.map((m, i) => (
+            <VisualProtocolRow
+              key={i}
+              matched={m}
+              yesterdayItem={yesterdayByTitle?.get(m.real.title) ?? null}
+              participant={participant}
+              schedule={schedule}
+              wakeTime={wakeTime}
+              chipVariant={chipVariant}
+              expanded={expandedTitles.has(m.real.title)}
+              onToggleExpanded={() => toggleExpanded(m.real.title)}
+            />
+          ))}
+        </ul>
+      </div>
+    </div>
   )
 }
 
@@ -573,4 +354,4 @@ function VisualProtocolRow({
   )
 }
 
-export default ProtocolsVisualView
+export default VisualSchedule
