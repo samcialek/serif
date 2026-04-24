@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { PageLayout } from '@/components/layout'
 import { DataModeToggle } from '@/components/common'
 import { Tabs, TabList, TabTrigger, TabContent } from '@/components/common/Tabs'
-import { DataValueSummary, MarginalValuePanel, CurrentSourcesPanel } from '@/components/dataValue'
+import { MarginalValuePanel, CurrentSourcesPanel } from '@/components/dataValue'
 import { IntegrationsPanel } from '@/components/integration/IntegrationsPanel'
 import { useDataValue } from '@/hooks/useDataValue'
 import { cn } from '@/utils/classNames'
@@ -104,18 +104,11 @@ function EdgeCoverageMap({
 
 export function DataValueView() {
   const {
-    edgeResults,
     existingSources,
     rankedCandidates,
     rankedCandidatesIT,
     testableEdges,
     untestableEdges,
-    totalMechanisms,
-    testableCount,
-    testedPct,
-    avgPersonalWeight,
-    latentNodeCount,
-    fittedEdgeCount,
   } = useDataValue()
 
   const [activeTab, setActiveTab] = useState('connected')
@@ -126,20 +119,9 @@ export function DataValueView() {
       subtitle="Connected sources and evaluated additions"
       actions={<DataModeToggle />}
     >
-      {/* Hero stats */}
-      <DataValueSummary
-        totalMechanisms={totalMechanisms}
-        testableCount={testableCount}
-        testedPct={testedPct}
-        avgPersonalWeight={avgPersonalWeight}
-        latentNodeCount={latentNodeCount}
-        fittedEdgeCount={fittedEdgeCount}
-        className="mb-6"
-      />
-
-      {/* Internal tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} variant="underline">
-        <TabList>
+      {/* Internal tabs — pills variant inside a tinted container for visibility */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} variant="pills">
+        <TabList className="!bg-indigo-50 border border-indigo-200 mb-5 shadow-sm">
           <TabTrigger value="connected">Connected Devices</TabTrigger>
           <TabTrigger value="opportunities">Device Opportunities</TabTrigger>
           <TabTrigger value="coverage">Edge Coverage Map</TabTrigger>
