@@ -95,6 +95,8 @@ export function ExplorationOutcomeCard({
   return (
     <section
       id={`exploration-outcome-${outcome}`}
+      role="region"
+      aria-label={`Exploration candidates for ${outcomeLabel}`}
       className="rounded-xl border border-slate-200 bg-white overflow-hidden"
     >
       {/* Header */}

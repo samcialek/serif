@@ -277,3 +277,93 @@ export function buildEternalStory(p: ParticipantPortal): Story {
 
   return { headline: capitalize(s1), body: `${s2} ${s3}` }
 }
+
+/** Story for the Exploration tab — three sentences framing "what the
+ *  coach could learn by running experiments this quarter." Ranked by
+ *  the same info-gain heuristic the tab uses (priorD × narrow). */
+export function buildExplorationStory(p: ParticipantPortal): Story {
+  const recs = p.exploration_recommendations ?? []
+  if (recs.length === 0) {
+    return {
+      headline:
+        "There's nothing outstanding for the engine to learn — every exposed edge is already personalized.",
+      body:
+        'When new actions get tried or new biomarkers drawn, exploration candidates will appear here with their expected learning gain.',
+    }
+  }
+
+  const enriched = recs
+    .map((r) => {
+      const match = (p.effects_bayesian ?? []).find(
+        (e) => e.action === r.action && e.outcome === r.outcome,
+      )
+      const priorD = match ? Math.abs(cohensD(match, p)) : 0
+      // Rough narrow estimate mirroring the principled-formula's scale
+      // per (kind, pathway). Storyline is descriptive — the cards show
+      // the exact number.
+      const kindWeight =
+        r.kind === 'vary_action'
+          ? r.pathway === 'wearable'
+            ? 0.6
+            : 0.45
+          : r.pathway === 'biomarker'
+            ? 0.4
+            : 0.3
+      return { rec: r, priorD, narrow: kindWeight, infoGain: priorD * kindWeight }
+    })
+    .sort((a, b) => b.infoGain - a.infoGain)
+
+  const primary = enriched[0]
+  const secondary = enriched[1]
+  const tertiary = enriched[2]
+  const weather = notableWeather(p)
+
+  const actLbl = (a: string): string =>
+    ACTION_LABEL[a] ?? a.replace(/_/g, ' ')
+  const outLbl = (o: string): string =>
+    OUTCOME_LABEL[o] ?? o.replace(/_/g, ' ')
+
+  const pAct = actLbl(primary.rec.action)
+  const pOut = outLbl(primary.rec.outcome)
+  const pNarrow = Math.round(primary.narrow * 100)
+  const kindPhrase =
+    primary.rec.kind === 'vary_action' ? `vary ${pAct}` : `repeat a ${pOut} draw`
+
+  // S1 — the single best experiment.
+  const s1 =
+    primary.priorD < 0.05
+      ? `The engine has no strong experimental lead right now — every remaining candidate has a cohort prior too flat to be worth running.`
+      : `The biggest single learning available is to ${kindPhrase} — it would collapse roughly ${pNarrow}% of the uncertainty on ${pOut}'s slope.`
+
+  // S2 — environmental / pathway framing.
+  const wearableCount = enriched.filter((e) => e.rec.pathway === 'wearable').length
+  const biomarkerCount = enriched.length - wearableCount
+  let s2: string
+  if (weather) {
+    s2 = `Environmentally, ${weather} — the engine adjusts for that when reading their data, so experimental designs stay valid.`
+  } else if (biomarkerCount > wearableCount) {
+    s2 = `Most open candidates are biomarker-pathway (${biomarkerCount} of ${enriched.length}) — repeat-draw experiments contract posteriors slower than daily wearable variation.`
+  } else if (wearableCount > 0) {
+    s2 = `${wearableCount} of ${enriched.length} candidates are wearable-pathway — daily observations collapse uncertainty fastest.`
+  } else {
+    s2 = `The candidate queue is small — most of the engine's causal map is already personalized enough to act on.`
+  }
+
+  // S3 — longer-horizon portfolio.
+  let s3: string
+  if (secondary && tertiary) {
+    const s = actLbl(secondary.rec.action)
+    const t = actLbl(tertiary.rec.action)
+    const totalNarrow = Math.round(
+      (primary.narrow + secondary.narrow + tertiary.narrow) * 100,
+    )
+    s3 = `Running the top three — ${pAct}, ${s}, ${t} — would contract ~${totalNarrow}% of the slope uncertainty across those edges combined.`
+  } else if (secondary) {
+    const s = actLbl(secondary.rec.action)
+    s3 = `After that, ${s} is the next-best play; running both would be roughly a full quarter's exploration budget.`
+  } else {
+    s3 = `Once the top experiment completes it flows back into Insights as a personalized edge — that's the feedback loop.`
+  }
+
+  return { headline: capitalize(s1), body: `${s2} ${s3}` }
+}

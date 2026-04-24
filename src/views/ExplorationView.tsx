@@ -28,6 +28,8 @@ import { PageLayout } from '@/components/layout'
 import { Card, DataModeToggle, PainterlyPageHeader } from '@/components/common'
 import { ExplorationOutcomeCard } from '@/components/portal/ExplorationOutcomeCard'
 import { ActiveExperimentsBar } from '@/components/portal/ActiveExperimentsBar'
+import { StorylinePanel } from '@/components/portal'
+import { buildExplorationStory } from '@/utils/storyline'
 import {
   ExplorationControls,
   useExplorationControls,
@@ -260,6 +262,12 @@ export function ExplorationView() {
         onChipClick={focusExperimentRow}
       />
 
+      {/* Long-term story — three sentences on which experiment would
+           teach the engine the most this quarter. */}
+      <div className="mb-4">
+        <StorylinePanel story={buildExplorationStory(participant)} mode="eternal" />
+      </div>
+
       {/* Framing blurb */}
       <div className="mb-4 px-3 py-2 rounded-md border border-indigo-200 bg-indigo-50/50 text-[11px] text-indigo-900 leading-snug">
         <span className="font-semibold flex items-center gap-1">
@@ -281,10 +289,20 @@ export function ExplorationView() {
         className="space-y-6"
       >
         {ordering.total === 0 ? (
-          <Card padding="md" className="text-center text-sm text-slate-500 py-8">
-            No experiments match your current filters. Loosen "Ready only"
-            or "Running only" to see the rest of the queue.
-          </Card>
+          <ExplorationEmptyState
+            totalRecs={allEnrichedEdges.length}
+            allBlocked={
+              allEnrichedEdges.length > 0 &&
+              allEnrichedEdges.every(
+                (e) => e.computed.spec.feasibility === 'blocked',
+              )
+            }
+            hideInfeasible={controls.hideInfeasible}
+            runningOnly={controls.runningOnly}
+            onClearFilters={() =>
+              setControls({ hideInfeasible: false, runningOnly: false })
+            }
+          />
         ) : (
           ordering.sections.map((section, i) => (
             <section key={section.band ?? `flat-${i}`} className="space-y-3">
@@ -335,6 +353,81 @@ export function ExplorationView() {
         </div>
       )}
     </PageLayout>
+  )
+}
+
+interface EmptyStateProps {
+  totalRecs: number
+  allBlocked: boolean
+  hideInfeasible: boolean
+  runningOnly: boolean
+  onClearFilters: () => void
+}
+
+function ExplorationEmptyState({
+  totalRecs,
+  allBlocked,
+  hideInfeasible,
+  runningOnly,
+  onClearFilters,
+}: EmptyStateProps) {
+  // Case A: no exploration recs at all — engine has nothing outstanding.
+  if (totalRecs === 0) {
+    return (
+      <Card padding="md" className="text-center text-sm text-slate-600 py-10">
+        <div className="max-w-md mx-auto space-y-2">
+          <div className="font-semibold text-slate-800">Nothing outstanding</div>
+          <p className="text-slate-500 leading-snug">
+            The engine has enough personal data on every exposed action for this
+            member. New experiments will show up here when they try something
+            new — a bedtime shift, a new training plan, or a follow-up draw.
+          </p>
+        </div>
+      </Card>
+    )
+  }
+
+  // Case B: every candidate is feasibility=blocked — cohort priors are
+  // too flat to merit running any experiment right now.
+  if (allBlocked) {
+    return (
+      <Card padding="md" className="text-center text-sm text-slate-600 py-10">
+        <div className="max-w-md mx-auto space-y-2">
+          <div className="font-semibold text-slate-800">No experiments worth running</div>
+          <p className="text-slate-500 leading-snug">
+            Every candidate in the queue has a cohort prior too flat to
+            materially personalize. See Insights for what's already known;
+            come back when new actions or biomarkers enter the picture.
+          </p>
+        </div>
+      </Card>
+    )
+  }
+
+  // Case C: filters hid everything.
+  const filterChips: string[] = []
+  if (hideInfeasible) filterChips.push('"Ready only"')
+  if (runningOnly) filterChips.push('"Running only"')
+  return (
+    <Card padding="md" className="text-center text-sm text-slate-600 py-10">
+      <div className="max-w-md mx-auto space-y-3">
+        <div className="font-semibold text-slate-800">Everything's hidden by your filters</div>
+        <p className="text-slate-500 leading-snug">
+          {filterChips.length > 0
+            ? `${filterChips.join(' and ')} is hiding the rest of the queue.`
+            : 'Regime filter is narrowing the list to zero.'}
+        </p>
+        {filterChips.length > 0 && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-medium bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            Clear exploration filters
+          </button>
+        )}
+      </div>
+    </Card>
   )
 }
 
