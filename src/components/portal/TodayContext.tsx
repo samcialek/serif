@@ -117,6 +117,64 @@ const REGIME_LABEL: Record<RegimeKey, string> = {
   inflammation_state: 'Inflamed',
 }
 
+/** Per-regime "the measurement that drives this" — surfaces a real
+ *  metric (sleep debt in hours, ACWR ratio, hsCRP value, ferritin level)
+ *  instead of the abstract activation %.
+ *
+ *  Source of truth varies by regime:
+ *    - sleep_deprivation / overreaching: rolling-load summaries (loads_today)
+ *    - inflammation / iron_deficiency: biomarker baselines (outcome_baselines)
+ *
+ *  The biomarker regimes used to indirect through fictional `hscrp_today`
+ *  / `iron_load` load keys that the backend never actually emits — those
+ *  fields silently always returned undefined. Reading the baselines
+ *  directly is the honest source. */
+function regimeMetricLabel(
+  key: RegimeKey,
+  loads: Partial<Record<LoadKey, LoadValue>>,
+  participant: ParticipantPortal,
+): string {
+  const baselines = participant.outcome_baselines ?? {}
+  switch (key) {
+    case 'sleep_deprivation_state': {
+      const v = loads.sleep_debt_14d?.value
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        return `${v.toFixed(1)} h debt`
+      }
+      return 'sleep debt'
+    }
+    case 'overreaching_state': {
+      const v = loads.acwr?.value
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        return `ACWR ${v.toFixed(2)}`
+      }
+      return 'load spike'
+    }
+    case 'inflammation_state': {
+      const v = baselines.hscrp
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        return `hsCRP ${v.toFixed(1)} mg/L`
+      }
+      return 'inflammation'
+    }
+    case 'iron_deficiency_state': {
+      // Prefer ferritin (most informative for stores depletion); fall back
+      // to iron_total if ferritin isn't drawn yet.
+      const ferritin = baselines.ferritin
+      if (typeof ferritin === 'number' && Number.isFinite(ferritin)) {
+        return `ferritin ${ferritin.toFixed(0)} ng/mL`
+      }
+      const iron = baselines.iron_total
+      if (typeof iron === 'number' && Number.isFinite(iron)) {
+        return `iron ${iron.toFixed(0)} µg/dL`
+      }
+      return 'low iron stores'
+    }
+    default:
+      return ''
+  }
+}
+
 /** Plain-English summary of what each regime does to the day's protocol.
  * Sourced from the actual logic in buildDailyProtocol + the penalty
  * rules in twinSem — kept in one place so it doesn't drift. */
@@ -209,7 +267,7 @@ export function TodayContext({ participant, activeRegimes, date }: Props) {
                     {REGIME_LABEL[r.key]}
                   </span>{' '}
                   <span className="tabular-nums font-semibold text-amber-700">
-                    {Math.round(r.activation * 100)}%
+                    {regimeMetricLabel(r.key, loads, participant)}
                   </span>
                   <span className="text-amber-400"> → </span>
                   <span className="text-slate-700">{REGIME_EFFECTS[r.key]}</span>

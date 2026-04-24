@@ -17,13 +17,28 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { PageLayout } from '@/components/layout'
-import { Loader2, RotateCcw, Sparkles, X, Check, Save } from 'lucide-react'
+import {
+  CloudSun,
+  Droplets,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+  Sun,
+  Thermometer,
+  Wind,
+  X,
+  Check,
+  Save,
+  type LucideIcon,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useTwinSnapshotStore,
   newSnapshotId,
   type TwinSnapshot,
 } from '@/stores/twinSnapshotStore'
+import { useScopeStore } from '@/stores/scopeStore'
+import { PainterlyPageHeader, CrossTabLinks } from '@/components/common'
 import {
   HR_THREE_BAND,
   ALCOHOL_SPEC,
@@ -36,6 +51,7 @@ import { trimpFor } from '@/views/twinForks/leverConcepts/HRDialVariants'
 import { DecayCurveLever } from '@/views/twinForks/leverConcepts/ConsumableConcepts'
 import { MinimalLine } from '@/views/twinForks/leverConcepts/SleepVariants'
 import { cn } from '@/utils/classNames'
+import { optimizationScore } from '@/utils/insightStandardization'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useSCMv2 as useSCM } from '@/hooks/useSCMv2'
@@ -56,7 +72,7 @@ import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
 import { PHASE_2_EDGES as PHASE_2_EDGES_REF } from '@/data/scm/syntheticEdgesV2'
 import type { Intervention, StructuralEquation } from '@/data/scm/types'
 import type { FullCounterfactualState } from '@/data/scm/fullCounterfactual'
-import type { ParticipantPortal } from '@/data/portal/types'
+import type { ParticipantPortal, WeatherKey } from '@/data/portal/types'
 
 // ─── Constants ─────────────────────────────────────────────────────
 
@@ -213,6 +229,21 @@ const OUTCOME_DECIMALS: Record<string, number> = {
   magnesium_rbc: 1,
 }
 
+const TWIN_BENEFICIAL_OVERRIDE: Partial<Record<string, 'higher' | 'lower'>> = {
+  cortisol: 'lower',
+  dhea_s: 'higher',
+  testosterone: 'higher',
+}
+
+function beneficialDirectionForOutcome(
+  id: string,
+  meta: (typeof OUTCOME_META)[string] | undefined,
+): 'higher' | 'lower' {
+  const override = TWIN_BENEFICIAL_OVERRIDE[id]
+  if (override) return override
+  return meta?.beneficial === 'lower' ? 'lower' : 'higher'
+}
+
 // Build the regime's outcome list from real participant baselines + canonical
 // metadata. Outcomes without a baseline are still surfaced (factual=null in
 // the bubble), but in practice every curated outcome has a baseline.
@@ -225,8 +256,7 @@ function buildOutcomesForRegime(
   const baselines = participant?.outcome_baselines ?? {}
   return ids.map((id) => {
     const meta = OUTCOME_META[id]
-    const beneficial: 'higher' | 'lower' =
-      meta?.beneficial === 'lower' ? 'lower' : 'higher'
+    const beneficial = beneficialDirectionForOutcome(id, meta)
     return {
       id,
       label: OUTCOME_LABEL_OVERRIDE[id] ?? meta?.noun ?? id,
@@ -878,7 +908,6 @@ function CompactHRDial({ values, onChange, size = 180, regime = 'quotidian' }: C
   const [dragging, setDragging] = useState<0 | 1 | 2 | null>(null)
   const isWeekly = regime === 'longevity'
   const trimp = Math.round(trimpFor(values) * (isWeekly ? 7 : 1))
-  const trimpLabel = isWeekly ? 'TRIMP / WK' : 'TRIMP / DAY'
 
   const updateBand = useCallback(
     (idx: 0 | 1 | 2, frac: number) => {
@@ -957,11 +986,16 @@ function CompactHRDial({ values, onChange, size = 180, regime = 'quotidian' }: C
             </g>
           )
         })}
+        {/* TRIMP score — the label is rendered as the lever header above
+            the dial (LEVER_LABEL.hr), so the dial center is just the
+            number. Visually centered using `dominant-baseline` so the
+            number reads as anchored regardless of digit count. */}
         <text
           x={cx}
-          y={cy + size * 0.025}
+          y={cy}
           textAnchor="middle"
-          fontSize={size * 0.18}
+          dominantBaseline="central"
+          fontSize={size * 0.22}
           fontWeight={200}
           fill="#1c1917"
           style={{
@@ -970,20 +1004,6 @@ function CompactHRDial({ values, onChange, size = 180, regime = 'quotidian' }: C
           }}
         >
           {trimp}
-        </text>
-        <text
-          x={cx}
-          y={cy + size * 0.115}
-          textAnchor="middle"
-          fontSize={size * 0.055}
-          fill="#78716c"
-          style={{
-            fontFamily: 'Inter, sans-serif',
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-          }}
-        >
-          {trimpLabel}
         </text>
       </svg>
       {/* Per-zone legend — name + minutes/day in the band's color */}
@@ -2119,6 +2139,16 @@ function OutcomeHoverCard({
         )}
       </div>
 
+      {/* Cross-tab navigation — pointer-events:auto so the link chips
+          remain clickable even though the card itself is pointer-events:
+          none. */}
+      <div
+        className="mt-2 pt-2 border-t border-stone-100"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <CrossTabLinks outcome={outcome.id} exclude={['twin']} compact />
+      </div>
+
       {/* Pointer ▼ stitched onto the bottom of the card so it visually
           points at the chit underneath. */}
       <div
@@ -2170,6 +2200,7 @@ function OutcomeBubble({
   const eps = Math.pow(10, -outcome.decimals - 1)
   const showBand =
     outcome.bandHalf != null && outcome.bandHalf > eps
+  const optimizeVerb = outcome.beneficial === 'lower' ? 'Lower' : 'Raise'
 
   // ─── Confidence classification ──
   // Tight band relative to the delta = "this prediction is well
@@ -2259,7 +2290,7 @@ function OutcomeBubble({
             e.stopPropagation()
             onOptimize(outcome.id)
           }}
-          title={`Optimize for ${outcome.label}`}
+          title={`${optimizeVerb} ${outcome.label}`}
           className="absolute"
           style={{
             top: 4,
@@ -2749,6 +2780,14 @@ const LEVER_LABEL: Record<LeverId, string> = {
   supplementation: 'Supplements',
 }
 
+/** Per-regime label override — currently only HR shifts (TRIMP / day vs
+ *  TRIMP / wk so the score in the dial center reads in the same unit
+ *  the heading promises). All other levers stay regime-agnostic. */
+function leverLabelFor(id: LeverId, regime: Regime): string {
+  if (id === 'hr') return regime === 'longevity' ? 'TRIMP / wk' : 'TRIMP / day'
+  return LEVER_LABEL[id]
+}
+
 // ─── Painterly canvas (for either regime) ─────────────────────────
 
 interface PainterlyCanvasProps {
@@ -2871,16 +2910,11 @@ function PainterlyCanvas({
     return ob
   }, [baseOutcomes])
 
-  // Horizon scrubber — defaults to the regime's natural horizon (1 wk
-  // for quotidian wearable outcomes, 3 mo for longevity biomarkers).
-  // The scrubber lets users explore "what does this look like at 1 day
-  // vs 1 year?" without mode-switching.
-  const defaultAtDays = regime === 'quotidian' ? 7 : 90
-  const [atDays, setAtDays] = useState<number>(defaultAtDays)
-  // Snap back to the regime default when toggling regimes.
-  useEffect(() => {
-    setAtDays(defaultAtDays)
-  }, [defaultAtDays])
+  // Horizon comes from the cross-tab scope store — set in the page
+  // header's ScopeBar. The scope store snaps the horizon to a regime-
+  // appropriate default whenever the user changes regime, so the Twin
+  // doesn't need its own snap-back effect.
+  const atDays = useScopeStore((s) => s.atDays)
 
   // ─── BART posterior bands ─────────────────────────────────────
   // Async MC pass: when bands are ready they get folded into the
@@ -2966,8 +3000,10 @@ function PainterlyCanvas({
       }
       const goal = baseOutcomesById[goalOutcomeId]
       if (!goal) return 0
-      // Flip sign for "lower is better" so we always maximize.
-      return goal.beneficial === 'higher' ? delta : -delta
+      // Flip sign for "lower is better" so we always maximize. See
+      // optimizationScore + insightStandardization.test.ts for the
+      // regression guard against the "cortisol pushed UP" bug class.
+      return optimizationScore(delta, goal.beneficial)
     },
     [
       regime,
@@ -3313,7 +3349,12 @@ function PainterlyCanvas({
         const x = positions[id]
         if (x == null) return null
         return (
-          <LeverHeader key={id} label={LEVER_LABEL[id]} x={x} y={HEADER_Y} />
+          <LeverHeader
+            key={id}
+            label={leverLabelFor(id, regime)}
+            x={x}
+            y={HEADER_Y}
+          />
         )
       })}
 
@@ -3359,8 +3400,6 @@ function PainterlyCanvas({
           onClose={() => setSelectedOutcomeId(null)}
         />
       )}
-
-      <HorizonScrubber atDays={atDays} onChange={setAtDays} />
 
       <MethodologyPill
         fittedEdges={evidenceStats.fittedEdges}
@@ -3464,6 +3503,7 @@ function SolverBanner({
   const decimals = goalOutcome?.decimals ?? 1
   const unit = goalOutcome?.unit ?? ''
   const tc = TONE_TEXT[tone]
+  const goalVerb = goalOutcome?.beneficial === 'lower' ? 'lower' : 'raise'
   return (
     <div
       className="absolute pointer-events-auto"
@@ -3486,7 +3526,7 @@ function SolverBanner({
     >
       <Sparkles className="w-3.5 h-3.5" style={{ color: '#7C9F8B' }} />
       <span>
-        {isRunning ? 'Solving for' : 'Solved for'}{' '}
+        {isRunning ? 'Solving to' : 'Solved to'} {goalVerb}{' '}
         <span style={{ fontWeight: 500, color: '#1c1917' }}>{goalLabel}</span>
       </span>
       {goalOutcome && (
@@ -3711,6 +3751,170 @@ function MethodologyPill({
 // for that range; values beyond that just plateau on the cumulative
 // curve so they're not interesting.
 
+const TWIN_WEATHER_METRICS: Array<{
+  key: WeatherKey
+  label: string
+  icon: LucideIcon
+  format: (value: number) => string
+  band: (value: number) => 'good' | 'watch' | 'elevated'
+}> = [
+  {
+    key: 'heat_index_c',
+    label: 'Heat index',
+    icon: Thermometer,
+    format: (value) => `${Math.round(value)}°C`,
+    band: (value) => (value >= 35 ? 'elevated' : value >= 30 ? 'watch' : 'good'),
+  },
+  {
+    key: 'temp_c',
+    label: 'Temp',
+    icon: CloudSun,
+    format: (value) => `${Math.round(value)}°C`,
+    band: (value) => (value >= 32 || value <= -5 ? 'watch' : 'good'),
+  },
+  {
+    key: 'humidity_pct',
+    label: 'Humidity',
+    icon: Droplets,
+    format: (value) => `${Math.round(value)}%`,
+    band: (value) => (value >= 75 ? 'watch' : 'good'),
+  },
+  {
+    key: 'uv_index',
+    label: 'UV',
+    icon: Sun,
+    format: (value) => value.toFixed(1),
+    band: (value) => (value >= 8 ? 'watch' : 'good'),
+  },
+  {
+    key: 'aqi',
+    label: 'AQI',
+    icon: Wind,
+    format: (value) => Math.round(value).toString(),
+    band: (value) => (value >= 150 ? 'elevated' : value >= 100 ? 'watch' : 'good'),
+  },
+]
+
+const TWIN_WEATHER_BAND_STYLE: Record<
+  'good' | 'watch' | 'elevated',
+  { border: string; background: string; icon: string; text: string }
+> = {
+  good: {
+    border: '#e7e5e4',
+    background: '#fff',
+    icon: '#78716c',
+    text: '#44403c',
+  },
+  watch: {
+    border: '#f3d68b',
+    background: '#fff8e5',
+    icon: '#b7791f',
+    text: '#7c4a03',
+  },
+  elevated: {
+    border: '#f0b6a4',
+    background: '#fff1ed',
+    icon: '#b4533d',
+    text: '#7f3326',
+  },
+}
+
+function TwinWeatherPanel({ participant }: { participant: ParticipantPortal }) {
+  const weather = participant.weather_today
+  const metrics = TWIN_WEATHER_METRICS.flatMap((spec) => {
+    const raw = weather?.[spec.key]
+    return typeof raw === 'number' && Number.isFinite(raw)
+      ? [{ spec, value: raw }]
+      : []
+  })
+
+  const elevatedCount = metrics.filter(({ spec, value }) => spec.band(value) !== 'good').length
+
+  return (
+    <div
+      className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+      style={{
+        background: BG,
+        border: `1px solid ${BORDER}`,
+        borderRadius: 18,
+        padding: '12px 14px',
+        boxShadow: '0 8px 22px rgba(28, 25, 23, 0.04)',
+      }}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
+          style={{
+            background: '#fff',
+            border: `1px solid ${BORDER}`,
+            borderRadius: 12,
+            color: '#7C9F8B',
+          }}
+        >
+          <CloudSun className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div
+            className="text-[13px] font-medium"
+            style={{ color: '#1c1917', fontFamily: 'Inter, sans-serif' }}
+          >
+            Weather context
+          </div>
+          <div
+            className="text-[11px]"
+            style={{ color: '#78716c', fontFamily: 'Inter, sans-serif' }}
+          >
+            {metrics.length === 0
+              ? 'No weather data for this participant today'
+              : elevatedCount > 0
+                ? `${elevatedCount} context flag${elevatedCount === 1 ? '' : 's'} active`
+                : 'All observed weather confounders in normal range'}
+          </div>
+        </div>
+      </div>
+
+      {metrics.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-end">
+          {metrics.map(({ spec, value }) => {
+            const Icon = spec.icon
+            const style = TWIN_WEATHER_BAND_STYLE[spec.band(value)]
+            return (
+              <div
+                key={spec.key}
+                className="flex items-center gap-2"
+                style={{
+                  minWidth: 112,
+                  background: style.background,
+                  border: `1px solid ${style.border}`,
+                  borderRadius: 10,
+                  padding: '8px 10px',
+                }}
+                title={`${spec.label}: ${spec.format(value)}`}
+              >
+                <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: style.icon }} />
+                <div className="min-w-0">
+                  <div
+                    className="text-[13px] font-semibold tabular-nums leading-none"
+                    style={{ color: style.text, fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {spec.format(value)}
+                  </div>
+                  <div
+                    className="mt-1 text-[9px] uppercase tracking-wide"
+                    style={{ color: '#a8a29e', fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {spec.label}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const HORIZON_PRESETS: Array<{ days: number; label: string }> = [
   { days: 1, label: '1d' },
   { days: 7, label: '1w' },
@@ -3730,7 +3934,7 @@ function HorizonScrubber({
   return (
     <div
       className="absolute pointer-events-auto"
-      style={{ top: 14, left: 16 }}
+      style={{ bottom: 14, left: 16 }}
     >
       <div
         className="inline-flex items-center rounded-full"
@@ -4077,12 +4281,16 @@ function seedStateFromParticipant(participant: ParticipantPortal): AllState {
 }
 
 export function TwinV2View() {
-  const { pid, displayName, cohort, persona } = useActiveParticipant()
+  const { pid, displayName } = useActiveParticipant()
   const { participant, isLoading } = useParticipant()
   const { runFullCounterfactual, equations } = useSCM()
 
   const [state, setState] = useState<AllState>(defaultState)
-  const [regime, setRegime] = useState<Regime>('quotidian')
+  // Twin needs a binary regime (the lever set + outcome set differ).
+  // When the cross-tab scope is set to "all", we render the longevity
+  // view since it covers more ground.
+  const scopeRegime = useScopeStore((s) => s.regime)
+  const regime: Regime = scopeRegime === 'quotidian' ? 'quotidian' : 'longevity'
 
   // When the active participant changes, reseed the lever state so
   // levers start at the participant's actual baseline (no interventions).
@@ -4094,67 +4302,39 @@ export function TwinV2View() {
     lastSeededPid.current = participant.pid
   }, [participant])
 
+  const headerActions = (
+    <button
+      onClick={() =>
+        setState(
+          participant ? seedStateFromParticipant(participant) : defaultState(),
+        )
+      }
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors"
+      style={{
+        background: 'transparent',
+        border: '1px solid #e7e5e4',
+        color: '#78716c',
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 11,
+        cursor: 'pointer',
+      }}
+      title="Reset levers to baseline"
+    >
+      <RotateCcw className="w-3 h-3" />
+      Reset
+    </button>
+  )
+
   return (
     <PageLayout maxWidth="full">
-      {/* Header strip — persona portrait + regime toggle + reset */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        {pid != null && (
-          <PersonaPortrait
-            persona={persona}
-            displayName={displayName}
-            cohort={cohort}
-            size={132}
-            cleanBackground
-            subtitle={
-              regime === 'quotidian'
-                ? 'Day-scale outcomes'
-                : 'Months-scale biomarkers'
-            }
-            stats={(() => {
-              const m = persona?.currentMetrics
-              if (!m) return []
-              const stats: Array<{ label: string; value: number; unit?: string }> = []
-              if (m.hrv) stats.push({ label: 'HRV', value: m.hrv, unit: 'ms' })
-              if (m.restingHr) stats.push({ label: 'RHR', value: m.restingHr, unit: 'bpm' })
-              if (m.deepSleepMin)
-                stats.push({ label: 'Deep', value: m.deepSleepMin, unit: 'min' })
-              if (m.remSleepMin)
-                stats.push({ label: 'REM', value: m.remSleepMin, unit: 'min' })
-              return stats
-            })()}
-          />
-        )}
-
-        <div
-          className="inline-flex items-center rounded-full p-1 ml-2"
-          style={{ background: '#fff', border: `1px solid ${BORDER}` }}
-        >
-          <RegimeButton
-            active={regime === 'quotidian'}
-            onClick={() => setRegime('quotidian')}
-          >
-            Quotidian
-          </RegimeButton>
-          <RegimeButton
-            active={regime === 'longevity'}
-            onClick={() => setRegime('longevity')}
-          >
-            Longevity
-          </RegimeButton>
-        </div>
-
-        <button
-          onClick={() =>
-            setState(
-              participant ? seedStateFromParticipant(participant) : defaultState(),
-            )
-          }
-          className="ml-auto inline-flex items-center gap-1.5 text-[13px] text-stone-500 hover:text-stone-700 px-2.5 py-1.5"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          Reset
-        </button>
-      </div>
+      <PainterlyPageHeader
+        subtitle={
+          regime === 'quotidian'
+            ? 'Day-scale outcomes — wearable signals respond within a week'
+            : 'Months-scale biomarkers — projected with literature edges'
+        }
+        actions={headerActions}
+      />
 
       {pid == null ? (
         <EmptyParticipant message="Pick a member to open their twin." />
@@ -4175,6 +4355,11 @@ export function TwinV2View() {
               variant="cream"
             />
           </div>
+          {regime === 'quotidian' && (
+            <div className="mb-4">
+              <TwinWeatherPanel participant={participant} />
+            </div>
+          )}
           <PainterlyCanvas
             state={state}
             setState={setState}
@@ -4217,32 +4402,6 @@ function EmptyParticipant({
   )
 }
 
-function RegimeButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'px-4 py-1.5 rounded-full transition-colors',
-      )}
-      style={{
-        background: active ? BG : 'transparent',
-        color: active ? '#1c1917' : '#78716c',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: 13,
-        fontWeight: active ? 500 : 400,
-      }}
-    >
-      {children}
-    </button>
-  )
-}
+// (RegimeButton removed — regime now lives in the unified ScopeBar.)
 
 export default TwinV2View

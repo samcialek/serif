@@ -156,6 +156,20 @@ export function cohensD(
   return (slope * sda) / sdo
 }
 
+/** Sign-flip helper for any maximizer that wants "more is better"
+ *  semantics. Pass the projected outcome delta (in native units) and
+ *  the outcome's beneficial direction; the helper returns a score the
+ *  caller can directly maximize. Critical for Twin's solver: without
+ *  it, coordinate descent on a "lower-better" outcome (cortisol, apoB,
+ *  glucose, hsCRP) would push the wrong way and produce harmful
+ *  recommendations. Pure function — exported for unit testing. */
+export function optimizationScore(
+  delta: number,
+  beneficial: 'higher' | 'lower',
+): number {
+  return beneficial === 'higher' ? delta : -delta
+}
+
 /** "Low confidence" edge — the engine's answer is still borrowed mostly
  * from cohort priors, OR the posterior has a wide CI. These are the
  * rows that most benefit from an Exploration experiment, so Insights v2
