@@ -21,6 +21,7 @@ import {
   beneficialSign,
 } from '@/utils/insightStandardization'
 import { InsightActionRow } from './InsightActionRow'
+import { InsightActionDetail } from './InsightActionDetail'
 
 const TOP_N_DEFAULT = 5
 
@@ -155,14 +156,7 @@ export function InsightOutcomeCard({ outcome, edges, participant }: Props) {
                   }
                 />
                 {openEdgeId === key && (
-                  <div className="mx-3 mb-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 leading-snug">
-                    Detailed posterior breakdown + dose-response curve
-                    coming in the next iteration. The slope-bar above
-                    is a linear approximation at your current baseline.
-                    The engine's underlying response curve may plateau,
-                    saturate, or invert at extremes — see Twin to
-                    explore the full nonlinear shape.
-                  </div>
+                  <InsightActionDetail edge={edge} participant={participant} />
                 )}
               </li>
             ))}
