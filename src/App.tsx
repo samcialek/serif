@@ -17,7 +17,6 @@ import {
   TwinView,
   BaselineView,
   ExplorationView,
-  ExplorationV2View,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -68,8 +67,10 @@ function App() {
           <Route path="/protocols-split" element={<Navigate to="/protocols" replace />} />
           <Route path="/protocols-v2" element={<Navigate to="/protocols" replace />} />
 
+          {/* Exploration — outcome-first with experiment prescriptions.
+               /exploration-v2 was the staging alias during rollout. */}
           <Route path="/exploration" element={<ExplorationView />} />
-          <Route path="/exploration-v2" element={<ExplorationV2View />} />
+          <Route path="/exploration-v2" element={<Navigate to="/exploration" replace />} />
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />
           <Route path="/api" element={<ApiView />} />

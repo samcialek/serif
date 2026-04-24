@@ -159,7 +159,7 @@ export function cohensD(
 /** "Low confidence" edge — the engine's answer is still borrowed mostly
  * from cohort priors, OR the posterior has a wide CI. These are the
  * rows that most benefit from an Exploration experiment, so Insights v2
- * links them across to /exploration-v2 with a deep-link.
+ * links them across to /exploration with a deep-link.
  *
  * Criteria (any triggers):
  *   - evidence_tier === 'cohort_level'

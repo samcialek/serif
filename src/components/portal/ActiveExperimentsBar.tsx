@@ -1,5 +1,5 @@
 /**
- * ActiveExperimentsBar — sticky strip at the top of /exploration-v2
+ * ActiveExperimentsBar — sticky strip at the top of /exploration
  * showing running + recently-completed experiments as chips.
  *
  * Each chip: action icon · arrow · outcome · progress ring · days left
