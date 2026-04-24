@@ -1,16 +1,17 @@
 /**
  * ProtocolsLanesView — swim-lanes variant at /protocols-lanes.
  *
- * Groups today's protocol items into three parallel horizontal lanes by
+ * Groups today's protocol items into three parallel VERTICAL lanes by
  * tag category, so users can see parallel daily themes at a glance:
  *
  *   Sleep / circadian    — bedtime-side items + wake anchor
  *   Training             — workout + overreaching-tinted items
  *   Nutrition / recovery — iron-support, anti-inflammatory
  *
- * Each lane is a ProtocolTimelineBar instance fed a filtered subset.
- * Selection state is shared across the three lanes so clicking any
- * marker surfaces the same detail card.
+ * All lanes share the same y-axis hour range so items at the same time
+ * align horizontally across columns. A single "now" line cuts across
+ * all three. Selection state is shared: clicking any marker surfaces
+ * the same detail card.
  */
 
 import { useMemo, useState } from 'react'
@@ -24,7 +25,8 @@ import {
   TodayContext,
   useContextVariants,
 } from '@/components/portal'
-import { ProtocolTimelineBar } from '@/components/portal/ProtocolTimelineBar'
+import { ProtocolVerticalLanes } from '@/components/portal/ProtocolVerticalLanes'
+import type { VerticalLaneSpec } from '@/components/portal/ProtocolVerticalLanes'
 import { ProtocolDetailCard } from '@/components/portal/ProtocolDetailCard'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -171,17 +173,32 @@ export function ProtocolsLanesView() {
 
   // Per-lane item lists, each remembering the ORIGINAL index into
   // matched so selection handlers can set the global requested index.
-  const lanes = useMemo(() => {
-    const out: Record<LaneKey, Array<{ item: ProtocolItem; originalIndex: number }>> = {
+  const { laneSpecs, minHour, maxHour } = useMemo(() => {
+    const byKey: Record<LaneKey, Array<{ item: ProtocolItem; originalIndex: number }>> = {
       sleep: [],
       training: [],
       nutrition: [],
     }
     matched.forEach((m, i) => {
       const lane = assignLane(m.real)
-      if (lane) out[lane].push({ item: m.real, originalIndex: i })
+      if (lane) byKey[lane].push({ item: m.real, originalIndex: i })
     })
-    return out
+
+    // Shared time range across all lanes so columns align vertically.
+    const allTimes = matched.map((m) => {
+      const [h, min] = m.real.time.split(':').map(Number)
+      return h + min / 60
+    })
+    const minH = allTimes.length ? Math.floor(Math.min(...allTimes) - 0.5) : 6
+    const maxH = allTimes.length ? Math.ceil(Math.max(...allTimes) + 0.5) : 24
+
+    const specs: VerticalLaneSpec[] = LANES.map((lane) => ({
+      key: lane.key,
+      label: lane.label,
+      hint: lane.hint,
+      entries: byKey[lane.key],
+    }))
+    return { laneSpecs: specs, minHour: minH, maxHour: maxH }
   }, [matched])
 
   const selectedIndex =
@@ -295,39 +312,15 @@ export function ProtocolsLanesView() {
             date={today}
           />
 
-          {/* Three lanes */}
-          <div className="space-y-4">
-            {LANES.map((lane) => {
-              const laneItems = lanes[lane.key]
-              if (laneItems.length === 0) return (
-                <EmptyLane key={lane.key} lane={lane} />
-              )
-              // The bar component takes a selectedIndex INTO the items
-              // list it receives, so we translate globally-indexed
-              // selection to locally-indexed for rendering.
-              const localSelected = laneItems.findIndex(
-                (e) => e.originalIndex === selectedIndex,
-              )
-              return (
-                <div key={lane.key}>
-                  <div className="px-1 mb-1">
-                    <div className="text-[11px] uppercase tracking-wider font-bold text-slate-700">
-                      {lane.label}
-                    </div>
-                    <div className="text-[10px] text-slate-500">{lane.hint}</div>
-                  </div>
-                  <ProtocolTimelineBar
-                    items={laneItems.map((e) => e.item)}
-                    selectedIndex={localSelected === -1 ? null : localSelected}
-                    onSelect={(localIdx) =>
-                      setRequestedIndex(laneItems[localIdx].originalIndex)
-                    }
-                    nowDecimal={nowDecimal}
-                  />
-                </div>
-              )
-            })}
-          </div>
+          {/* Three parallel vertical lanes */}
+          <ProtocolVerticalLanes
+            lanes={laneSpecs}
+            minHour={minHour}
+            maxHour={maxHour}
+            selectedIndex={selectedIndex}
+            onSelect={setRequestedIndex}
+            nowDecimal={nowDecimal}
+          />
 
           {/* Detail card for the selected marker */}
           {selected ? (
@@ -346,22 +339,6 @@ export function ProtocolsLanesView() {
         </Card>
       </motion.div>
     </PageLayout>
-  )
-}
-
-function EmptyLane({ lane }: { lane: LaneSpec }) {
-  return (
-    <div>
-      <div className="px-1 mb-1">
-        <div className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
-          {lane.label}
-        </div>
-        <div className="text-[10px] text-slate-400">{lane.hint}</div>
-      </div>
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-[11px] text-slate-400 italic text-center">
-        No items in this lane today.
-      </div>
-    </div>
   )
 }
 
