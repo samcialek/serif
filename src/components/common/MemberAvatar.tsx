@@ -7,7 +7,7 @@ const SIZE_CLASSES = {
   sm: 'w-7 h-7 text-[11px]',
   md: 'w-9 h-9 text-sm',
   lg: 'w-14 h-14 text-base',
-  xl: 'w-24 h-24 text-lg',
+  xl: 'w-32 h-32 text-xl',
 }
 
 const ICON_SIZES = {
@@ -15,7 +15,7 @@ const ICON_SIZES = {
   sm: 'w-3.5 h-3.5',
   md: 'w-4 h-4',
   lg: 'w-6 h-6',
-  xl: 'w-10 h-10',
+  xl: 'w-12 h-12',
 }
 
 export type MemberAvatarSize = keyof typeof SIZE_CLASSES
@@ -64,6 +64,31 @@ export function MemberAvatar({
       //      now-empty backdrop.
       const featherMask =
         'radial-gradient(ellipse 70% 92% at 50% 38%, black 0%, black 60%, transparent 95%)'
+
+      // At xl + cleanBackground, drop the gradient ring and render the
+      // photo directly — the Twin v2 "cutout against the page" look the
+      // user asked us to propagate everywhere.
+      if (size === 'xl' && effectiveCleanBg) {
+        return (
+          <div
+            className={cn(sizeCls, 'relative flex-shrink-0', className)}
+          >
+            <img
+              src={persona.avatar}
+              alt={persona.name}
+              className="absolute inset-0 w-full h-full object-cover mix-blend-darken [filter:contrast(1.12)_saturate(1.05)]"
+              style={{
+                WebkitMaskImage: featherMask,
+                maskImage: featherMask,
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                objectPosition: '50% 28%',
+              }}
+            />
+          </div>
+        )
+      }
+
       const imgTransform = effectiveCleanBg
         ? 'scale-[1.12] -translate-y-[4%]'
         : 'scale-[1.08] -translate-y-[6%]'
