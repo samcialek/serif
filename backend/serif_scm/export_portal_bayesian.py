@@ -67,6 +67,7 @@ from .scheduler import (
     release_count_warnings, release_count_distribution,
     RELEASE_COUNT_LOWER, RELEASE_COUNT_UPPER,
 )
+from . import exploration_math, intervention_horizons
 from .intervention_horizons import (
     WEARABLE_HORIZONS, BIOMARKER_HORIZONS,
     get_horizon, pathway_for, horizon_display,
@@ -459,7 +460,11 @@ def _row(
     }
 
 
-def _exploration_recommendations(rows: list[dict]) -> list[dict]:
+def _exploration_recommendations(
+    rows: list[dict],
+    behavioral_sds: dict[str, float] | None = None,
+    current_values: dict[str, float] | None = None,
+) -> list[dict]:
     """Per-participant 'data worth adding' candidates.
 
     Picks rows that fell out of the gate (tier='not_exposed') for a *remediable*
@@ -468,13 +473,17 @@ def _exploration_recommendations(rows: list[dict]) -> list[dict]:
     for structural reasons (weak cohort prior + no user obs, direction
     conflict, bounded-to-zero dose) are excluded — adding data can't rescue
     those.
+
+    Each emitted rec carries the Phase-3 enrichment: prior_cohens_d,
+    prior_cohens_d_sd, expected_posterior_narrow (conjugate-Normal
+    update), horizon_days, and the full experiment prescription. See
+    backend/serif_scm/exploration_math.py.
     """
     out: list[dict] = []
     for r in rows:
         if r["gate"]["tier"] != "not_exposed":
             continue
 
-        positivity = r.get("positivity") or {}
         positivity_flag = r.get("positivity_flag", "ok")
 
         user_obs = r.get("user_obs") or {}
@@ -508,6 +517,16 @@ def _exploration_recommendations(rows: list[dict]) -> list[dict]:
         if kind is None:
             continue
 
+        horizon_days = intervention_horizons.get_horizon(r["outcome"])
+        extras = exploration_math.enrich_row(
+            row=r,
+            kind=kind,
+            pathway=pathway,
+            behavioral_sds=behavioral_sds,
+            current_values=current_values,
+            horizon_days=horizon_days,
+        )
+
         out.append({
             "action": r["action"],
             "outcome": r["outcome"],
@@ -517,6 +536,7 @@ def _exploration_recommendations(rows: list[dict]) -> list[dict]:
             "prior_contraction": r["posterior"]["contraction"],
             "positivity_flag": positivity_flag,
             "user_n": user_n,
+            **extras,
         })
     return out
 
@@ -571,7 +591,11 @@ def _export_one(
     # rows that fell out of the gate but have a remediable cause (positivity
     # gap or single-draw biomarker). Caller UI groups them as suggestions for
     # what the user could do to unlock real insights.
-    exploration_recommendations = _exploration_recommendations(rows)
+    exploration_recommendations = _exploration_recommendations(
+        rows,
+        behavioral_sds=behavioral_sds,
+        current_values=current_values,
+    )
 
     protocols = synthesize_protocols(
         pid=pid,
