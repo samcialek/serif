@@ -156,6 +156,24 @@ export function cohensD(
   return (slope * sda) / sdo
 }
 
+/** Posterior SD of Cohen's d — the uncertainty on the standardized
+ * slope. Computed from `edge.posterior.sd`, scaled to d-units the same
+ * way `cohensD` scales the mean. Used by Exploration v2 to size the
+ * prior-band and to drive the conjugate-update "expected narrowing"
+ * calculation. */
+export function cohensDSD(
+  edge: InsightBayesian,
+  participant: ParticipantPortal,
+): number {
+  const step = edge.nominal_step || 1
+  if (Math.abs(step) < 1e-12) return 0
+  const sdo = outcomeSD(edge.outcome)
+  if (sdo < 1e-12) return 0
+  const sda = actionSD(edge.action, participant)
+  const slopeSd = Math.abs(edge.posterior.sd / step)
+  return (slopeSd * sda) / sdo
+}
+
 /** Magnitude bands per Cohen (1988):
  *   trivial  < 0.2
  *   small    0.2 – 0.5

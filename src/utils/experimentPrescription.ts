@@ -13,9 +13,9 @@
 import type {
   ExperimentFeasibility,
   ExperimentSpec,
+  ExplorationRecommendation,
   ParticipantPortal,
 } from '@/data/portal/types'
-import type { ExplorationEdge } from '@/utils/exploration'
 
 // ─── Default prescription table ──────────────────────────────────
 
@@ -145,56 +145,59 @@ const DEFAULT_REPEAT_DAYS = 56
 // ─── Core API ───────────────────────────────────────────────────
 
 export function prescriptionFor(
-  edge: ExplorationEdge,
+  rec: ExplorationRecommendation,
   participant: ParticipantPortal,
+  priorD: number,
 ): ExperimentSpec {
-  const pre = edge.experiment
+  const pre = rec.experiment
   if (pre) return pre
 
-  if (edge.kind === 'repeat_measurement') {
+  if (rec.kind === 'repeat_measurement') {
     const duration =
-      REPEAT_DRAW_INTERVAL_DAYS[edge.outcome] ?? DEFAULT_REPEAT_DAYS
+      REPEAT_DRAW_INTERVAL_DAYS[rec.outcome] ?? DEFAULT_REPEAT_DAYS
     const base: PrescriptionBase = {
       action_range_delta: [0, 0],
       cadence: 'one_shot',
       duration_days: duration,
     }
-    return withFeasibility(edge, base, participant)
+    return withFeasibility(rec, base, participant, priorD)
   }
 
   // vary_action — look up the table, fall back on a generic ±1 SD
   // daily-14-day design.
-  const explicit = VARY_ACTION_PRESCRIPTIONS[edge.action]
-  if (explicit) return withFeasibility(edge, explicit, participant)
+  const explicit = VARY_ACTION_PRESCRIPTIONS[rec.action]
+  if (explicit) return withFeasibility(rec, explicit, participant, priorD)
 
-  const sd = participant.behavioral_sds?.[edge.action] ?? 1
+  const sd = participant.behavioral_sds?.[rec.action] ?? 1
   const generic: PrescriptionBase = {
     action_range_delta: [-sd, sd],
     cadence: 'daily',
     duration_days: 14,
   }
-  return withFeasibility(edge, generic, participant)
+  return withFeasibility(rec, generic, participant, priorD)
 }
 
 // ─── Feasibility ────────────────────────────────────────────────
 
 function withFeasibility(
-  edge: ExplorationEdge,
+  rec: ExplorationRecommendation,
   base: PrescriptionBase,
   participant: ParticipantPortal,
+  priorD: number,
 ): ExperimentSpec {
-  const { feasibility, note } = feasibilityFor(edge, participant)
+  const { feasibility, note } = feasibilityFor(rec, participant, priorD)
   return { ...base, feasibility, feasibility_note: note }
 }
 
 export function feasibilityFor(
-  edge: ExplorationEdge,
+  rec: ExplorationRecommendation,
   participant: ParticipantPortal,
+  priorD: number,
 ): { feasibility: ExperimentFeasibility; note?: string } {
   // Blocked when the cohort prior itself is too flat to be worth
   // discovering — no amount of personal data will uncover a meaningful
   // effect.
-  if (Math.abs(edge.computed.priorD) < 0.05) {
+  if (Math.abs(priorD) < 0.05) {
     return {
       feasibility: 'blocked',
       note:
@@ -204,21 +207,21 @@ export function feasibilityFor(
 
   // vary_action needs a baseline exposure to anchor the curve on, and
   // a user_n high enough to evaluate changes against.
-  if (edge.kind === 'vary_action') {
-    const hasCurrent = participant.current_values?.[edge.action] != null
+  if (rec.kind === 'vary_action') {
+    const hasCurrent = participant.current_values?.[rec.action] != null
     if (!hasCurrent) {
       return {
         feasibility: 'needs_baseline',
-        note: `No current ${edge.action.replace(/_/g, ' ')} measurement — log a baseline first.`,
+        note: `No current ${rec.action.replace(/_/g, ' ')} measurement — log a baseline first.`,
       }
     }
-    if (edge.user_n < 3) {
+    if (rec.user_n < 3) {
       return {
         feasibility: 'needs_baseline',
-        note: `Only ${edge.user_n} personal observation${edge.user_n === 1 ? '' : 's'}. Collect more baseline before varying.`,
+        note: `Only ${rec.user_n} personal observation${rec.user_n === 1 ? '' : 's'}. Collect more baseline before varying.`,
       }
     }
-    if (edge.positivity_flag === 'insufficient') {
+    if (rec.positivity_flag === 'insufficient') {
       return {
         feasibility: 'ready',
         note:
@@ -230,10 +233,10 @@ export function feasibilityFor(
 
   // repeat_measurement — always feasible unless biomarker has never
   // been drawn.
-  if (edge.user_n < 1) {
+  if (rec.user_n < 1) {
     return {
       feasibility: 'needs_baseline',
-      note: `No baseline draw for ${edge.outcome.replace(/_/g, ' ')} — order the first one.`,
+      note: `No baseline draw for ${rec.outcome.replace(/_/g, ' ')} — order the first one.`,
     }
   }
   return { feasibility: 'ready' }

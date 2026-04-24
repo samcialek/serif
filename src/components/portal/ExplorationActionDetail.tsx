@@ -11,7 +11,6 @@
 import { Sparkles } from 'lucide-react'
 import type { ParticipantPortal } from '@/data/portal/types'
 import type { ExplorationEdge } from '@/utils/exploration'
-import { prescriptionFor } from '@/utils/experimentPrescription'
 import { ExperimentPrescription } from './ExperimentPrescription'
 import { PriorCurvePreview, PriorCurveLegend } from './PriorCurvePreview'
 
@@ -41,8 +40,7 @@ function whyThisMatters(edge: ExplorationEdge): string {
 }
 
 export function ExplorationActionDetail({ edge, participant }: Props) {
-  const spec = prescriptionFor(edge, participant)
-  const { priorD, priorDSD, narrow } = edge.computed
+  const { priorD, priorDSD, narrow, spec } = edge.computed
 
   const launchDisabled = spec.feasibility !== 'ready'
   const launchTitle =
