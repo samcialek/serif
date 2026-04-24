@@ -40,6 +40,7 @@ import { CausalSparkline } from '@/components/portal/CausalSparkline'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
 import { ProtocolMagnitude } from '@/components/portal/ProtocolMagnitude'
+import { RegimeGlyphs } from '@/components/portal/RegimeGlyphs'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useParticipant } from '@/hooks/useParticipant'
 import { usePortalStore } from '@/stores/portalStore'
@@ -329,9 +330,10 @@ function VisualProtocolRow({
           )}
         />
       </div>
-      <div className="flex items-baseline gap-2 mb-0.5">
+      <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
         <span className="text-base leading-none">{real.icon}</span>
         <span className="text-sm font-semibold text-slate-800">{real.title}</span>
+        <RegimeGlyphs regimes={real.context.active_regimes} />
       </div>
 
       {/* Magnitude visualization replaces the text details + rationale */}

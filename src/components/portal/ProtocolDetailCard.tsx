@@ -18,6 +18,7 @@ import type { ParticipantPortal } from '@/data/portal/types'
 import { ProtocolContextChip } from './ProtocolContextChip'
 import { CausalSparkline } from './CausalSparkline'
 import { ProtocolAuditTrail } from './ProtocolAuditTrail'
+import { RegimeGlyphs } from './RegimeGlyphs'
 
 const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
   twin_sem: 'bg-emerald-500',
@@ -77,6 +78,7 @@ export function ProtocolDetailCard({ matched, yesterdayItem, participant }: Prop
             <h3 className="text-base font-semibold text-slate-800">
               {real.title}
             </h3>
+            <RegimeGlyphs regimes={real.context.active_regimes} size="md" />
           </div>
           <p className="text-sm text-slate-700 mt-0.5">{real.dose}</p>
         </div>
