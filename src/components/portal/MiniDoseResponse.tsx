@@ -42,30 +42,33 @@ export function MiniDoseResponse({
 
   const data = useMemo(() => {
     const explicit = ACTION_DOMAIN[edge.action]
-    const x0 = participant.current_values?.[edge.action]
+    const rawX0 = participant.current_values?.[edge.action]
     let xMin: number
     let xMax: number
     if (explicit) {
       xMin = explicit.min
       xMax = explicit.max
-    } else if (x0 != null) {
+    } else if (rawX0 != null) {
       const sd = Math.max(
         participant.behavioral_sds?.[edge.action] ?? 1,
-        Math.abs(x0) * 0.2,
+        Math.abs(rawX0) * 0.2,
       )
-      xMin = x0 - 3 * sd
-      xMax = x0 + 3 * sd
+      xMin = rawX0 - 3 * sd
+      xMax = rawX0 + 3 * sd
     } else {
       xMin = 0
       xMax = 1
     }
+    // Always have an x0 so the tangent + dot always render. Fall back
+    // to the domain midpoint when participant.current_values doesn't
+    // carry this action (common for derived/load actions).
+    const x0 = rawX0 ?? (xMin + xMax) / 2
 
     // Every edge has a plausible nonlinear shape via inferShape, so
     // the curve always has visible structure (no linear fallback).
     const shape = inferShape(edge)
-    const anchor = x0 ?? (xMin + xMax) / 2
     const fAbs = (x: number): number => evaluateShape(shape, x)
-    const f = (x: number): number => fAbs(x) - fAbs(anchor)
+    const f = (x: number): number => fAbs(x) - fAbs(x0)
 
     const N = 40
     const xs = Array.from(
@@ -90,25 +93,18 @@ export function MiniDoseResponse({
       .map((x, i) => `${i === 0 ? 'M' : 'L'} ${toX(x).toFixed(1)} ${toY(ys[i]).toFixed(1)}`)
       .join(' ')
 
-    // Local tangent at x0 — short line segment through the current point
-    // showing the marginal slope. Length scales to ~22% of the chart
-    // width regardless of the absolute slope value (visual cue, not metric).
-    let tangentPath: string | null = null
-    let dotX: number | null = null
-    let dotY: number | null = null
-    if (x0 != null) {
-      const dx = (xMax - xMin) * 0.11
-      const slopeLocal = (f(x0 + dx) - f(x0 - dx)) / (2 * dx)
-      const tx0 = toX(x0 - dx)
-      const ty0 = toY(f(x0) - slopeLocal * dx)
-      const tx1 = toX(x0 + dx)
-      const ty1 = toY(f(x0) + slopeLocal * dx)
-      tangentPath = `M ${tx0.toFixed(1)} ${ty0.toFixed(1)} L ${tx1.toFixed(1)} ${ty1.toFixed(1)}`
-      dotX = toX(x0)
-      dotY = toY(f(x0))
-    }
+    // Local tangent — always drawn now that x0 is never null.
+    const dx = (xMax - xMin) * 0.11
+    const slopeLocal = (f(x0 + dx) - f(x0 - dx)) / (2 * dx)
+    const tx0 = toX(x0 - dx)
+    const ty0 = toY(f(x0) - slopeLocal * dx)
+    const tx1 = toX(x0 + dx)
+    const ty1 = toY(f(x0) + slopeLocal * dx)
+    const tangentPath = `M ${tx0.toFixed(1)} ${ty0.toFixed(1)} L ${tx1.toFixed(1)} ${ty1.toFixed(1)}`
+    const dotX = toX(x0)
+    const dotY = toY(f(x0))
 
-    return { path, tangentPath, dotX, dotY }
+    return { path, tangentPath, dotX, dotY, estimated: rawX0 == null }
   }, [edge, participant, width, height])
 
   const beneficial = isBeneficial(edge)
@@ -153,28 +149,27 @@ export function MiniDoseResponse({
         strokeLinejoin="round"
       />
       {/* Tangent line through the user's current point — bold and indigo
-          so it pops out as "this is the slope you experience right now" */}
-      {data.tangentPath && (
-        <path
-          d={data.tangentPath}
-          fill="none"
-          stroke="#4f46e5"
-          strokeWidth={2}
-          strokeLinecap="round"
-          opacity={0.9}
-        />
-      )}
-      {/* User's current operating point */}
-      {data.dotX !== null && data.dotY !== null && (
-        <circle
-          cx={data.dotX}
-          cy={data.dotY}
-          r={2.75}
-          fill="#4f46e5"
-          stroke="white"
-          strokeWidth={1}
-        />
-      )}
+          so it pops out as "this is the slope you experience right now".
+          When `data.estimated` is true (no current_values entry for this
+          action), render with a dashed pattern to signal the baseline
+          is a domain-midpoint estimate, not the user's observed value. */}
+      <path
+        d={data.tangentPath}
+        fill="none"
+        stroke="#4f46e5"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeDasharray={data.estimated ? '3 2' : undefined}
+        opacity={0.9}
+      />
+      <circle
+        cx={data.dotX}
+        cy={data.dotY}
+        r={2.75}
+        fill={data.estimated ? 'white' : '#4f46e5'}
+        stroke="#4f46e5"
+        strokeWidth={1.5}
+      />
     </svg>
   )
 }

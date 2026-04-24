@@ -20,23 +20,30 @@
  */
 
 import { useEffect, useState } from 'react'
-import { ArrowUpDown, Filter, type LucideIcon } from 'lucide-react'
+import { ArrowUpDown, Clock, Filter, Leaf, type LucideIcon } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 
 export type InsightSort = 'effect' | 'horizon' | 'alpha'
+export type InsightRegime = 'quotidian' | 'longevity' | 'all'
 
 export interface InsightControlsState {
+  regime: InsightRegime
   sort: InsightSort
   hideTrivial: boolean
   personalOnly: boolean
-  groupByHorizon: boolean
+  /** When true, outcome cards append a non-actionable "Environmental
+   * context" subsection listing the confounders for each outcome (season,
+   * is_weekend, heat_index, etc.) with today's values — so the user
+   * sees what else is shaping the outcome beyond their own actions. */
+  showEnvironmental: boolean
 }
 
 const DEFAULT_STATE: InsightControlsState = {
+  regime: 'quotidian',
   sort: 'effect',
   hideTrivial: false,
   personalOnly: false,
-  groupByHorizon: true,
+  showEnvironmental: false,
 }
 
 const STORAGE_KEY = 'serif.insightsV2.controls.v1'
@@ -48,11 +55,15 @@ function readFromStorage(): InsightControlsState {
     if (!raw) return DEFAULT_STATE
     const parsed = JSON.parse(raw) as Partial<InsightControlsState>
     return {
+      regime:
+        parsed.regime === 'longevity' || parsed.regime === 'all'
+          ? parsed.regime
+          : 'quotidian',
       sort:
         parsed.sort === 'horizon' || parsed.sort === 'alpha' ? parsed.sort : 'effect',
       hideTrivial: parsed.hideTrivial === true,
       personalOnly: parsed.personalOnly === true,
-      groupByHorizon: parsed.groupByHorizon !== false,
+      showEnvironmental: parsed.showEnvironmental === true,
     }
   } catch {
     return DEFAULT_STATE
@@ -94,6 +105,12 @@ const SORT_OPTIONS: SegmentDef<InsightSort>[] = [
   { value: 'alpha', label: 'A–Z' },
 ]
 
+const REGIME_OPTIONS: SegmentDef<InsightRegime>[] = [
+  { value: 'quotidian', label: 'Quotidian', icon: Clock },
+  { value: 'longevity', label: 'Longevity', icon: Leaf },
+  { value: 'all', label: 'All' },
+]
+
 interface Props {
   state: InsightControlsState
   onChange: (next: Partial<InsightControlsState>) => void
@@ -102,6 +119,34 @@ interface Props {
 export function InsightsControls({ state, onChange }: Props) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      {/* Regime — quotidian vs longevity (matches Twin) */}
+      <div
+        className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-indigo-200 bg-indigo-50/60"
+        role="tablist"
+        aria-label="Regime"
+      >
+        {REGIME_OPTIONS.map((opt) => {
+          const Icon = opt.icon
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onChange({ regime: opt.value })}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded transition-colors',
+                state.regime === opt.value
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+              role="tab"
+              aria-selected={state.regime === opt.value}
+            >
+              {Icon && <Icon className="w-3 h-3" aria-hidden />}
+              {opt.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Sort */}
       <div
         className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-slate-200 bg-slate-50"
@@ -149,18 +194,11 @@ export function InsightsControls({ state, onChange }: Props) {
           label="personal"
           title="Hide cohort-level edges; show only personally-tightened"
         />
-      </div>
-
-      {/* Grouping */}
-      <div
-        className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-slate-200 bg-slate-50"
-        aria-label="Grouping"
-      >
         <ToggleChip
-          on={state.groupByHorizon}
-          onClick={() => onChange({ groupByHorizon: !state.groupByHorizon })}
-          label="group by horizon"
-          title="Group outcome cards into quotidian / monthly / long-term sections"
+          on={state.showEnvironmental}
+          onClick={() => onChange({ showEnvironmental: !state.showEnvironmental })}
+          label="environmental"
+          title="Show non-actionable environmental/confounder edges beneath each outcome (season, weekend, heat, humidity, travel)"
         />
       </div>
     </div>

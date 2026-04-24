@@ -44,29 +44,32 @@ export function DoseResponseChart({
 
   const data = useMemo(() => {
     const explicit = ACTION_DOMAIN[edge.action]
-    const currentVal = participant.current_values?.[edge.action]
+    const rawCurrent = participant.current_values?.[edge.action]
     let xMin: number
     let xMax: number
     if (explicit) {
       xMin = explicit.min
       xMax = explicit.max
-    } else if (currentVal != null) {
+    } else if (rawCurrent != null) {
       const sd = Math.max(
         participant.behavioral_sds?.[edge.action] ?? 1,
-        Math.abs(currentVal) * 0.2,
+        Math.abs(rawCurrent) * 0.2,
       )
-      xMin = currentVal - 3 * sd
-      xMax = currentVal + 3 * sd
+      xMin = rawCurrent - 3 * sd
+      xMax = rawCurrent + 3 * sd
     } else {
       xMin = 0
       xMax = 1
     }
+    // Fall back to the domain midpoint when the participant record
+    // doesn't carry an observed value for this action. We mark the
+    // result as `estimated` so the dot/tangent render dashed.
+    const currentVal = rawCurrent ?? (xMin + xMax) / 2
+    const estimated = rawCurrent == null
 
-    // Universal nonlinear shape per edge via inferShape.
     const shape = inferShape(edge)
-    const anchor = currentVal ?? (xMin + xMax) / 2
     const fAbs = (x: number): number => evaluateShape(shape, x)
-    const f = (x: number): number => fAbs(x) - fAbs(anchor)
+    const f = (x: number): number => fAbs(x) - fAbs(currentVal)
 
     // Sample the curve densely.
     const N = 96
@@ -94,33 +97,21 @@ export function DoseResponseChart({
       .join(' ')
 
     const zeroY = toY(0)
-    const currentX = currentVal != null ? toX(currentVal) : null
-    const currentY = currentVal != null ? toY(f(currentVal)) : null
+    const currentX = toX(currentVal)
+    const currentY = toY(f(currentVal))
 
-    // Tangent line at the user's current point — extended so it
-    // clearly leaves the curve's neighborhood on both sides.
-    let tangentPath: string | null = null
-    let tangentSlope: number | null = null
-    let tangentX0: number | null = null
-    let tangentY0: number | null = null
-    let tangentX1: number | null = null
-    let tangentY1: number | null = null
-    if (currentVal != null) {
-      const dx = (xMax - xMin) * 0.18 // wider than the 12% in the row preview so the tangent is visible
-      const localSlope = (f(currentVal + dx * 0.1) - f(currentVal - dx * 0.1)) / (0.2 * dx)
-      tangentSlope = localSlope
-      tangentX0 = toX(currentVal - dx)
-      tangentY0 = toY(f(currentVal) - localSlope * dx)
-      tangentX1 = toX(currentVal + dx)
-      tangentY1 = toY(f(currentVal) + localSlope * dx)
-      tangentPath = `M ${tangentX0.toFixed(1)} ${tangentY0.toFixed(1)} L ${tangentX1.toFixed(1)} ${tangentY1.toFixed(1)}`
-    }
+    // Tangent — always rendered, dashed when x is estimated.
+    const dx = (xMax - xMin) * 0.18
+    const localSlope = (f(currentVal + dx * 0.1) - f(currentVal - dx * 0.1)) / (0.2 * dx)
+    const tangentPath =
+      `M ${toX(currentVal - dx).toFixed(1)} ${toY(f(currentVal) - localSlope * dx).toFixed(1)}` +
+      ` L ${toX(currentVal + dx).toFixed(1)} ${toY(f(currentVal) + localSlope * dx).toFixed(1)}`
 
     return {
       xMin, xMax, yLo, yHi, path, zeroY,
       currentVal, currentX, currentY,
-      tangentPath, tangentSlope, tangentX0, tangentY0, tangentX1, tangentY1,
-      shape,
+      tangentPath, localSlope,
+      shape, estimated,
     }
   }, [edge, participant, width, height, padX, padY])
 
@@ -175,45 +166,40 @@ export function DoseResponseChart({
         />
 
         {/* Vertical guide through the user's x-position */}
-        {data.currentX !== null && (
-          <line
-            x1={data.currentX}
-            x2={data.currentX}
-            y1={padY}
-            y2={height - padY}
-            stroke="#4f46e5"
-            strokeWidth={1}
-            strokeDasharray="3 3"
-            opacity={0.35}
-          />
-        )}
+        <line
+          x1={data.currentX}
+          x2={data.currentX}
+          y1={padY}
+          y2={height - padY}
+          stroke="#4f46e5"
+          strokeWidth={1}
+          strokeDasharray="3 3"
+          opacity={0.35}
+        />
 
-        {/* Tangent line — bright indigo, with arrow caps so it clearly
-            reads as a separate surface from the green/rose curve */}
-        {data.tangentPath && (
-          <path
-            d={data.tangentPath}
-            fill="none"
-            stroke="#4f46e5"
-            strokeWidth={2.75}
-            strokeLinecap="round"
-            markerStart="url(#tangent-arrow)"
-            markerEnd="url(#tangent-arrow)"
-            opacity={1}
-          />
-        )}
+        {/* Tangent — bright indigo with arrow caps. Dashed when the
+            baseline is an estimate rather than observed. */}
+        <path
+          d={data.tangentPath}
+          fill="none"
+          stroke="#4f46e5"
+          strokeWidth={2.75}
+          strokeLinecap="round"
+          strokeDasharray={data.estimated ? '5 3' : undefined}
+          markerStart="url(#tangent-arrow)"
+          markerEnd="url(#tangent-arrow)"
+          opacity={1}
+        />
 
-        {/* User's "you, now" dot sitting on the curve */}
-        {data.currentX !== null && data.currentY !== null && (
-          <circle
-            cx={data.currentX}
-            cy={data.currentY}
-            r={5}
-            fill="#4f46e5"
-            stroke="white"
-            strokeWidth={2}
-          />
-        )}
+        {/* "You, now" dot — hollow when estimated, solid when observed. */}
+        <circle
+          cx={data.currentX}
+          cy={data.currentY}
+          r={5}
+          fill={data.estimated ? 'white' : '#4f46e5'}
+          stroke="#4f46e5"
+          strokeWidth={2}
+        />
 
         {/* X-axis labels (min / current / max) */}
         <text

@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { Calendar, Droplets, Leaf, MapPin, Plane, Sun, Thermometer, Wind, type LucideIcon } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import {
@@ -20,6 +21,7 @@ import {
   outcomeSD,
   beneficialSign,
 } from '@/utils/insightStandardization'
+import { CONFOUNDERS_BY_OUTCOME } from '@/utils/dailyProtocol'
 import { InsightActionRow } from './InsightActionRow'
 import { InsightActionDetail } from './InsightActionDetail'
 
@@ -40,6 +42,98 @@ const OUTCOME_LABELS: Record<string, string> = {
   zinc: 'Zinc',
   testosterone: 'Testosterone',
   hscrp: 'hs-CRP',
+}
+
+/** Icons + labels for environmental confounders. Keyed on the same
+ * ids the backend's CONFOUNDERS_BY_OUTCOME table uses. */
+const CONFOUNDER_META: Record<
+  string,
+  { icon: LucideIcon; label: string; qualitative: (v: string | undefined) => string }
+> = {
+  season: {
+    icon: Leaf,
+    label: 'Season',
+    qualitative: (v) => v ?? '—',
+  },
+  location: {
+    icon: MapPin,
+    label: 'Location',
+    qualitative: (v) => v ?? '—',
+  },
+  is_weekend: {
+    icon: Calendar,
+    label: 'Weekend effect',
+    qualitative: (v) => v ?? '—',
+  },
+  travel_load: {
+    icon: Plane,
+    label: 'Travel load',
+    qualitative: (v) => v ?? 'n/a',
+  },
+  heat_index: {
+    icon: Thermometer,
+    label: 'Heat index',
+    qualitative: (v) => v ?? '—',
+  },
+  temp_c: {
+    icon: Thermometer,
+    label: 'Temperature',
+    qualitative: (v) => v ?? '—',
+  },
+  humidity_pct: {
+    icon: Droplets,
+    label: 'Humidity',
+    qualitative: (v) => v ?? '—',
+  },
+  uv_index: {
+    icon: Sun,
+    label: 'UV index',
+    qualitative: (v) => v ?? '—',
+  },
+  aqi: {
+    icon: Wind,
+    label: 'Air quality',
+    qualitative: (v) => v ?? '—',
+  },
+  vitamin_d: {
+    icon: Sun,
+    label: 'Vitamin D status',
+    qualitative: (v) => v ?? 'n/a',
+  },
+}
+
+/** Resolve today's observed value for a confounder from the participant
+ * record. Most come from weather_today / loads_today; season +
+ * is_weekend derive from today's date; location = cohort id. */
+function resolveConfounderValue(
+  key: string,
+  participant: ParticipantPortal,
+  date: Date,
+): string | undefined {
+  if (key === 'is_weekend') {
+    const d = date.getDay()
+    return d === 0 || d === 6 ? 'weekend' : 'weekday'
+  }
+  if (key === 'season') {
+    const m = date.getMonth()
+    if (m >= 2 && m <= 4) return 'spring'
+    if (m >= 5 && m <= 7) return 'summer'
+    if (m >= 8 && m <= 10) return 'autumn'
+    return 'winter'
+  }
+  if (key === 'location') return participant.cohort
+  const w = participant.weather_today
+  if (w) {
+    if (key === 'heat_index' && w.heat_index_c != null)
+      return `${Math.round(w.heat_index_c)}°C`
+    if (key === 'temp_c' && w.temp_c != null)
+      return `${Math.round(w.temp_c)}°C`
+    if (key === 'humidity_pct' && w.humidity_pct != null)
+      return `${Math.round(w.humidity_pct)}%`
+    if (key === 'uv_index' && w.uv_index != null) return w.uv_index.toFixed(1)
+    if (key === 'aqi' && w.aqi != null) return Math.round(w.aqi).toString()
+  }
+  return undefined
 }
 
 const OUTCOME_UNIT: Record<string, string> = {
@@ -82,9 +176,20 @@ interface Props {
   outcome: string
   edges: InsightBayesian[]
   participant: ParticipantPortal
+  /** When true, append a non-actionable "Environmental context"
+   * subsection showing the confounders that affect this outcome
+   * (season, heat index, weekend effect, travel load, etc.) with
+   * today's observed values. Helps the user see what else is
+   * shaping the outcome beyond their own actions. */
+  showEnvironmental?: boolean
 }
 
-export function InsightOutcomeCard({ outcome, edges, participant }: Props) {
+export function InsightOutcomeCard({
+  outcome,
+  edges,
+  participant,
+  showEnvironmental = false,
+}: Props) {
   const [expandAll, setExpandAll] = useState(false)
   const [openEdgeId, setOpenEdgeId] = useState<string | null>(null)
 
@@ -167,6 +272,14 @@ export function InsightOutcomeCard({ outcome, edges, participant }: Props) {
             )}
           </ul>
 
+          {/* Environmental context — non-actionable confounders the estimate
+              is conditional on. Rendered beneath the actionable rows so
+              the user can see what else is shaping the outcome today
+              without mixing it into the primary ranking. */}
+          {showEnvironmental && (
+            <EnvironmentalSection outcome={outcome} participant={participant} />
+          )}
+
           {/* Footer */}
           {hidden > 0 && (
             <button
@@ -186,6 +299,51 @@ export function InsightOutcomeCard({ outcome, edges, participant }: Props) {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function EnvironmentalSection({
+  outcome,
+  participant,
+}: {
+  outcome: string
+  participant: ParticipantPortal
+}) {
+  const confounders = CONFOUNDERS_BY_OUTCOME[outcome] ?? []
+  if (confounders.length === 0) return null
+  const now = new Date()
+  return (
+    <div className="mx-3 mb-3 px-3 py-2 rounded-lg bg-slate-50/70 border border-dashed border-slate-200">
+      <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-1.5">
+        Environmental context (not actionable)
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {confounders.map((key) => {
+          const meta = CONFOUNDER_META[key]
+          if (!meta) return null
+          const value = resolveConfounderValue(key, participant, now)
+          const Icon = meta.icon
+          return (
+            <span
+              key={key}
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-slate-200 bg-white text-[11px] text-slate-700"
+              title={`${meta.label}: ${meta.qualitative(value)}`}
+            >
+              <Icon className="w-3 h-3 text-slate-500" aria-hidden />
+              <span className="font-medium">{meta.label}</span>
+              <span className="tabular-nums text-slate-500">
+                {meta.qualitative(value)}
+              </span>
+            </span>
+          )
+        })}
+      </div>
+      <p className="mt-2 text-[10px] text-slate-400 leading-snug italic">
+        These factors shape {OUTCOME_LABELS[outcome] ?? outcome.replace(/_/g, ' ')} too,
+        but aren't things the member can change. The engine's estimates are
+        adjusted for them via the BART backdoor.
+      </p>
     </div>
   )
 }

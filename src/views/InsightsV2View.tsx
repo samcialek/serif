@@ -76,24 +76,43 @@ function bandFor(outcome: string): HorizonBand {
   return OUTCOME_HORIZON[outcome] ?? 'longterm'
 }
 
+/** Map the user's regime selection to the set of horizon bands it includes.
+ *
+ *   quotidian : only outcomes that respond on the day-scale — HRV, sleep
+ *               architecture. Matches the Twin "quotidian" regime.
+ *   longevity : biomarker + body-comp + hormone outcomes (monthly +
+ *               long-term bands). Matches the Twin "longevity" regime.
+ *   all       : everything. Escape hatch for power users. */
+function bandsForRegime(
+  regime: 'quotidian' | 'longevity' | 'all',
+): Set<HorizonBand> {
+  if (regime === 'quotidian') return new Set<HorizonBand>(['quotidian'])
+  if (regime === 'longevity') return new Set<HorizonBand>(['monthly', 'longterm'])
+  return new Set<HorizonBand>(HORIZON_BAND_ORDER)
+}
+
 function medianHorizon(edges: InsightBayesian[]): number {
   const days = edges.map((e) => e.horizon_days ?? 999).sort((a, b) => a - b)
   if (days.length === 0) return 999
   return days[Math.floor(days.length / 2)]
 }
 
-/** Apply filters + sort + grouping per the user's controls. Returns
- * a flat ordering of outcomes (when groupByHorizon=false) or a
- * sectioned list (when groupByHorizon=true). */
+/** Apply regime + filters + sort per the user's controls. Returns a
+ * flat list of outcomes with (optional) band headers within the
+ * selected regime — for 'all' we keep the horizon sub-bands; for
+ * 'quotidian' or 'longevity' the whole list is one regime so the
+ * band header is redundant. */
 function buildOrdering(
   participant: ParticipantPortal,
   controls: InsightControlsState,
 ): { sections: Array<{ band: HorizonBand | null; outcomes: string[] }>; total: number } {
-  // 1. Group raw edges by outcome with filters applied.
+  const allowedBands = bandsForRegime(controls.regime)
+  // 1. Group raw edges by outcome with regime + filters applied.
   const grouped = new Map<string, InsightBayesian[]>()
   for (const edge of participant.effects_bayesian) {
     if (edge.prior_provenance === 'weak_default') continue
     if (edge.gate.tier === 'not_exposed') continue
+    if (!allowedBands.has(bandFor(edge.outcome))) continue
     if (controls.personalOnly && edge.evidence_tier === 'cohort_level') continue
     if (controls.hideTrivial) {
       const d = cohensD(edge, participant)
@@ -104,13 +123,10 @@ function buildOrdering(
     grouped.set(edge.outcome, list)
   }
 
-  // Drop outcomes with no surviving edges.
   for (const [outcome, list] of grouped) {
     if (list.length === 0) grouped.delete(outcome)
   }
 
-  // 2. Pick an outcome ranking (within each section if grouped, else
-  // across the whole flat list).
   const outcomeKeys = Array.from(grouped.keys())
   outcomeKeys.sort((a, b) => {
     if (controls.sort === 'alpha') {
@@ -121,7 +137,6 @@ function buildOrdering(
     if (controls.sort === 'horizon') {
       return medianHorizon(grouped.get(a) ?? []) - medianHorizon(grouped.get(b) ?? [])
     }
-    // 'effect' — by best |d| in the outcome's edge set.
     const bestD = (out: string) =>
       Math.max(
         ...((grouped.get(out) ?? []).map((e) => Math.abs(cohensD(e, participant)))),
@@ -130,8 +145,10 @@ function buildOrdering(
     return bestD(b) - bestD(a)
   })
 
-  // 3. Sectioning.
-  if (!controls.groupByHorizon) {
+  // When the regime is 'all', keep horizon sub-bands as section headers
+  // for readability. When a specific regime is chosen, one flat list
+  // reads cleaner (no headers inside an already-scoped view).
+  if (controls.regime !== 'all') {
     return {
       sections: [{ band: null, outcomes: outcomeKeys }],
       total: outcomeKeys.length,
@@ -193,14 +210,14 @@ export function InsightsV2View() {
     return buildOrdering(participant, controls)
   }, [participant, controls])
 
-  // Pre-group edges per outcome so InsightOutcomeCard doesn't redo
-  // the filtering/grouping work — we already did it in buildOrdering.
   const edgesByOutcome = useMemo(() => {
     if (!participant) return new Map<string, InsightBayesian[]>()
+    const allowedBands = bandsForRegime(controls.regime)
     const map = new Map<string, InsightBayesian[]>()
     for (const edge of participant.effects_bayesian) {
       if (edge.prior_provenance === 'weak_default') continue
       if (edge.gate.tier === 'not_exposed') continue
+      if (!allowedBands.has(bandFor(edge.outcome))) continue
       if (controls.personalOnly && edge.evidence_tier === 'cohort_level') continue
       if (controls.hideTrivial) {
         const d = cohensD(edge, participant)
@@ -314,6 +331,7 @@ export function InsightsV2View() {
                   outcome={outcome}
                   edges={edgesByOutcome.get(outcome) ?? []}
                   participant={participant}
+                  showEnvironmental={controls.showEnvironmental}
                 />
               ))}
             </section>
