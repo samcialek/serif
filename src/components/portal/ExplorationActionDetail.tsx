@@ -8,11 +8,16 @@
  * 4 wires it to the exploration store.
  */
 
-import { Sparkles } from 'lucide-react'
+import { FastForward, Sparkles, X } from 'lucide-react'
 import type { ParticipantPortal } from '@/data/portal/types'
 import type { ExplorationEdge } from '@/utils/exploration'
 import { ExperimentPrescription } from './ExperimentPrescription'
 import { PriorCurvePreview, PriorCurveLegend } from './PriorCurvePreview'
+import {
+  explorationKey,
+  progressFor,
+  useExplorationStore,
+} from '@/stores/explorationStore'
 
 interface Props {
   edge: ExplorationEdge
@@ -42,11 +47,32 @@ function whyThisMatters(edge: ExplorationEdge): string {
 export function ExplorationActionDetail({ edge, participant }: Props) {
   const { priorD, priorDSD, narrow, spec } = edge.computed
 
+  const key = explorationKey(edge.action, edge.outcome)
+  const launched = useExplorationStore((s) => s.launched[key])
+  const launch = useExplorationStore((s) => s.launch)
+  const cancel = useExplorationStore((s) => s.cancel)
+  const advanceMockTime = useExplorationStore((s) => s.advanceMockTime)
+  const progress = progressFor(launched)
+  const isRunning = progress?.isRunning === true
+  const isComplete = progress?.isComplete === true
+
   const launchDisabled = spec.feasibility !== 'ready'
   const launchTitle =
     spec.feasibility === 'ready'
       ? 'Launch this experiment (coach preview — not sent to member)'
       : spec.feasibility_note ?? `Not launchable yet: ${spec.feasibility}`
+
+  const handleLaunch = (): void => {
+    const ok = window.confirm(
+      `Launch ${spec.cadence === 'one_shot' ? 'one-shot draw' : `${spec.duration_days}-day`} experiment on ${edge.action.replace(/_/g, ' ')} → ${edge.outcome.replace(/_/g, ' ')}?\n\nCoach preview — no changes sent to member.`,
+    )
+    if (ok) launch(key, spec.duration_days)
+  }
+
+  const handleCancel = (): void => {
+    const ok = window.confirm('Cancel this running experiment?')
+    if (ok) cancel(key)
+  }
 
   return (
     <div className="px-3 py-3 border-t border-slate-100 bg-slate-50/60 space-y-3">
@@ -113,19 +139,59 @@ export function ExplorationActionDetail({ edge, participant }: Props) {
           </span>
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            disabled={launchDisabled}
-            title={launchTitle}
-            className={
-              'inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ' +
-              (launchDisabled
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700')
-            }
-          >
-            Launch experiment
-          </button>
+          {isComplete ? (
+            <>
+              <span className="text-[11px] text-emerald-700 font-medium">
+                Complete · Phase 5 links back to Insights
+              </span>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium border border-slate-200 text-slate-500 hover:bg-slate-50"
+                title="Remove this experiment from the dashboard"
+              >
+                <X className="w-3 h-3" aria-hidden />
+                Dismiss
+              </button>
+            </>
+          ) : isRunning ? (
+            <>
+              {import.meta.env.DEV && (
+                <button
+                  type="button"
+                  onClick={() => advanceMockTime(key, 3)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium border border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                  title="Dev-only: jump the mock progress forward 3 days"
+                >
+                  <FastForward className="w-3 h-3" aria-hidden />
+                  +3 days
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-medium border border-rose-300 text-rose-700 hover:bg-rose-50"
+              >
+                <X className="w-3 h-3" aria-hidden />
+                Cancel experiment
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleLaunch}
+              disabled={launchDisabled}
+              title={launchTitle}
+              className={
+                'inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ' +
+                (launchDisabled
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700')
+              }
+            >
+              Launch experiment
+            </button>
+          )}
         </div>
       </div>
     </div>

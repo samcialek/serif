@@ -16,12 +16,13 @@
  * retires the old flat-list view.
  */
 
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, Compass, Loader2, Users } from 'lucide-react'
+import { AlertCircle, Compass, FastForward, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, DataModeToggle, PainterlyPageHeader } from '@/components/common'
 import { ExplorationOutcomeCard } from '@/components/portal/ExplorationOutcomeCard'
+import { ActiveExperimentsBar } from '@/components/portal/ActiveExperimentsBar'
 import {
   ExplorationControls,
   useExplorationControls,
@@ -30,7 +31,7 @@ import { OUTCOME_LABELS } from '@/components/portal/InsightRow'
 import { useParticipant } from '@/hooks/useParticipant'
 import { usePortalStore } from '@/stores/portalStore'
 import { useScopeStore } from '@/stores/scopeStore'
-import { useExplorationStore, explorationKey, progressFor } from '@/stores/explorationStore'
+import { useExplorationStore, progressFor } from '@/stores/explorationStore'
 import type { ParticipantPortal } from '@/data/portal/types'
 import {
   bandsForRegime,
@@ -67,7 +68,7 @@ function buildOrdering(
     if (!allowed.has(e.computed.band)) return false
     if (controls.hideInfeasible && e.positivity_flag !== 'ok') return false
     if (controls.runningOnly) {
-      const key = explorationKey(e.action, e.outcome)
+      const key = `${e.action}::${e.outcome}`
       if (!(key in launched)) return false
     }
     return true
@@ -121,6 +122,20 @@ export function ExplorationV2View() {
   const [controls, setControls] = useExplorationControls()
   const regime = useScopeStore((s) => s.regime)
   const launched = useExplorationStore((s) => s.launched)
+  const advanceMockTimeAll = useExplorationStore((s) => s.advanceMockTimeAll)
+
+  // One expanded row at a time across the whole tab — lets the
+  // ActiveExperimentsBar drive row focus when a chip is clicked.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
+
+  const focusExperimentRow = useCallback((key: string) => {
+    setExpandedKey(key)
+    // Scroll after the expansion paints so the row is in the layout.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`exploration-row-${key}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [])
 
   const headerActions = (
     <div className="flex items-center gap-2 flex-wrap">
@@ -139,6 +154,16 @@ export function ExplorationV2View() {
     }
     return buildOrdering(participant, controls, regime, launched)
   }, [participant, controls, regime, launched])
+
+  /** Enriched edges for all recs — used by the ActiveExperimentsBar
+   *  regardless of filters, so launched experiments remain visible even
+   *  when filters would otherwise hide them. */
+  const allEnrichedEdges = useMemo<ExplorationEdge[]>(() => {
+    if (!participant) return []
+    return (participant.exploration_recommendations ?? []).map((r) =>
+      enrichExplorationEdge(r, participant),
+    )
+  }, [participant])
 
   // Running count for the subtitle
   const runningCount = useMemo(() => {
@@ -207,6 +232,14 @@ export function ExplorationV2View() {
     <PageLayout maxWidth="2xl">
       <PainterlyPageHeader subtitle={subtitle} actions={headerActions} hideHorizon />
 
+      {/* Active experiments strip — only renders when the coach has
+           launched something. Chips jump-scroll to + open the matching
+           row. */}
+      <ActiveExperimentsBar
+        edges={allEnrichedEdges}
+        onChipClick={focusExperimentRow}
+      />
+
       {/* Framing blurb */}
       <div className="mb-4 px-3 py-2 rounded-md border border-indigo-200 bg-indigo-50/50 text-[11px] text-indigo-900 leading-snug">
         <span className="font-semibold flex items-center gap-1">
@@ -216,8 +249,8 @@ export function ExplorationV2View() {
         <span>
           Each row is an experiment the engine doesn't have enough personal
           data to answer. Bar shows how much uncertainty would collapse if
-          the experiment succeeded. Phase 2 adds the full prescription and
-          prior curve.
+          the experiment succeeded. Click Launch on any ready row to see
+          it appear in the Active strip above.
         </span>
       </div>
 
@@ -252,12 +285,35 @@ export function ExplorationV2View() {
                   outcomeLabel={outcomeLabel(outcome)}
                   edges={ordering.edgesByOutcome.get(outcome) ?? []}
                   participant={participant}
+                  expandedKey={expandedKey}
+                  onExpand={setExpandedKey}
                 />
               ))}
             </section>
           ))
         )}
       </motion.div>
+
+      {/* Dev-only: advance mock progress across all running experiments
+           so demos can step through "14 days from now" without waiting. */}
+      {import.meta.env.DEV && Object.keys(launched).length > 0 && (
+        <div className="mt-6 px-3 py-2 rounded-md border border-dashed border-slate-300 bg-slate-50 flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            Dev · advance mock time
+          </span>
+          {[3, 7, 14].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => advanceMockTimeAll(d)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            >
+              <FastForward className="w-3 h-3" aria-hidden />
+              +{d} days (all)
+            </button>
+          ))}
+        </div>
+      )}
     </PageLayout>
   )
 }
