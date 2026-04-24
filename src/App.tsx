@@ -3,9 +3,7 @@ import { AppShell } from '@/components/layout'
 import {
   CoachLandingView,
   ProtocolsView,
-  ProtocolsBarView,
-  ProtocolsSplitView,
-  ProtocolsLanesView,
+  ProtocolsVisualView,
   CoachView,
   ApiView,
   AdminView,
@@ -19,9 +17,6 @@ import {
   TwinView,
   BaselineView,
   ExplorationView,
-  LeverConceptsView,
-  TwinIntegrationView,
-  PainterlyTwinView,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -38,10 +33,12 @@ function App() {
           <Route path="/insights" element={<PortalView />} />
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
+
+          {/* Twin — painterly is the canonical version. */}
           <Route path="/twin" element={<TwinView />} />
-          <Route path="/twin/lever-concepts" element={<LeverConceptsView />} />
-          <Route path="/twin/integration" element={<TwinIntegrationView />} />
-          <Route path="/twin/painterly" element={<PainterlyTwinView />} />
+          <Route path="/twin/painterly" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin/lever-concepts" element={<Navigate to="/twin" replace />} />
+          <Route path="/twin/integration" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-preview" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-direct" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-dragdrop" element={<Navigate to="/twin" replace />} />
@@ -54,10 +51,14 @@ function App() {
           <Route path="/twin-deck" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-living" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-workspace" element={<Navigate to="/twin" replace />} />
+
+          {/* Protocols — lanes is the canonical version. */}
           <Route path="/protocols" element={<ProtocolsView />} />
-          <Route path="/protocols-bar" element={<ProtocolsBarView />} />
-          <Route path="/protocols-split" element={<ProtocolsSplitView />} />
-          <Route path="/protocols-lanes" element={<ProtocolsLanesView />} />
+          <Route path="/protocols-visual" element={<ProtocolsVisualView />} />
+          <Route path="/protocols-lanes" element={<Navigate to="/protocols" replace />} />
+          <Route path="/protocols-bar" element={<Navigate to="/protocols" replace />} />
+          <Route path="/protocols-split" element={<Navigate to="/protocols" replace />} />
+
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />

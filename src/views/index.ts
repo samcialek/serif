@@ -2,10 +2,10 @@
 
 export { LandingView } from './LandingView'
 export { CoachLandingView } from './CoachLandingView'
-export { ProtocolsView } from './ProtocolsView'
-export { ProtocolsBarView } from './ProtocolsBarView'
-export { ProtocolsSplitView } from './ProtocolsSplitView'
-export { ProtocolsLanesView } from './ProtocolsLanesView'
+// Protocols — the lanes layout is the canonical version.
+export { ProtocolsLanesView as ProtocolsView } from './ProtocolsLanesView'
+// Visual-magnitude fork lives alongside the canonical route for review.
+export { ProtocolsVisualView } from './ProtocolsVisualView'
 export { CoachView } from './CoachView'
 export { ApiView } from './ApiView'
 export { AdminView } from './AdminView'
@@ -16,9 +16,7 @@ export { StyleDemoView } from './StyleDemoView'
 export { default as CurveStyleDemoView } from './CurveStyleDemoView'
 export { DataValueView } from './DataValueView'
 export { PortalView } from './PortalView'
-export { TwinView } from './twinForks/TwinView'
-export { LeverConceptsView } from './twinForks/leverConcepts/LeverConceptsView'
-export { TwinIntegrationView } from './twinForks/leverConcepts/TwinIntegrationView'
-export { PainterlyTwinView } from './twinForks/leverConcepts/PainterlyTwinView'
+// Twin — the painterly version is the canonical Twin.
+export { PainterlyTwinView as TwinView } from './twinForks/leverConcepts/PainterlyTwinView'
 export { BaselineView } from './BaselineView'
 export { ExplorationView } from './ExplorationView'
