@@ -26,6 +26,8 @@ const SOURCE_BG: Record<ProtocolSource, string> = {
 }
 
 const MARKER_SIZE = 40 // px
+const MIN_GAP_PX = 10 // minimum clear space between two markers' edges
+const ROW_PITCH = MARKER_SIZE + MIN_GAP_PX // center-to-center minimum
 const COLUMN_HEIGHT = 520 // px — roughly 16h of day at ~33px/hour
 
 function hmToDecimal(hm: string): number {
@@ -179,6 +181,39 @@ export function ProtocolVerticalLanes({
   )
 }
 
+/** Resolve collisions within a single lane: if two markers' nominal
+ * top positions are closer than ROW_PITCH, push the later one down so
+ * they visually stay clear of each other. The marker's TIME LABEL on
+ * the item itself still says the real clock time, so the displacement
+ * is a layout concession, not a factual lie. */
+function resolveLanePositions(
+  entries: LaneEntry[],
+  minHour: number,
+  maxHour: number,
+): Array<{ entry: LaneEntry; topPx: number; displaced: boolean }> {
+  const hourSpan = Math.max(maxHour - minHour, 1e-6)
+  // Work in percent of column, convert to px for min-gap checks.
+  const innerHeight = COLUMN_HEIGHT - 16 // account for p-3 = 12px top + 4px breathing
+  const sorted = [...entries].sort(
+    (a, b) => hmToDecimal(a.item.time) - hmToDecimal(b.item.time),
+  )
+  const positioned: Array<{ entry: LaneEntry; topPx: number; displaced: boolean }> = []
+  let minNextTop = 0
+  for (const entry of sorted) {
+    const tDec = hmToDecimal(entry.item.time)
+    const nominalCenter = ((tDec - minHour) / hourSpan) * innerHeight
+    const nominalTop = nominalCenter - MARKER_SIZE / 2
+    const actualTop = Math.max(nominalTop, minNextTop)
+    positioned.push({
+      entry,
+      topPx: actualTop,
+      displaced: actualTop > nominalTop + 0.5,
+    })
+    minNextTop = actualTop + ROW_PITCH
+  }
+  return positioned
+}
+
 function LaneColumn({
   lane,
   minHour,
@@ -192,6 +227,11 @@ function LaneColumn({
   selectedIndex: number | null
   onSelect: (originalIndex: number) => void
 }) {
+  const positions = useMemo(
+    () => resolveLanePositions(lane.entries, minHour, maxHour),
+    [lane.entries, minHour, maxHour],
+  )
+
   if (lane.entries.length === 0) {
     return (
       <div className="relative rounded-lg border border-dashed border-slate-200 bg-slate-50/50 flex items-center justify-center">
@@ -208,9 +248,7 @@ function LaneColumn({
       {/* Vertical spine */}
       <div className="absolute left-5 top-2 bottom-2 w-px bg-slate-300" />
 
-      {lane.entries.map((entry) => {
-        const timeDecimal = hmToDecimal(entry.item.time)
-        const topPct = ((timeDecimal - minHour) / (maxHour - minHour)) * 100
+      {positions.map(({ entry, topPx, displaced }) => {
         const isSelected = entry.originalIndex === selectedIndex
         return (
           <button
@@ -222,11 +260,16 @@ function LaneColumn({
               isSelected && 'bg-indigo-50 ring-1 ring-indigo-200',
             )}
             style={{
-              top: `calc(${topPct}% - ${MARKER_SIZE / 2}px)`,
+              top: `${topPx}px`,
               left: 0,
               right: 0,
             }}
             aria-pressed={isSelected}
+            title={
+              displaced
+                ? `${entry.item.displayTime} — laid out slightly below its actual time to stay clear of the previous item`
+                : undefined
+            }
           >
             <span
               className={cn(
