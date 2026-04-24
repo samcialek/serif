@@ -167,6 +167,26 @@ export const isLoadAction = (action: string): boolean =>
 
 export type ExplorationKind = 'vary_action' | 'repeat_measurement'
 
+export type ExperimentCadence = 'daily' | 'n_per_week' | 'one_shot'
+
+export type ExperimentFeasibility =
+  | 'ready'
+  | 'needs_baseline'
+  | 'seasonal'
+  | 'blocked'
+
+export interface ExperimentSpec {
+  /** For vary_action: [lo, hi] delta from the user's current value, in
+   * native units. For repeat_measurement: [0, 0] (not used). */
+  action_range_delta: [number, number]
+  cadence: ExperimentCadence
+  n_per_week?: number
+  duration_days: number
+  washout_days?: number
+  feasibility: ExperimentFeasibility
+  feasibility_note?: string
+}
+
 export interface ExplorationRecommendation {
   action: string
   outcome: string
@@ -176,6 +196,21 @@ export interface ExplorationRecommendation {
   prior_contraction: number
   positivity_flag: string
   user_n: number
+  // ─── Phase 2/3 fields — optional until backend emits them ─────────
+  /** Standardized expected slope under the cohort prior (Cohen's d
+   * units). Heuristic default is computed client-side from
+   * effects_bayesian when absent. */
+  prior_cohens_d?: number
+  /** Uncertainty on prior_cohens_d (SD of d). */
+  prior_cohens_d_sd?: number
+  /** Fraction of the uncertainty on the slope (σ_prior → σ_post) that a
+   * successful experiment would eliminate. ∈ [0, 1]. */
+  expected_posterior_narrow?: number
+  /** Days until the outcome stabilises after the action changes — drives
+   * horizon banding and experiment duration sanity. */
+  horizon_days?: number
+  /** Concrete experiment prescription — filled by Phase 2. */
+  experiment?: ExperimentSpec
 }
 
 export interface ReleaseEntry {

@@ -17,6 +17,7 @@ import {
   TwinView,
   BaselineView,
   ExplorationView,
+  ExplorationV2View,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -30,8 +31,11 @@ function App() {
           <Route path="/clients/:clientId/users/:userId" element={<UserDetailView />} />
           <Route path="/data" element={<DataView />} />
           <Route path="/integration" element={<DataValueView />} />
-          <Route path="/insights" element={<PortalView />} />
-          <Route path="/insights-v2" element={<InsightsV2View />} />
+          {/* Insights — v2 is canonical now. /insights-v2 redirects;
+               /portal-style legacy route still maps here. */}
+          <Route path="/insights" element={<InsightsV2View />} />
+          <Route path="/insights-v2" element={<Navigate to="/insights" replace />} />
+          <Route path="/insights-legacy" element={<PortalView />} />
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
 
@@ -65,6 +69,7 @@ function App() {
           <Route path="/protocols-v2" element={<Navigate to="/protocols" replace />} />
 
           <Route path="/exploration" element={<ExplorationView />} />
+          <Route path="/exploration-v2" element={<ExplorationV2View />} />
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />
           <Route path="/api" element={<ApiView />} />
