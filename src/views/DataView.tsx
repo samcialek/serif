@@ -12,6 +12,8 @@ import {
   TrendingDown,
   ArrowRight,
   Database,
+  Gauge,
+  CloudSun,
 } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, MetricCard, MemberAvatar } from '@/components/common'
@@ -35,7 +37,15 @@ import {
 // CATEGORY DEFINITIONS
 // ============================================================================
 
-type CategoryId = 'overview' | 'sleep' | 'activity' | 'heart' | 'labs' | 'body'
+type CategoryId =
+  | 'overview'
+  | 'sleep'
+  | 'activity'
+  | 'heart'
+  | 'labs'
+  | 'body'
+  | 'loads'
+  | 'environment'
 
 interface CategoryDef {
   id: CategoryId
@@ -52,6 +62,8 @@ const CATEGORIES: CategoryDef[] = [
   { id: 'heart', label: 'Heart & HRV', icon: Heart, color: '#e99bbe', metricCount: '4 metrics' },
   { id: 'labs', label: 'Lab Biomarkers', icon: FlaskConical, color: '#9182c4', metricCount: `${LAB_METRICS.length} markers` },
   { id: 'body', label: 'Body Composition', icon: Scale, color: '#5ba8d4', metricCount: '2 metrics' },
+  { id: 'loads', label: 'Rolling loads', icon: Gauge, color: '#6366f1', metricCount: '8 metrics · 14d' },
+  { id: 'environment', label: 'Environment', icon: CloudSun, color: '#f59e0b', metricCount: '5 metrics · 14d' },
 ]
 
 const CATEGORY_TO_TS: Record<string, TimeSeriesMetric['category']> = {
@@ -91,6 +103,8 @@ function CategorySidebar({
     heart: '',
     labs: caspianLabs[0]?.date ?? '',
     body: '',
+    loads: '',
+    environment: '',
   }
 
   return (
@@ -548,6 +562,221 @@ function WearableCategorySection({
 }
 
 // ============================================================================
+// ROLLING LOADS SECTION
+// ============================================================================
+//
+// Loads come from participant.loads_history (14-day rolling series the
+// engine computes from the raw lifestyle data — ACWR from TRIMP, SRI
+// from bedtime SD, etc.). They're derived signals, not primary inputs,
+// so they live separately from the wearable-signal categories.
+
+interface DerivedSeriesSpec {
+  key: string
+  name: string
+  unit: string
+  format?: (v: number) => string
+}
+
+const LOAD_SERIES: DerivedSeriesSpec[] = [
+  { key: 'acwr', name: 'ACWR', unit: '', format: (v) => v.toFixed(2) },
+  { key: 'ctl', name: 'Chronic load (CTL)', unit: 'TRIMP', format: (v) => v.toFixed(0) },
+  { key: 'atl', name: 'Acute load (ATL)', unit: 'TRIMP', format: (v) => v.toFixed(0) },
+  { key: 'tsb', name: 'Training balance (TSB)', unit: 'TRIMP', format: (v) => v.toFixed(0) },
+  { key: 'sleep_debt_14d', name: 'Sleep debt (14d)', unit: 'hours', format: (v) => v.toFixed(1) },
+  { key: 'sri_7d', name: 'Sleep regularity (SRI)', unit: '', format: (v) => v.toFixed(0) },
+  { key: 'training_monotony', name: 'Training monotony', unit: '', format: (v) => v.toFixed(2) },
+  { key: 'training_consistency', name: 'Training consistency', unit: '', format: (v) => `${Math.round(v * 100)}%` },
+]
+
+const ENVIRONMENT_SERIES: DerivedSeriesSpec[] = [
+  { key: 'temp_c', name: 'Temperature', unit: '°C', format: (v) => v.toFixed(1) },
+  { key: 'humidity_pct', name: 'Humidity', unit: '%', format: (v) => v.toFixed(0) },
+  { key: 'heat_index_c', name: 'Heat index', unit: '°C', format: (v) => v.toFixed(1) },
+  { key: 'uv_index', name: 'UV index', unit: '', format: (v) => v.toFixed(1) },
+  { key: 'aqi', name: 'Air quality (AQI)', unit: '', format: (v) => v.toFixed(0) },
+]
+
+function derivedRowStats(values: number[]): {
+  current: number | null
+  avg14d: number | null
+  min: number | null
+  max: number | null
+  delta: number | null
+} {
+  if (values.length === 0)
+    return { current: null, avg14d: null, min: null, max: null, delta: null }
+  const current = values[values.length - 1]
+  const avg14d = values.reduce((s, v) => s + v, 0) / values.length
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const first = values[0]
+  const delta = current - first
+  return { current, avg14d, min, max, delta }
+}
+
+function DerivedSeriesRow({
+  spec,
+  values,
+  color,
+  source,
+}: {
+  spec: DerivedSeriesSpec
+  values: number[]
+  color: string
+  source: string
+}) {
+  const stats = derivedRowStats(values)
+  const fmt = spec.format ?? ((v: number) => v.toFixed(1))
+  const unitStr = spec.unit ? ` ${spec.unit}` : ''
+
+  return (
+    <Card padding="sm" className="mb-3">
+      <div className="flex items-center gap-4">
+        <div className="w-44 flex-shrink-0">
+          <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+            {spec.name}
+          </div>
+          <div className="flex items-baseline mt-1">
+            <span className="text-xl font-semibold font-mono text-slate-800">
+              {stats.current != null ? fmt(stats.current) : '—'}
+            </span>
+            {spec.unit && (
+              <span className="ml-1.5 text-xs text-slate-400">{spec.unit}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-shrink-0">
+          <MetricSparkline
+            data={values}
+            width={200}
+            height={36}
+            color={color}
+            showDots
+          />
+        </div>
+
+        <div className="flex-1 flex items-center gap-4 justify-end">
+          <StatPill
+            label="14d avg"
+            value={stats.avg14d != null ? fmt(stats.avg14d) : '—'}
+            unit={spec.unit}
+          />
+          <StatPill
+            label="range"
+            value={
+              stats.min != null && stats.max != null
+                ? `${fmt(stats.min)}–${fmt(stats.max)}`
+                : '—'
+            }
+            unit={spec.unit}
+          />
+          <StatPill
+            label="Δ 14d"
+            value={
+              stats.delta != null
+                ? `${stats.delta >= 0 ? '+' : ''}${fmt(stats.delta)}${unitStr}`
+                : '—'
+            }
+            unit=""
+          />
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400">
+        <span>{source}</span>
+      </div>
+    </Card>
+  )
+}
+
+function LoadsSection({ color }: { color: string }) {
+  const { participant, isLoading } = useParticipant()
+  if (isLoading) {
+    return <p className="text-xs text-slate-400">Loading…</p>
+  }
+  const history = participant?.loads_history
+  if (!history || Object.keys(history).length === 0) {
+    return (
+      <Card padding="md" className="text-center text-slate-500 text-sm">
+        No rolling-load history available for this participant.
+      </Card>
+    )
+  }
+  return (
+    <div>
+      {LOAD_SERIES.map((spec) => {
+        const values = history[spec.key as keyof typeof history] ?? []
+        if (!values || values.length === 0) return null
+        return (
+          <DerivedSeriesRow
+            key={spec.key}
+            spec={spec}
+            values={values as number[]}
+            color={color}
+            source="Engine-derived · 14 days"
+          />
+        )
+      })}
+      <div className="mt-4 px-1 text-[10px] text-slate-400 leading-snug">
+        Computed by the SCM engine from raw TRIMP / sleep / bedtime series
+        (see backend/serif_scm/loads.py). Feeds the Protocols context panel
+        and drives the Bayesian posterior gating.
+      </div>
+    </div>
+  )
+}
+
+function EnvironmentSection({ color }: { color: string }) {
+  const { participant, isLoading } = useParticipant()
+  if (isLoading) {
+    return <p className="text-xs text-slate-400">Loading…</p>
+  }
+  const today = participant?.weather_today
+  const history = participant?.weather_history
+  if (!history || Object.keys(history).length === 0) {
+    return (
+      <Card padding="md" className="text-center text-slate-500 text-sm">
+        No environment data for this participant.
+      </Card>
+    )
+  }
+  return (
+    <div>
+      {ENVIRONMENT_SERIES.map((spec) => {
+        const values = history[spec.key as keyof typeof history] ?? []
+        if (!values || values.length === 0) return null
+        return (
+          <DerivedSeriesRow
+            key={spec.key}
+            spec={spec}
+            values={values as number[]}
+            color={color}
+            source="Synthetic · cohort-keyed weather model · 14 days"
+          />
+        )
+      })}
+      <div className="mt-4 px-1 text-[10px] text-slate-400 leading-snug">
+        Synthetic placeholder — deterministic sinusoidal model keyed on
+        cohort region (Delhi / Abu Dhabi / temperate) modulated by day-of-year.
+        The shape is production-ready: swap
+        backend/serif_scm/loads.py:weather_for_day for a real weather API
+        and the exports, UI, and BART confounder adjustment
+        (CONFOUNDERS_BY_OUTCOME) all keep working unchanged.
+        {today != null && Object.keys(today).length > 0 && (
+          <span className="block mt-1">
+            Today: {today.temp_c != null && `${today.temp_c}°C`}
+            {today.humidity_pct != null && ` · ${Math.round(today.humidity_pct)}% RH`}
+            {today.heat_index_c != null && ` · heat ${today.heat_index_c}°C`}
+            {today.aqi != null && ` · AQI ${Math.round(today.aqi)}`}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
 // LAB BIOMARKERS SECTION
 // ============================================================================
 
@@ -648,6 +877,10 @@ function CaspianDataView() {
               {activeCategory === 'labs' && <LabBiomarkersSection />}
               {activeCategory === 'body' && (
                 <WearableCategorySection categoryId="body" color="#5ba8d4" />
+              )}
+              {activeCategory === 'loads' && <LoadsSection color="#6366f1" />}
+              {activeCategory === 'environment' && (
+                <EnvironmentSection color="#f59e0b" />
               )}
             </motion.div>
           </div>
