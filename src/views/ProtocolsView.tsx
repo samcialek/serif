@@ -54,6 +54,8 @@ import type {
   ProtocolItem,
 } from '@/utils/dailyProtocol'
 import { buildTodaysStory } from '@/utils/storyline'
+import { buildDayScore, dayScoreBand } from '@/utils/dayScore'
+import type { DayScoreBreakdown } from '@/utils/dayScore'
 import { LanesSchedule } from './ProtocolsLanesView'
 import { VisualSchedule } from './ProtocolsVisualView'
 
@@ -218,6 +220,8 @@ export function ProtocolsView() {
 
   if (!participant || !twin) return null
 
+  const dayScore = buildDayScore(participant)
+
   const dateLabel = today.toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -257,20 +261,7 @@ export function ProtocolsView() {
               </h2>
               <p className="text-xs text-slate-500 tabular-nums">{dateLabel}</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p
-                  className="text-[10px] uppercase tracking-wider text-slate-400"
-                  title="Twin-SEM score: the digital twin's net predicted benefit of today's optimal schedule across all outcomes, vs. a neutral baseline. Higher is better; '+' means net upside."
-                >
-                  Twin-SEM score
-                </p>
-                <p className="text-lg font-bold tabular-nums text-emerald-700">
-                  {twin.result.best.total >= 0 ? '+' : ''}
-                  {twin.result.best.total.toFixed(2)}
-                </p>
-              </div>
-            </div>
+            <DayScorePill breakdown={dayScore} />
           </div>
 
           {/* Today's story — three-sentence summary of what's active
@@ -376,6 +367,146 @@ function ToggleButton({
       {icon}
       {label}
     </button>
+  )
+}
+
+const BAND_STYLE: Record<
+  ReturnType<typeof dayScoreBand>,
+  { text: string; bg: string; border: string; label: string }
+> = {
+  great: {
+    text: 'text-emerald-700',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    label: 'Great',
+  },
+  good: {
+    text: 'text-emerald-700',
+    bg: 'bg-emerald-50/70',
+    border: 'border-emerald-200',
+    label: 'Good',
+  },
+  par: {
+    text: 'text-slate-700',
+    bg: 'bg-slate-50',
+    border: 'border-slate-200',
+    label: 'Par',
+  },
+  rough: {
+    text: 'text-amber-700',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    label: 'Rough',
+  },
+  poor: {
+    text: 'text-rose-700',
+    bg: 'bg-rose-50',
+    border: 'border-rose-200',
+    label: 'Poor',
+  },
+}
+
+const OUTCOME_DISPLAY: Record<string, string> = {
+  hrv_daily: 'HRV',
+  sleep_quality: 'Sleep quality',
+  sleep_efficiency: 'Sleep eff.',
+  deep_sleep: 'Deep sleep',
+  resting_hr: 'RHR',
+  cortisol: 'Cortisol',
+  apob: 'apoB',
+  hscrp: 'hs-CRP',
+  glucose: 'Glucose',
+  testosterone: 'Testosterone',
+  ferritin: 'Ferritin',
+}
+
+function DayScorePill({ breakdown }: { breakdown: DayScoreBreakdown }) {
+  const band = dayScoreBand(breakdown.score)
+  const style = BAND_STYLE[band]
+  const sign = breakdown.score >= 0 ? '+' : ''
+
+  const top = breakdown.contributions.slice(0, 5)
+
+  return (
+    <div className="group relative">
+      <div
+        className={`inline-flex flex-col items-end rounded-lg border px-3 py-1.5 ${style.bg} ${style.border}`}
+      >
+        <span className="text-[10px] uppercase tracking-wider text-slate-500">
+          Day score
+        </span>
+        <span className="flex items-baseline gap-2">
+          <span className={`text-lg font-bold tabular-nums ${style.text}`}>
+            {sign}
+            {breakdown.score.toFixed(2)}
+          </span>
+          <span className={`text-[11px] font-medium ${style.text}`}>
+            {style.label}
+          </span>
+        </span>
+      </div>
+
+      {/* Hover breakdown */}
+      <div
+        className="pointer-events-none absolute right-0 top-full mt-2 z-20 w-80 rounded-lg border border-slate-200 bg-white p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+        role="tooltip"
+      >
+        <p className="text-[11px] text-slate-600 leading-snug mb-2">
+          Weighted mean Cohen's <span className="italic">d</span> of today's
+          state vs. the cohort norm, after sign-flipping "lower-is-better"
+          outcomes. Regime / load penalty subtracted.
+        </p>
+        <div className="space-y-1 mb-2">
+          {top.map((c) => {
+            const positive = c.weighted > 0
+            return (
+              <div key={c.outcome} className="flex items-center gap-2 text-[11px]">
+                <span className="w-24 text-slate-600">
+                  {OUTCOME_DISPLAY[c.outcome] ?? c.outcome}
+                </span>
+                <span
+                  className={`w-10 text-right tabular-nums ${
+                    positive ? 'text-emerald-700' : 'text-rose-700'
+                  }`}
+                >
+                  {positive ? '+' : ''}
+                  {c.d.toFixed(2)}
+                </span>
+                <span className="text-[10px] text-slate-400">× {c.weight.toFixed(2)}</span>
+                <span
+                  className={`ml-auto tabular-nums font-medium ${
+                    positive ? 'text-emerald-700' : 'text-rose-700'
+                  }`}
+                >
+                  {positive ? '+' : ''}
+                  {c.weighted.toFixed(2)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        {(breakdown.regimePenalty > 0 || breakdown.loadPenalty > 0) && (
+          <div className="pt-2 border-t border-slate-100 space-y-0.5">
+            {breakdown.regimePenalty > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-slate-500">Regime penalty</span>
+                <span className="text-rose-600 tabular-nums">
+                  −{breakdown.regimePenalty.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {breakdown.loadPenalty > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-slate-500">Load penalty</span>
+                <span className="text-rose-600 tabular-nums">
+                  −{breakdown.loadPenalty.toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
