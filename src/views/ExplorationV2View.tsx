@@ -251,6 +251,7 @@ export function ExplorationV2View() {
                   outcome={outcome}
                   outcomeLabel={outcomeLabel(outcome)}
                   edges={ordering.edgesByOutcome.get(outcome) ?? []}
+                  participant={participant}
                 />
               ))}
             </section>

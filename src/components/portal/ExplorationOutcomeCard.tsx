@@ -15,18 +15,26 @@
 import { useMemo, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { cn } from '@/utils/classNames'
+import type { ParticipantPortal } from '@/data/portal/types'
 import type { ExplorationEdge } from '@/utils/exploration'
 import { ExplorationActionRow } from './ExplorationActionRow'
+import { ExplorationActionDetail } from './ExplorationActionDetail'
 
 interface Props {
   outcome: string
   edges: ExplorationEdge[]
   outcomeLabel: string
+  participant: ParticipantPortal
 }
 
 const TOP_N_DEFAULT = 5
 
-export function ExplorationOutcomeCard({ outcome, edges, outcomeLabel }: Props) {
+export function ExplorationOutcomeCard({
+  outcome,
+  edges,
+  outcomeLabel,
+  participant,
+}: Props) {
   const [showAll, setShowAll] = useState(false)
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
 
@@ -74,19 +82,7 @@ export function ExplorationOutcomeCard({ outcome, edges, outcomeLabel }: Props) 
                 onToggle={() => setExpandedKey(expanded ? null : key)}
               />
               {expanded && (
-                <div className="px-3 py-2 border-t border-slate-100 bg-slate-50/40 text-[12px] text-slate-600 leading-snug">
-                  <p>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-0.5">
-                      Why this experiment
-                    </span>
-                    {edge.rationale}
-                  </p>
-                  <p className="mt-2 text-[11px] text-slate-500 italic">
-                    Full prescription + prior curve lands in Phase 2. Current
-                    observations: {edge.user_n}. Already personalized:{' '}
-                    {Math.round(edge.prior_contraction * 100)}%.
-                  </p>
-                </div>
+                <ExplorationActionDetail edge={edge} participant={participant} />
               )}
             </div>
           )
