@@ -16,8 +16,9 @@
  * retires the old flat-list view.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useSearchParams } from 'react-router-dom'
 import { AlertCircle, Compass, FastForward, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, DataModeToggle, PainterlyPageHeader } from '@/components/common'
@@ -136,6 +137,21 @@ export function ExplorationV2View() {
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
   }, [])
+
+  // Deep-link handling: /exploration-v2?edge=action::outcome auto-opens
+  // the matching row when someone clicks "Run an experiment →" in
+  // Insights. Clears the param after focus so a page reload doesn't
+  // keep re-focusing the same row.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (!participant) return
+    const edgeParam = searchParams.get('edge')
+    if (!edgeParam) return
+    focusExperimentRow(edgeParam)
+    const next = new URLSearchParams(searchParams)
+    next.delete('edge')
+    setSearchParams(next, { replace: true })
+  }, [participant, searchParams, setSearchParams, focusExperimentRow])
 
   const headerActions = (
     <div className="flex items-center gap-2 flex-wrap">

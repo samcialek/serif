@@ -19,12 +19,14 @@
  * highlight as well as which slope feeds the chart.
  */
 
-import { Info } from 'lucide-react'
+import { Compass, Info } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { cn } from '@/utils/classNames'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import { DoseResponseChart } from './DoseResponseChart'
 import { useDataMode } from '@/hooks/useDataMode'
 import { effectMean } from '@/utils/twinSem'
+import { isLowConfidence } from '@/utils/insightStandardization'
 
 interface Props {
   edge: InsightBayesian
@@ -185,6 +187,25 @@ export function InsightActionDetail({ edge, participant }: Props) {
         at your current operating point — useful for comparison, but the
         full shape is what Twin reasons over.
       </p>
+
+      {/* Cross-tab link into Exploration — only on low-confidence
+           rows, where an experiment would materially tighten this
+           edge's posterior. */}
+      {isLowConfidence(edge, participant) && (
+        <div className="rounded-md border border-indigo-200 bg-indigo-50/40 px-3 py-2 flex items-center gap-2 flex-wrap">
+          <Compass className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" aria-hidden />
+          <span className="text-[11px] text-indigo-900 leading-snug flex-1 min-w-[200px]">
+            This edge is still mostly cohort-prior. An experiment would
+            personalize the slope — see the prescription.
+          </span>
+          <Link
+            to={`/exploration-v2?edge=${encodeURIComponent(edge.action)}::${encodeURIComponent(edge.outcome)}`}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-600 text-white text-[11px] font-medium hover:bg-indigo-700 transition-colors"
+          >
+            Run an experiment →
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

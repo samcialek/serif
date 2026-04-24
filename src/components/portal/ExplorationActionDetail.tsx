@@ -8,7 +8,8 @@
  * 4 wires it to the exploration store.
  */
 
-import { FastForward, Sparkles, X } from 'lucide-react'
+import { ArrowRight, FastForward, Sparkles, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import type { ParticipantPortal } from '@/data/portal/types'
 import type { ExplorationEdge } from '@/utils/exploration'
 import { ExperimentPrescription } from './ExperimentPrescription'
@@ -141,9 +142,14 @@ export function ExplorationActionDetail({ edge, participant }: Props) {
         <div className="ml-auto flex items-center gap-2">
           {isComplete ? (
             <>
-              <span className="text-[11px] text-emerald-700 font-medium">
-                Complete · Phase 5 links back to Insights
-              </span>
+              <Link
+                to={`/insights#outcome-${edge.outcome}`}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                title="Jump to this outcome's card in Insights — the experiment's result is now folded into the engine."
+              >
+                Now in Insights
+                <ArrowRight className="w-3 h-3" aria-hidden />
+              </Link>
               <button
                 type="button"
                 onClick={handleCancel}

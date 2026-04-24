@@ -24,6 +24,7 @@ import {
 import { CONFOUNDERS_BY_OUTCOME } from '@/utils/dailyProtocol'
 import { InsightActionRow } from './InsightActionRow'
 import { InsightActionDetail } from './InsightActionDetail'
+import { CrossTabLinks } from '@/components/common'
 
 const TOP_N_DEFAULT = 5
 
@@ -215,7 +216,10 @@ export function InsightOutcomeCard({
   const direction = beneficialSign(outcome) > 0 ? 'higher better' : 'lower better'
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+    <div
+      id={`outcome-${outcome}`}
+      className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm scroll-mt-6"
+    >
       <div className="flex">
         {/* Category color stripe */}
         <div
@@ -236,16 +240,19 @@ export function InsightOutcomeCard({
                 {direction} · cohort SD ≈ {formatSD(sd)} {unit}
               </p>
             </div>
-            {baseline != null && (
-              <div className="text-right flex-shrink-0">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400">
-                  Current
+            <div className="flex items-baseline gap-3 flex-shrink-0">
+              {baseline != null && (
+                <div className="text-right">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400">
+                    Current
+                  </div>
+                  <div className="text-base font-semibold tabular-nums text-slate-700">
+                    {formatBaseline(baseline)} <span className="text-xs text-slate-400">{unit}</span>
+                  </div>
                 </div>
-                <div className="text-base font-semibold tabular-nums text-slate-700">
-                  {formatBaseline(baseline)} <span className="text-xs text-slate-400">{unit}</span>
-                </div>
-              </div>
-            )}
+              )}
+              <CrossTabLinks outcome={outcome} exclude={['insights']} />
+            </div>
           </div>
 
           {/* Body — ranked rows */}

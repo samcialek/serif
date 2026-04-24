@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AlertCircle, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
@@ -33,6 +34,9 @@ import { usePortalStore } from '@/stores/portalStore'
 import { OBJECTIVE_ORON } from '@/utils/twinSem'
 import { cohensD } from '@/utils/insightStandardization'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
+import { buildEnvironmentalSyntheticEdges } from '@/data/scm/environmentalEdges'
+import { useScopeStore } from '@/stores/scopeStore'
+import { PainterlyPageHeader } from '@/components/common'
 
 /** Coarse horizon band per outcome — drives the grouping headers
  * and the "horizon" sort. Quotidian = wearable-day signals (HRV,
@@ -104,22 +108,33 @@ function medianHorizon(edges: InsightBayesian[]): number {
  * selected regime — for 'all' we keep the horizon sub-bands; for
  * 'quotidian' or 'longevity' the whole list is one regime so the
  * band header is redundant. */
+function passesFilters(
+  edge: InsightBayesian,
+  participant: ParticipantPortal,
+  controls: InsightControlsState,
+  allowedBands: Set<HorizonBand>,
+): boolean {
+  if (!allowedBands.has(bandFor(edge.outcome))) return false
+  if (!controls.includeWeakDefault && edge.prior_provenance === 'weak_default') return false
+  if (!controls.includeNotExposed && edge.gate.tier === 'not_exposed') return false
+  if (controls.personalOnly && edge.evidence_tier === 'cohort_level') return false
+  if (controls.hideTrivial) {
+    const d = cohensD(edge, participant)
+    if (Math.abs(d) < 0.2) return false
+  }
+  return true
+}
+
 function buildOrdering(
   participant: ParticipantPortal,
+  edges: InsightBayesian[],
   controls: InsightControlsState,
 ): { sections: Array<{ band: HorizonBand | null; outcomes: string[] }>; total: number } {
   const allowedBands = bandsForRegime(controls.regime)
   // 1. Group raw edges by outcome with regime + filters applied.
   const grouped = new Map<string, InsightBayesian[]>()
-  for (const edge of participant.effects_bayesian) {
-    if (edge.prior_provenance === 'weak_default') continue
-    if (edge.gate.tier === 'not_exposed') continue
-    if (!allowedBands.has(bandFor(edge.outcome))) continue
-    if (controls.personalOnly && edge.evidence_tier === 'cohort_level') continue
-    if (controls.hideTrivial) {
-      const d = cohensD(edge, participant)
-      if (Math.abs(d) < 0.2) continue
-    }
+  for (const edge of edges) {
+    if (!passesFilters(edge, participant, controls, allowedBands)) continue
     const list = grouped.get(edge.outcome) ?? []
     list.push(edge)
     grouped.set(edge.outcome, list)
@@ -181,8 +196,16 @@ export function InsightsV2View() {
   const activePid = usePortalStore((s) => s.activePid)
   const setActivePid = usePortalStore((s) => s.setActivePid)
   const { participant, isLoading, error } = useParticipant()
-  const { displayName, persona } = useActiveParticipant()
-  const [controls, setControls] = useInsightsControls()
+  const { displayName } = useActiveParticipant()
+  const [rawControls, setControls] = useInsightsControls()
+  // Regime is now owned by the cross-tab scope store. Project it onto
+  // the controls state so the rest of the page (filtering, ordering)
+  // can keep reading it from one object.
+  const scopeRegime = useScopeStore((s) => s.regime)
+  const controls = useMemo(
+    () => ({ ...rawControls, regime: scopeRegime }),
+    [rawControls, scopeRegime],
+  )
 
   useEffect(() => {
     let mounted = true
@@ -197,44 +220,114 @@ export function InsightsV2View() {
     }
   }, [activePid, setActivePid])
 
-  const titleAccessory = (
-    <MemberAvatar persona={persona} displayName={displayName} size="xl" />
-  )
-  const actions = (
+  // Hash-scroll: /insights#outcome-X lands after the participant + cards
+  // render, so native anchor scrolling misses the target on cold-load.
+  // Poll briefly for the element after mount, then smooth-scroll.
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (!hash) return
+    if (!participant) return
+    const targetId = hash.startsWith('#') ? hash.slice(1) : hash
+    let tries = 0
+    const maxTries = 30
+    const tick = () => {
+      const el = document.getElementById(targetId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+      tries += 1
+      if (tries < maxTries) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [hash, participant])
+
+  const headerActions = (
     <div className="flex items-center gap-2 flex-wrap">
       <DataModeToggle />
-      <InsightsControls state={controls} onChange={setControls} />
     </div>
   )
 
+  // All edges = participant's fitted/prior edges + literature-backed
+  // environmental edges (heat / humidity / UV / AQI / travel /
+  // daylight). Environmental edges aren't participant-specific so they
+  // get appended once across the cohort.
+  const envEdges = useMemo(() => buildEnvironmentalSyntheticEdges(), [])
+  const allEdges = useMemo<InsightBayesian[]>(() => {
+    if (!participant) return []
+    return [...participant.effects_bayesian, ...envEdges]
+  }, [participant, envEdges])
+
   const ordering = useMemo(() => {
     if (!participant) return { sections: [], total: 0 }
-    return buildOrdering(participant, controls)
-  }, [participant, controls])
+    return buildOrdering(participant, allEdges, controls)
+  }, [participant, allEdges, controls])
 
   const edgesByOutcome = useMemo(() => {
     if (!participant) return new Map<string, InsightBayesian[]>()
     const allowedBands = bandsForRegime(controls.regime)
     const map = new Map<string, InsightBayesian[]>()
-    for (const edge of participant.effects_bayesian) {
-      if (edge.prior_provenance === 'weak_default') continue
-      if (edge.gate.tier === 'not_exposed') continue
-      if (!allowedBands.has(bandFor(edge.outcome))) continue
-      if (controls.personalOnly && edge.evidence_tier === 'cohort_level') continue
-      if (controls.hideTrivial) {
-        const d = cohensD(edge, participant)
-        if (Math.abs(d) < 0.2) continue
-      }
+    for (const edge of allEdges) {
+      if (!passesFilters(edge, participant, controls, allowedBands)) continue
       const list = map.get(edge.outcome) ?? []
       list.push(edge)
       map.set(edge.outcome, list)
     }
     return map
-  }, [participant, controls])
+  }, [participant, allEdges, controls])
+
+  // Aggregate counts so the user can see what's in / out at a glance —
+  // total inventory, what passes the active filter set, and how many
+  // are personally significant. The summary updates live as the user
+  // toggles filters.
+  const counts = useMemo(() => {
+    if (!participant) {
+      return {
+        total: 0, visible: 0, significant: 0, personal: 0,
+        weakDefault: 0, notExposed: 0, environmental: 0,
+      }
+    }
+    const allowedBands = bandsForRegime(controls.regime)
+    let total = 0
+    let visible = 0
+    let significant = 0
+    let personal = 0
+    let weakDefault = 0
+    let notExposed = 0
+    let environmental = 0
+    for (const edge of allEdges) {
+      total += 1
+      if (edge.prior_provenance === 'weak_default') weakDefault += 1
+      if (edge.gate.tier === 'not_exposed') notExposed += 1
+      // Treat env-driver actions as "environmental" — heat_index_c,
+      // humidity_pct, uv_index, aqi, travel_load, daylight_hours, temp_c.
+      if (
+        edge.action === 'heat_index_c' ||
+        edge.action === 'humidity_pct' ||
+        edge.action === 'uv_index' ||
+        edge.action === 'aqi' ||
+        edge.action === 'travel_load' ||
+        edge.action === 'daylight_hours' ||
+        edge.action === 'temp_c'
+      ) {
+        environmental += 1
+      }
+      if (!passesFilters(edge, participant, controls, allowedBands)) continue
+      visible += 1
+      const d = cohensD(edge, participant)
+      if (Math.abs(d) >= 0.2) significant += 1
+      if (edge.evidence_tier !== 'cohort_level') personal += 1
+    }
+    return { total, visible, significant, personal, weakDefault, notExposed, environmental }
+  }, [participant, allEdges, controls])
 
   if (activePid == null) {
     return (
-      <PageLayout title="Insights v2" subtitle="Reframed insights — outcome-first.">
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader
+          subtitle="Outcome-first causal map — every tested edge."
+          actions={headerActions}
+        />
         <Card padding="md" className="flex flex-col items-center text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center mb-3">
             <Users className="w-6 h-6 text-primary-500" />
@@ -252,11 +345,11 @@ export function InsightsV2View() {
 
   if (isLoading) {
     return (
-      <PageLayout
-        title={`${displayName} — insights v2`}
-        titleAccessory={titleAccessory}
-        actions={actions}
-      >
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader
+          subtitle="Outcome-first causal map — every tested edge."
+          actions={headerActions}
+        />
         <Card padding="md" className="flex flex-col items-center text-slate-500 py-12">
           <Loader2 className="w-5 h-5 animate-spin mb-2" />
           <span className="text-sm">Loading {displayName}…</span>
@@ -267,11 +360,11 @@ export function InsightsV2View() {
 
   if (error) {
     return (
-      <PageLayout
-        title={`${displayName} — insights v2`}
-        titleAccessory={titleAccessory}
-        actions={actions}
-      >
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader
+          subtitle="Outcome-first causal map — every tested edge."
+          actions={headerActions}
+        />
         <Card padding="md" className="flex flex-col items-center text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-3">
             <AlertCircle className="w-6 h-6 text-rose-500" />
@@ -288,12 +381,16 @@ export function InsightsV2View() {
   if (!participant) return null
 
   return (
-    <PageLayout
-      title={`${displayName} — insights v2`}
-      titleAccessory={titleAccessory}
-      actions={actions}
-      subtitle="Each outcome card lists the actions that move it, ranked by standardized effect at your current operating point."
-    >
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle="Each outcome card lists the actions that move it, ranked by standardized effect."
+        actions={headerActions}
+      />
+
+      {/* Insights-specific controls strip (sort + filter pills + Show all) */}
+      <div className="mb-3 px-3 py-2 rounded-xl border border-stone-200 bg-white/70 flex items-center gap-2 flex-wrap">
+        <InsightsControls state={controls} onChange={setControls} />
+      </div>
       {/* Long-term story — three sentences on the biggest leverage
            points across outcomes plus environmental context. */}
       <div className="mb-4">
@@ -301,12 +398,36 @@ export function InsightsV2View() {
       </div>
 
       {/* All-else-equal disclosure */}
-      <div className="mb-4 px-3 py-2 rounded-md border border-indigo-200 bg-indigo-50/50 text-[11px] text-indigo-900 leading-snug">
+      <div className="mb-3 px-3 py-2 rounded-md border border-indigo-200 bg-indigo-50/50 text-[11px] text-indigo-900 leading-snug">
         <span className="font-semibold">All else equal.</span> Each card
         shows the marginal effect of one action on one outcome, holding
         every other variable at your average. The full nonlinear,
         regime-aware joint model lives in <span className="font-semibold">Twin</span>;
         Insights is the simplified per-edge view.
+      </div>
+
+      {/* Counts strip — shows the user the full edge inventory and how
+           many pass the active filters. Helps answer "where's that edge?"
+           without forcing them to open every card. */}
+      <div className="mb-4 px-3 py-2 rounded-md border border-slate-200 bg-white/60 text-[11px] text-slate-700 flex items-center gap-3 flex-wrap">
+        <span>
+          <span className="font-semibold tabular-nums">{counts.visible}</span>
+          <span className="text-slate-500"> / {counts.total} edges visible</span>
+        </span>
+        <span className="text-slate-300">·</span>
+        <span>
+          <span className="font-semibold tabular-nums text-emerald-700">{counts.significant}</span>
+          <span className="text-slate-500"> significant <span className="font-mono">(|d|≥0.2)</span></span>
+        </span>
+        <span className="text-slate-300">·</span>
+        <span>
+          <span className="font-semibold tabular-nums text-indigo-700">{counts.personal}</span>
+          <span className="text-slate-500"> with personal posterior</span>
+        </span>
+        <span className="text-slate-300">·</span>
+        <span className="text-slate-500 tabular-nums">
+          {counts.weakDefault} weak-default · {counts.notExposed} not exposed · {counts.environmental} environmental
+        </span>
       </div>
 
       <motion.div
@@ -317,8 +438,9 @@ export function InsightsV2View() {
       >
         {ordering.total === 0 ? (
           <Card padding="md" className="text-center text-sm text-slate-500 py-8">
-            No insights match your current filters. Loosen "non-trivial"
-            or "personal" if everything is hidden.
+            No insights match your current filters. Try toggling on
+            "weak priors", "not exposed", or switching the regime to
+            "All".
           </Card>
         ) : (
           ordering.sections.map((section, i) => (

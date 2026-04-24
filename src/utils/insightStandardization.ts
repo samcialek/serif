@@ -156,6 +156,30 @@ export function cohensD(
   return (slope * sda) / sdo
 }
 
+/** "Low confidence" edge — the engine's answer is still borrowed mostly
+ * from cohort priors, OR the posterior has a wide CI. These are the
+ * rows that most benefit from an Exploration experiment, so Insights v2
+ * links them across to /exploration-v2 with a deep-link.
+ *
+ * Criteria (any triggers):
+ *   - evidence_tier === 'cohort_level'
+ *   - gate.tier === 'possible' (engine isn't confident enough for
+ *     'recommended')
+ *   - posterior contraction < 0.35 (mostly prior still)
+ *   - cohensDSD > 0.25 (wide posterior on the standardized slope)
+ */
+export function isLowConfidence(
+  edge: InsightBayesian,
+  participant: ParticipantPortal,
+): boolean {
+  if (edge.evidence_tier === 'cohort_level') return true
+  if (edge.gate?.tier === 'possible') return true
+  const contraction = edge.posterior?.contraction ?? 0
+  if (contraction < 0.35) return true
+  if (cohensDSD(edge, participant) > 0.25) return true
+  return false
+}
+
 /** Posterior SD of Cohen's d — the uncertainty on the standardized
  * slope. Computed from `edge.posterior.sd`, scaled to d-units the same
  * way `cohensD` scales the mean. Used by Exploration v2 to size the
