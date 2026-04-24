@@ -163,7 +163,27 @@ export function DoseResponseChart({
     const currentX = currentVal != null ? toX(currentVal) : null
     const currentY = currentVal != null ? toY(f(currentVal)) : null
 
-    return { xMin, xMax, yLo, yHi, path, zeroY, currentX, currentY, shape }
+    // Tangent line at the user's current point — same construction as
+    // MiniDoseResponse so the in-row preview and the expanded chart
+    // tell the same visual story. Local slope by central difference;
+    // segment extended ~12% of the x-range either side of the point.
+    let tangentPath: string | null = null
+    let tangentSlope: number | null = null
+    if (currentVal != null) {
+      const dx = (xMax - xMin) * 0.12
+      const localSlope = (f(currentVal + dx) - f(currentVal - dx)) / (2 * dx)
+      tangentSlope = localSlope
+      const tx0 = toX(currentVal - dx)
+      const ty0 = toY(f(currentVal) - localSlope * dx)
+      const tx1 = toX(currentVal + dx)
+      const ty1 = toY(f(currentVal) + localSlope * dx)
+      tangentPath = `M ${tx0.toFixed(1)} ${ty0.toFixed(1)} L ${tx1.toFixed(1)} ${ty1.toFixed(1)}`
+    }
+
+    return {
+      xMin, xMax, yLo, yHi, path, zeroY, currentX, currentY, shape,
+      tangentPath, tangentSlope, currentVal,
+    }
   }, [edge, participant, width, height, padX, padY])
 
   const stroke = isBeneficial(edge) ? '#10b981' : '#f43f5e'
@@ -203,7 +223,7 @@ export function DoseResponseChart({
           strokeLinejoin="round"
         />
 
-        {/* User's current point */}
+        {/* User's current point + tangent */}
         {data.currentX !== null && data.currentY !== null && (
           <g>
             <line
@@ -214,13 +234,24 @@ export function DoseResponseChart({
               stroke="#6366f1"
               strokeWidth={1}
               strokeDasharray="2 3"
-              opacity={0.5}
+              opacity={0.4}
             />
+            {/* Tangent line — same indigo as the row preview, bolder */}
+            {data.tangentPath && (
+              <path
+                d={data.tangentPath}
+                fill="none"
+                stroke="#4f46e5"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                opacity={0.95}
+              />
+            )}
             <circle
               cx={data.currentX}
               cy={data.currentY}
               r={4}
-              fill="#6366f1"
+              fill="#4f46e5"
               stroke="white"
               strokeWidth={1.5}
             />
@@ -270,11 +301,30 @@ export function DoseResponseChart({
         </text>
       </svg>
       <div className="px-1 mt-0.5 flex items-center justify-between text-[10px] text-slate-500">
-        <span>
-          {LABEL_X(edge.action)} →
-          <span className="ml-1 text-slate-400">{shapeName(data.shape)}</span>
+        <span className="flex items-center gap-2">
+          <span>
+            {LABEL_X(edge.action)} →
+            <span className="ml-1 text-slate-400">{shapeName(data.shape)}</span>
+          </span>
         </span>
         <span>Δ {LABEL_Y(edge.outcome)}</span>
+      </div>
+      <div className="px-1 mt-1 flex items-center gap-3 text-[10px] text-slate-500">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" aria-hidden />
+          You, now
+          {data.currentVal != null && (
+            <span className="ml-1 tabular-nums text-slate-400">
+              ({formatX(edge.action)(data.currentVal)})
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <svg width={14} height={4} aria-hidden>
+            <line x1={0} x2={14} y1={2} y2={2} stroke="#4f46e5" strokeWidth={2} strokeLinecap="round" />
+          </svg>
+          Local slope (your marginal effect)
+        </span>
       </div>
     </div>
   )

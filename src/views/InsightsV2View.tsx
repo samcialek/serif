@@ -3,17 +3,14 @@
  *
  * Reframes from "list of edge rows" to "card per outcome." Each
  * card shows the actions that move that outcome, ranked by absolute
- * Cohen's d. Goal: give the user a fast, comparable read on which
- * input matters how much for which output, with the full Bayesian
- * detail one click away.
+ * Cohen's d (or the user's chosen sort).
  *
- * v1 (this commit): outcome cards + ranked action rows + slope-bar
- * + Cohen's d + native-units. Phase 3 will add per-edge expanded
- * detail (curve shape, posterior bell, conditional-on chips).
- *
- * Default outcome list = OBJECTIVE_ORON (the same 9 outcomes Twin /
- * Protocols score against), so the demo story stays coherent across
- * tabs.
+ * Phase summary:
+ *   1+2: outcome cards, slope-bars, standardized d, native units (shipped)
+ *   3:   per-row expanded panel — real curve + Bayesian breakdown +
+ *        confounders + suggested move (shipped)
+ *   4:   real-curve in-row preview with tangent (shipped)
+ *   5:   sort + filter + horizon grouping (this commit)
  */
 
 import { useEffect, useMemo } from 'react'
@@ -22,21 +19,152 @@ import { AlertCircle, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
 import { InsightOutcomeCard } from '@/components/portal/InsightOutcomeCard'
+import {
+  InsightsControls,
+  useInsightsControls,
+  type InsightControlsState,
+} from '@/components/portal/InsightsControls'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useParticipant } from '@/hooks/useParticipant'
 import { participantLoader } from '@/data/portal/participantLoader'
 import { usePortalStore } from '@/stores/portalStore'
 import { OBJECTIVE_ORON } from '@/utils/twinSem'
-import type { InsightBayesian } from '@/data/portal/types'
+import { cohensD } from '@/utils/insightStandardization'
+import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
+
+/** Coarse horizon band per outcome — drives the grouping headers
+ * and the "horizon" sort. Quotidian = wearable-day signals (HRV,
+ * sleep architecture). Monthly = weeks-to-month biomarker turnover
+ * (cortisol, glucose, hsCRP). Long-term = season+ biology (lipids,
+ * iron, hormones, body comp). */
+type HorizonBand = 'quotidian' | 'monthly' | 'longterm'
+
+const OUTCOME_HORIZON: Record<string, HorizonBand> = {
+  hrv_daily: 'quotidian',
+  resting_hr: 'monthly',
+  sleep_quality: 'quotidian',
+  sleep_efficiency: 'quotidian',
+  deep_sleep: 'quotidian',
+  rem_sleep: 'quotidian',
+  sleep_onset_latency: 'quotidian',
+  cortisol: 'monthly',
+  glucose: 'monthly',
+  insulin: 'monthly',
+  hba1c: 'longterm',
+  hscrp: 'monthly',
+  apob: 'longterm',
+  ldl: 'longterm',
+  hdl: 'longterm',
+  triglycerides: 'longterm',
+  ferritin: 'longterm',
+  hemoglobin: 'longterm',
+  iron_total: 'longterm',
+  zinc: 'longterm',
+  testosterone: 'longterm',
+  vo2_peak: 'longterm',
+  body_fat_pct: 'longterm',
+}
+
+const HORIZON_BAND_ORDER: HorizonBand[] = ['quotidian', 'monthly', 'longterm']
+const HORIZON_BAND_LABEL: Record<HorizonBand, string> = {
+  quotidian: 'Quotidian — see results within days',
+  monthly: 'Monthly — see results in weeks',
+  longterm: 'Long-term — see results in months to seasons',
+}
+
+function bandFor(outcome: string): HorizonBand {
+  return OUTCOME_HORIZON[outcome] ?? 'longterm'
+}
+
+function medianHorizon(edges: InsightBayesian[]): number {
+  const days = edges.map((e) => e.horizon_days ?? 999).sort((a, b) => a - b)
+  if (days.length === 0) return 999
+  return days[Math.floor(days.length / 2)]
+}
+
+/** Apply filters + sort + grouping per the user's controls. Returns
+ * a flat ordering of outcomes (when groupByHorizon=false) or a
+ * sectioned list (when groupByHorizon=true). */
+function buildOrdering(
+  participant: ParticipantPortal,
+  controls: InsightControlsState,
+): { sections: Array<{ band: HorizonBand | null; outcomes: string[] }>; total: number } {
+  // 1. Group raw edges by outcome with filters applied.
+  const grouped = new Map<string, InsightBayesian[]>()
+  for (const edge of participant.effects_bayesian) {
+    if (edge.prior_provenance === 'weak_default') continue
+    if (edge.gate.tier === 'not_exposed') continue
+    if (controls.personalOnly && edge.evidence_tier === 'cohort_level') continue
+    if (controls.hideTrivial) {
+      const d = cohensD(edge, participant)
+      if (Math.abs(d) < 0.2) continue
+    }
+    const list = grouped.get(edge.outcome) ?? []
+    list.push(edge)
+    grouped.set(edge.outcome, list)
+  }
+
+  // Drop outcomes with no surviving edges.
+  for (const [outcome, list] of grouped) {
+    if (list.length === 0) grouped.delete(outcome)
+  }
+
+  // 2. Pick an outcome ranking (within each section if grouped, else
+  // across the whole flat list).
+  const outcomeKeys = Array.from(grouped.keys())
+  outcomeKeys.sort((a, b) => {
+    if (controls.sort === 'alpha') {
+      const la = OUTCOME_DISPLAY_ORDER.indexOf(a)
+      const lb = OUTCOME_DISPLAY_ORDER.indexOf(b)
+      return (la === -1 ? 999 : la) - (lb === -1 ? 999 : lb)
+    }
+    if (controls.sort === 'horizon') {
+      return medianHorizon(grouped.get(a) ?? []) - medianHorizon(grouped.get(b) ?? [])
+    }
+    // 'effect' — by best |d| in the outcome's edge set.
+    const bestD = (out: string) =>
+      Math.max(
+        ...((grouped.get(out) ?? []).map((e) => Math.abs(cohensD(e, participant)))),
+        0,
+      )
+    return bestD(b) - bestD(a)
+  })
+
+  // 3. Sectioning.
+  if (!controls.groupByHorizon) {
+    return {
+      sections: [{ band: null, outcomes: outcomeKeys }],
+      total: outcomeKeys.length,
+    }
+  }
+  const sectioned: Record<HorizonBand, string[]> = {
+    quotidian: [],
+    monthly: [],
+    longterm: [],
+  }
+  for (const out of outcomeKeys) {
+    sectioned[bandFor(out)].push(out)
+  }
+  return {
+    sections: HORIZON_BAND_ORDER.filter((b) => sectioned[b].length > 0).map((b) => ({
+      band: b,
+      outcomes: sectioned[b],
+    })),
+    total: outcomeKeys.length,
+  }
+}
+
+const OUTCOME_DISPLAY_ORDER: string[] = [
+  ...OBJECTIVE_ORON.map((o) => o.outcome),
+]
 
 export function InsightsV2View() {
   const activePid = usePortalStore((s) => s.activePid)
   const setActivePid = usePortalStore((s) => s.setActivePid)
   const { participant, isLoading, error } = useParticipant()
   const { displayName, persona } = useActiveParticipant()
+  const [controls, setControls] = useInsightsControls()
 
-  // If we landed on /insights-v2 cold (no activePid), seed pid=1 the
-  // same way PortalView does so the demo always has Caspian loaded.
   useEffect(() => {
     let mounted = true
     participantLoader
@@ -53,39 +181,37 @@ export function InsightsV2View() {
   const titleAccessory = (
     <MemberAvatar persona={persona} displayName={displayName} size="lg" />
   )
-  const actions = <DataModeToggle />
+  const actions = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <DataModeToggle />
+      <InsightsControls state={controls} onChange={setControls} />
+    </div>
+  )
 
-  const grouped = useMemo(() => {
+  const ordering = useMemo(() => {
+    if (!participant) return { sections: [], total: 0 }
+    return buildOrdering(participant, controls)
+  }, [participant, controls])
+
+  // Pre-group edges per outcome so InsightOutcomeCard doesn't redo
+  // the filtering/grouping work — we already did it in buildOrdering.
+  const edgesByOutcome = useMemo(() => {
     if (!participant) return new Map<string, InsightBayesian[]>()
-    // Filter to non-weak-default exposed edges so we're showing real
-    // structural fits, not Layer 0 placeholders. Group by outcome.
     const map = new Map<string, InsightBayesian[]>()
     for (const edge of participant.effects_bayesian) {
       if (edge.prior_provenance === 'weak_default') continue
       if (edge.gate.tier === 'not_exposed') continue
+      if (controls.personalOnly && edge.evidence_tier === 'cohort_level') continue
+      if (controls.hideTrivial) {
+        const d = cohensD(edge, participant)
+        if (Math.abs(d) < 0.2) continue
+      }
       const list = map.get(edge.outcome) ?? []
       list.push(edge)
       map.set(edge.outcome, list)
     }
     return map
-  }, [participant])
-
-  // Order outcomes by OBJECTIVE_ORON priority, then any extras at the end.
-  const orderedOutcomes = useMemo(() => {
-    const objectiveKeys = OBJECTIVE_ORON.map((o) => o.outcome)
-    const seen = new Set<string>()
-    const out: string[] = []
-    for (const k of objectiveKeys) {
-      if (grouped.has(k) && !seen.has(k)) {
-        out.push(k)
-        seen.add(k)
-      }
-    }
-    for (const k of grouped.keys()) {
-      if (!seen.has(k)) out.push(k)
-    }
-    return out
-  }, [grouped])
+  }, [participant, controls])
 
   if (activePid == null) {
     return (
@@ -147,26 +273,50 @@ export function InsightsV2View() {
       title={`${displayName} — insights v2`}
       titleAccessory={titleAccessory}
       actions={actions}
-      subtitle="Each outcome card lists the actions that move it, ranked by standardized effect."
+      subtitle="Each outcome card lists the actions that move it, ranked by standardized effect at your current operating point."
     >
+      {/* All-else-equal disclosure */}
+      <div className="mb-4 px-3 py-2 rounded-md border border-indigo-200 bg-indigo-50/50 text-[11px] text-indigo-900 leading-snug">
+        <span className="font-semibold">All else equal.</span> Each card
+        shows the marginal effect of one action on one outcome, holding
+        every other variable at your average. The full nonlinear,
+        regime-aware joint model lives in <span className="font-semibold">Twin</span>;
+        Insights is the simplified per-edge view.
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="space-y-4"
+        className="space-y-6"
       >
-        {orderedOutcomes.length === 0 ? (
+        {ordering.total === 0 ? (
           <Card padding="md" className="text-center text-sm text-slate-500 py-8">
-            No exposed edges for this participant yet.
+            No insights match your current filters. Loosen "non-trivial"
+            or "personal" if everything is hidden.
           </Card>
         ) : (
-          orderedOutcomes.map((outcome) => (
-            <InsightOutcomeCard
-              key={outcome}
-              outcome={outcome}
-              edges={grouped.get(outcome) ?? []}
-              participant={participant}
-            />
+          ordering.sections.map((section, i) => (
+            <section key={section.band ?? `flat-${i}`} className="space-y-3">
+              {section.band && (
+                <div className="flex items-baseline gap-3 px-1">
+                  <h2 className="text-[11px] uppercase tracking-wider font-bold text-slate-700">
+                    {HORIZON_BAND_LABEL[section.band].split(' — ')[0]}
+                  </h2>
+                  <span className="text-[10px] text-slate-500">
+                    {HORIZON_BAND_LABEL[section.band].split(' — ')[1]}
+                  </span>
+                </div>
+              )}
+              {section.outcomes.map((outcome) => (
+                <InsightOutcomeCard
+                  key={outcome}
+                  outcome={outcome}
+                  edges={edgesByOutcome.get(outcome) ?? []}
+                  participant={participant}
+                />
+              ))}
+            </section>
           ))
         )}
       </motion.div>
