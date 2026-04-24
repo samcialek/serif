@@ -13,6 +13,7 @@ import { cn } from '@/utils/classNames'
 import type { LoadKey } from '@/data/portal/types'
 import { loadSeverity } from '@/utils/dailyProtocol'
 import type { LoadSeverity } from '@/utils/dailyProtocol'
+import { LOAD_ICONS } from '@/utils/loadIcons'
 
 interface Props {
   series: number[]
@@ -109,15 +110,18 @@ export function CausalSparkline({
   const stroke = STROKE[severity]
   const fill = FILL[severity]
   const todayPoint = geom.points[geom.points.length - 1]
+  const iconSpec = LOAD_ICONS[loadKey]
+  const Icon = iconSpec.icon
+  const tooltip = `${label ?? iconSpec.label}: ${formatValue(loadKey, todayValue)} (14d trend)`
 
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1.5 text-[10px] tabular-nums text-slate-600',
       )}
-      title={`${label ?? loadKey}: ${formatValue(loadKey, todayValue)} (14d trend)`}
+      title={tooltip}
     >
-      {label && <span className="font-medium">{label}</span>}
+      <Icon className="w-3 h-3 flex-shrink-0 text-slate-600" aria-hidden />
       <svg
         width={width}
         height={height}

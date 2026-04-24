@@ -26,6 +26,7 @@ import type {
   ConfounderDriver,
   LoadSeverity,
 } from '@/utils/dailyProtocol'
+import { LOAD_ICONS } from '@/utils/loadIcons'
 
 export type ChipVariant = 'minimal' | 'detailed'
 
@@ -78,27 +79,46 @@ function pickPrimaryConfounder(list: ConfounderDriver[]): ConfounderDriver | nul
 // ── Minimal variant ─────────────────────────────────────────────────
 
 function MinimalChip({ context }: { context: ProtocolItemContext }) {
-  const parts: string[] = []
-  for (const r of context.active_regimes.slice(0, 1)) {
-    parts.push(`${r.label.toLowerCase()} ${Math.round(r.activation * 100)}%`)
-  }
-  for (const d of context.driving_loads.slice(0, 2 - parts.length)) {
-    parts.push(`${d.label.toLowerCase()} ${loadValueStr(d)}`)
-  }
-  if (parts.length < 2) {
-    const conf = pickPrimaryConfounder(context.confounders_adjusted)
-    if (conf && parts.length < 2) {
-      parts.push(`${conf.label.toLowerCase()}${conf.value ? `: ${conf.value}` : ''}`)
-    }
-  }
-  if (parts.length === 0) return null
+  const regime = context.active_regimes[0] ?? null
+  const loads = context.driving_loads.slice(0, regime ? 1 : 2)
+  const conf =
+    regime == null && loads.length < 2
+      ? pickPrimaryConfounder(context.confounders_adjusted)
+      : null
+  if (!regime && loads.length === 0 && !conf) return null
+
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 tabular-nums">
-      <span
-        className="w-1 h-1 rounded-full bg-slate-400"
-        aria-hidden
-      />
-      {parts.join(' · ')}
+    <span className="inline-flex items-center gap-2 text-[10px] text-slate-500 tabular-nums">
+      {regime && (
+        <span className="inline-flex items-center gap-1">
+          <AlertTriangle
+            className="w-2.5 h-2.5 text-amber-600"
+            aria-hidden
+          />
+          <span>
+            {regime.label.toLowerCase()} {Math.round(regime.activation * 100)}%
+          </span>
+        </span>
+      )}
+      {loads.map((d) => {
+        const Icon = LOAD_ICONS[d.key].icon
+        return (
+          <span
+            key={d.key}
+            className="inline-flex items-center gap-1"
+            title={LOAD_ICONS[d.key].tooltip}
+          >
+            <Icon className="w-2.5 h-2.5 text-slate-500" aria-hidden />
+            <span>{loadValueStr(d)}</span>
+          </span>
+        )
+      })}
+      {conf && (
+        <span className="inline-flex items-center gap-1">
+          <span className="font-medium">{conf.label.toLowerCase()}</span>
+          {conf.value && <span>{conf.value}</span>}
+        </span>
+      )}
     </span>
   )
 }
@@ -107,16 +127,17 @@ function MinimalChip({ context }: { context: ProtocolItemContext }) {
 
 function LoadChipDetailed({ d }: { d: LoadDriver }) {
   const styles = SEVERITY_STYLES[d.severity]
+  const Icon = LOAD_ICONS[d.key].icon
+  const tooltip = `${d.label} — ${LOAD_ICONS[d.key].tooltip}\n${d.hint}`
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] tabular-nums',
         styles.chip,
       )}
-      title={d.hint}
+      title={tooltip}
     >
-      <span className={cn('w-1.5 h-1.5 rounded-full', styles.dot)} aria-hidden />
-      <span className="font-medium">{d.label}</span>
+      <Icon className="w-3 h-3" aria-hidden />
       <span>{loadValueStr(d)}</span>
     </span>
   )

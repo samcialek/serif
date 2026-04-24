@@ -6,19 +6,42 @@
  */
 
 import type { LoadKey, LoadValue } from '@/data/portal/types'
+import { LOAD_ICONS } from '@/utils/loadIcons'
 
 type StatusBand = 'good' | 'neutral' | 'watch' | 'elevated'
 
-const BAND_STYLES: Record<StatusBand, { chip: string; label: string }> = {
-  good: { chip: 'bg-emerald-50 border-emerald-200 text-emerald-900', label: 'text-emerald-700' },
-  neutral: { chip: 'bg-slate-50 border-slate-200 text-slate-900', label: 'text-slate-600' },
-  watch: { chip: 'bg-amber-50 border-amber-200 text-amber-900', label: 'text-amber-700' },
-  elevated: { chip: 'bg-rose-50 border-rose-200 text-rose-900', label: 'text-rose-700' },
+const BAND_STYLES: Record<
+  StatusBand,
+  { chip: string; label: string; iconBg: string; iconColor: string }
+> = {
+  good: {
+    chip: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    label: 'text-emerald-700',
+    iconBg: 'bg-emerald-100',
+    iconColor: 'text-emerald-700',
+  },
+  neutral: {
+    chip: 'bg-slate-50 border-slate-200 text-slate-900',
+    label: 'text-slate-600',
+    iconBg: 'bg-slate-100',
+    iconColor: 'text-slate-600',
+  },
+  watch: {
+    chip: 'bg-amber-50 border-amber-200 text-amber-900',
+    label: 'text-amber-700',
+    iconBg: 'bg-amber-100',
+    iconColor: 'text-amber-700',
+  },
+  elevated: {
+    chip: 'bg-rose-50 border-rose-200 text-rose-900',
+    label: 'text-rose-700',
+    iconBg: 'bg-rose-100',
+    iconColor: 'text-rose-700',
+  },
 }
 
 interface LoadSpec {
   key: LoadKey
-  label: string
   format: (v: number) => string
   band: (v: number) => StatusBand
   hint: (v: LoadValue) => string | null
@@ -27,7 +50,6 @@ interface LoadSpec {
 const LOAD_SPECS: LoadSpec[] = [
   {
     key: 'acwr',
-    label: 'ACWR',
     format: (v) => v.toFixed(2),
     band: (v) => (v < 0.8 ? 'watch' : v > 1.3 ? 'elevated' : 'good'),
     hint: (lv) => {
@@ -39,7 +61,6 @@ const LOAD_SPECS: LoadSpec[] = [
   },
   {
     key: 'sleep_debt_14d',
-    label: 'Sleep debt (14d)',
     format: (v) => `${v.toFixed(1)}h`,
     band: (v) => (v < 3 ? 'good' : v < 7 ? 'watch' : 'elevated'),
     hint: (lv) => {
@@ -50,7 +71,6 @@ const LOAD_SPECS: LoadSpec[] = [
   },
   {
     key: 'sri_7d',
-    label: 'Sleep regularity',
     format: (v) => Math.round(v).toString(),
     band: (v) => (v >= 85 ? 'good' : v >= 70 ? 'neutral' : 'watch'),
     hint: (lv) => {
@@ -61,7 +81,6 @@ const LOAD_SPECS: LoadSpec[] = [
   },
   {
     key: 'tsb',
-    label: 'Training balance',
     format: (v) => (v >= 0 ? `+${v.toFixed(0)}` : v.toFixed(0)),
     band: (v) => (v > -10 && v < 15 ? 'good' : v < -25 ? 'elevated' : 'neutral'),
     hint: (lv) => {
@@ -73,7 +92,6 @@ const LOAD_SPECS: LoadSpec[] = [
   },
   {
     key: 'training_consistency',
-    label: 'Consistency',
     format: (v) => `${Math.round(v * 100)}%`,
     band: (v) => (v >= 0.7 ? 'good' : v >= 0.4 ? 'neutral' : 'watch'),
     hint: (lv) => {
@@ -118,26 +136,40 @@ export function LoadGrid({
         const styles = BAND_STYLES[band]
         const dev = formatDeviation(lv, spec.key)
         const hint = spec.hint(lv)
+        const iconSpec = LOAD_ICONS[spec.key]
+        const Icon = iconSpec.icon
+        const tooltip = hint
+          ? `${iconSpec.label} — ${iconSpec.tooltip}\n${hint}`
+          : `${iconSpec.label} — ${iconSpec.tooltip}`
         return (
           <div
             key={spec.key}
-            className={`rounded-lg border px-2.5 py-2 ${styles.chip}`}
-            title={hint ?? undefined}
+            className={`rounded-lg border px-2.5 py-2 flex items-start gap-2.5 ${styles.chip}`}
+            title={tooltip}
           >
-            <div className={`text-[10px] uppercase tracking-wide font-semibold ${styles.label}`}>
-              {spec.label}
+            <div
+              className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${styles.iconBg}`}
+              aria-hidden
+            >
+              <Icon className={`w-4 h-4 ${styles.iconColor}`} />
             </div>
-            <div className="mt-0.5 flex items-baseline gap-1.5">
-              <div className="text-base font-semibold tabular-nums">
-                {spec.format(lv.value)}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-1.5">
+                <div className="text-base font-semibold tabular-nums leading-none">
+                  {spec.format(lv.value)}
+                </div>
+                {dev && (
+                  <div className={`text-[10px] ${styles.label} tabular-nums`}>
+                    {dev}
+                  </div>
+                )}
               </div>
-              {dev && (
-                <div className={`text-[10px] ${styles.label} tabular-nums`}>{dev}</div>
-              )}
+              <div
+                className={`text-[10px] uppercase tracking-wide font-semibold mt-1 ${styles.label}`}
+              >
+                {iconSpec.label}
+              </div>
             </div>
-            {hint && (
-              <div className={`mt-0.5 text-[10px] leading-tight ${styles.label}`}>{hint}</div>
-            )}
           </div>
         )
       })}

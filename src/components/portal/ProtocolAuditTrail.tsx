@@ -34,6 +34,7 @@ import type {
   RegimeDriver,
   LoadSeverity,
 } from '@/utils/dailyProtocol'
+import { LOAD_ICONS } from '@/utils/loadIcons'
 
 export type AuditPlacement = 'inline' | 'modal'
 
@@ -93,9 +94,11 @@ function BaselineBlock({
 }
 
 function LoadRow({ d }: { d: LoadDriver }) {
+  const Icon = LOAD_ICONS[d.key].icon
   return (
     <li className="flex items-baseline gap-2">
-      <span className={cn('w-1.5 h-1.5 rounded-full mt-1', SEVERITY_DOT[d.severity])} />
+      <span className={cn('w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0', SEVERITY_DOT[d.severity])} />
+      <Icon className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" aria-hidden />
       <span className="font-medium text-slate-700 text-[12px]">
         {d.label} <span className="tabular-nums">{loadValueStr(d)}</span>
       </span>
