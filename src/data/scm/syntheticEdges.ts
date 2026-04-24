@@ -328,6 +328,49 @@ export const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   { action: 'sleep_duration',  outcome: 'deep_sleep',       mean:  0.50, pathway: 'wearable', horizonDays: 3, rationale: 'More total sleep = more absolute SWS minutes' },
   { action: 'sleep_duration',  outcome: 'rem_sleep',        mean:  0.55, pathway: 'wearable', horizonDays: 3, rationale: 'REM cycles lengthen across the night — the last 90-min cycle is 50%+ REM, so cutting sleep short loses REM disproportionately (Carskadon 2005).' },
   { action: 'sleep_duration',  outcome: 'hrv_daily',        mean:  0.40, pathway: 'wearable', horizonDays: 4, rationale: 'Rested state → vagal recovery (Stein 2005)' },
+
+  // ─── Phase 3: DAG extensions — orphan outcomes + hormone/metabolic gaps ───
+  // Each edge below fills a structural gap flagged in DAG_EXTENSION_CANDIDATES.md.
+  // Literature-backed; synthetic magnitudes are centered on the published
+  // effect size with cohort-inflated variance so the posterior contracts
+  // when the participant accumulates their own evidence.
+
+  // ── Glycemic long-game: HbA1c is a 90-day glucose integrator. Caloric
+  //    surplus pushes fasting glucose up (already modeled); that then
+  //    rolls into HbA1c. Steps deliver the opposite via NEAT-driven
+  //    insulin sensitivity (Umpierre 2011 meta, n=4191). No prior edge
+  //    into HbA1c existed — it was Tier A orphaned.
+  { action: 'dietary_energy',  outcome: 'hba1c',            mean:  0.45, pathway: 'biomarker', horizonDays: 90, rationale: 'Sustained caloric surplus raises fasting glucose → rolls into HbA1c over the 90-day RBC lifetime (Rohlfing 2002).' },
+  { action: 'steps',           outcome: 'hba1c',            mean: -0.35, pathway: 'biomarker', horizonDays: 90, rationale: 'NEAT-driven skeletal muscle insulin sensitivity; Umpierre 2011 meta-analysis (n=4191) shows structured activity lowers HbA1c ~0.67% over 12 weeks.' },
+
+  // ── B12 from animal protein. Vegan cohorts sit 20–40% lower. Edge
+  //    is weak per-gram but meaningful across dietary pattern shifts.
+  { action: 'dietary_protein', outcome: 'b12',              mean:  0.30, pathway: 'biomarker', horizonDays: 60, rationale: 'Animal-protein diets co-deliver B12. Vegan-vs-omnivore observational gap is ~30% in serum B12 (Pawlak 2013).' },
+
+  // ── Training load → creatinine (muscle turnover). High TRIMP increases
+  //    creatine cycling; serum creatinine rises modestly with chronic high
+  //    load. Not a kidney-function signal, a muscle-mass/turnover one.
+  { action: 'training_load',   outcome: 'creatinine',       mean:  0.25, pathway: 'biomarker', horizonDays: 45, rationale: 'Skeletal-muscle creatine turnover proxies serum creatinine in endurance athletes (Banfi 2009). Not a kidney-damage signal.' },
+
+  // ── Training load → ferritin (hepcidin-mediated sequestration). High
+  //    TRIMP chronically elevates IL-6 → hepcidin, which sequesters iron
+  //    in macrophages — ferritin rises (inflammatory) while serum iron
+  //    can drop. Opposite direction to the dietary-iron pathway.
+  { action: 'training_load',   outcome: 'ferritin',         mean: -0.30, pathway: 'biomarker', horizonDays: 45, rationale: 'Exercise-induced hepcidin (Peeling 2014, Newlin 2012): chronic high training load mobilizes iron sequestration. Functional-iron-deficient picture even with preserved ferritin stores.' },
+
+  // ── Sleep × hormone axis. Leproult 2011 RCT showed 1 week of sleep
+  //    restriction (5h) dropped morning testosterone 10–15% in young
+  //    healthy men. Van Cauter 1997 / Spiegel 1999 Lancet showed sleep
+  //    debt raised evening cortisol. Both effects direction-match
+  //    Serif's LITERATURE_BACKED set (backend already flags these).
+  { action: 'sleep_duration',  outcome: 'testosterone',     mean:  0.40, pathway: 'biomarker', horizonDays: 30, rationale: 'Leproult 2011 JAMA: 1-week sleep restriction (5h vs 10h) dropped morning total testosterone 10–15% in young healthy men — direction-matched and effect-scaled to our 30-day horizon.' },
+  { action: 'sleep_duration',  outcome: 'cortisol',         mean: -0.35, pathway: 'biomarker', horizonDays: 30, rationale: 'Van Cauter 1997 / Spiegel 1999 Lancet: sleep restriction elevates afternoon/evening cortisol and blunts the diurnal fall; chronic debt shifts the set-point upward.' },
+
+  // ── Energy availability × testosterone (RED-S / HPG axis). Loucks
+  //    demonstrated GnRH pulsatility suppresses below ~30 kcal/kg LBM/day
+  //    of energy availability — endurance athletes running chronic
+  //    deficits see testosterone fall faster than the protein pathway.
+  { action: 'dietary_energy',  outcome: 'testosterone',     mean:  0.30, pathway: 'biomarker', horizonDays: 30, rationale: 'Loucks 2004 low-energy-availability → HPG suppression; endurance athletes in chronic deficit run low-T (RED-S / Mountjoy 2018 consensus). Modest positive slope in the surplus direction.' },
 ]
 
 function horizonDisplay(days: number): string {
