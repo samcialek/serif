@@ -14,6 +14,7 @@ import {
   CurveStyleDemoView,
   DataValueView,
   PortalView,
+  InsightsV2View,
   TwinView,
   TwinV2View,
   ProtocolsV2View,
@@ -33,6 +34,7 @@ function App() {
           <Route path="/data" element={<DataView />} />
           <Route path="/integration" element={<DataValueView />} />
           <Route path="/insights" element={<PortalView />} />
+          <Route path="/insights-v2" element={<InsightsV2View />} />
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
 

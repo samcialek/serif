@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
       { to: '/data', icon: Database, label: 'Data', exact: true },
       { to: '/integration', icon: Link2, label: 'Devices' },
       { to: '/insights', icon: Lightbulb, label: 'Insights' },
+      { to: '/insights-v2', icon: Lightbulb, label: 'Insights v2' },
       { to: '/exploration', icon: Compass, label: 'Exploration' },
       { to: '/baseline', icon: TrendingUp, label: 'Baseline' },
       { to: '/twin', icon: Network, label: 'Twin' },

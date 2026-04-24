@@ -16,6 +16,7 @@ export { StyleDemoView } from './StyleDemoView'
 export { default as CurveStyleDemoView } from './CurveStyleDemoView'
 export { DataValueView } from './DataValueView'
 export { PortalView } from './PortalView'
+export { InsightsV2View } from './InsightsV2View'
 // Twin — the painterly version is the canonical Twin.
 export { PainterlyTwinView as TwinView } from './twinForks/leverConcepts/PainterlyTwinView'
 // Twin v2 fork (richer modeling + actionability + UX polish).
