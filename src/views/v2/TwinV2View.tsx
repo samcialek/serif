@@ -43,6 +43,8 @@ import { useBartTwin } from '@/hooks/useBartTwin'
 import { mergeBandsFromMC } from '@/views/twinForks/_graph'
 import type { MCFullCounterfactualState } from '@/data/scm/bartMonteCarlo'
 import { PersonaPortrait } from '@/components/common'
+import { StorylinePanel } from '@/components/portal'
+import { buildTodaysStory } from '@/utils/storyline'
 import { buildObservedValues } from '@/views/twinForks/_shared'
 import { outcomeStatesAt } from '@/views/twinForks/_graph'
 import {
@@ -4162,15 +4164,27 @@ export function TwinV2View() {
           icon="loading"
         />
       ) : (
-        <PainterlyCanvas
-          state={state}
-          setState={setState}
-          regime={regime}
-          participant={participant}
-          participantLabel={displayName}
-          equations={equations}
-          runFullCounterfactual={runFullCounterfactual}
-        />
+        <>
+          {/* Today's story — three sentences framing what's active
+               today and why the twin's default schedule looks like it
+               does. Cream variant to blend with the painterly canvas. */}
+          <div className="mb-4">
+            <StorylinePanel
+              story={buildTodaysStory(participant)}
+              mode="today"
+              variant="cream"
+            />
+          </div>
+          <PainterlyCanvas
+            state={state}
+            setState={setState}
+            regime={regime}
+            participant={participant}
+            participantLabel={displayName}
+            equations={equations}
+            runFullCounterfactual={runFullCounterfactual}
+          />
+        </>
       )}
     </PageLayout>
   )

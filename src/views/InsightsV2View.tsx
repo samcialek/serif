@@ -19,6 +19,8 @@ import { AlertCircle, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
 import { InsightOutcomeCard } from '@/components/portal/InsightOutcomeCard'
+import { StorylinePanel } from '@/components/portal'
+import { buildEternalStory } from '@/utils/storyline'
 import {
   InsightsControls,
   useInsightsControls,
@@ -292,6 +294,12 @@ export function InsightsV2View() {
       actions={actions}
       subtitle="Each outcome card lists the actions that move it, ranked by standardized effect at your current operating point."
     >
+      {/* Long-term story — three sentences on the biggest leverage
+           points across outcomes plus environmental context. */}
+      <div className="mb-4">
+        <StorylinePanel story={buildEternalStory(participant)} mode="eternal" />
+      </div>
+
       {/* All-else-equal disclosure */}
       <div className="mb-4 px-3 py-2 rounded-md border border-indigo-200 bg-indigo-50/50 text-[11px] text-indigo-900 leading-snug">
         <span className="font-semibold">All else equal.</span> Each card

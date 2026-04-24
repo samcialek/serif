@@ -28,10 +28,12 @@ import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import {
   ProtocolContextVariantToggle,
+  StorylinePanel,
   TodayContext,
   TunedProtocolsSection,
   useContextVariants,
 } from '@/components/portal'
+import { buildTodaysStory } from '@/utils/storyline'
 import { useTwinSnapshotStore } from '@/stores/twinSnapshotStore'
 import { useDataMode } from '@/hooks/useDataMode'
 import { ProtocolVerticalLanes } from '@/components/portal/ProtocolVerticalLanes'
@@ -334,6 +336,10 @@ export function ProtocolsLanesView({ modeToggle }: ProtocolsLanesViewProps = {})
               </div>
             </div>
           </div>
+
+          {/* Today's story — three-sentence summary of what's active
+               and why the protocol looks the way it does. */}
+          <StorylinePanel story={buildTodaysStory(participant)} mode="today" />
 
           {/* Today's context */}
           <TodayContext

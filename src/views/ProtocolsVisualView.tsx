@@ -36,10 +36,12 @@ import { useDataMode } from '@/hooks/useDataMode'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import {
   ProtocolContextVariantToggle,
+  StorylinePanel,
   TodayContext,
   TunedProtocolsSection,
   useContextVariants,
 } from '@/components/portal'
+import { buildTodaysStory } from '@/utils/storyline'
 import { useTwinSnapshotStore } from '@/stores/twinSnapshotStore'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
@@ -315,6 +317,10 @@ export function ProtocolsVisualView({ modeToggle }: ProtocolsVisualViewProps = {
               </div>
             </div>
           </div>
+
+          {/* Today's story — three-sentence summary of what's active
+               and why the protocol looks the way it does. */}
+          <StorylinePanel story={buildTodaysStory(participant)} mode="today" />
 
           <TodayContext
             participant={participant}
