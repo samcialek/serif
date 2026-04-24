@@ -2,11 +2,17 @@
  * ProtocolsLanesView — swim-lanes variant at /protocols-lanes.
  *
  * Groups today's protocol items into three parallel VERTICAL lanes by
- * tag category, so users can see parallel daily themes at a glance:
+ * FUNCTION (not theme), so the lanes stay balanced across different
+ * regime states:
  *
- *   Sleep / circadian    — bedtime-side items + wake anchor
- *   Training             — workout + overreaching-tinted items
- *   Nutrition / recovery — iron-support, anti-inflammatory
+ *   Anchors       — non-negotiable times: Wake, Training, Lights out.
+ *   Focus areas   — things to actively choose or avoid today:
+ *                   Caffeine cutoff, Iron-support, Anti-inflammatory.
+ *   Recovery prep — wind-down protocols protecting tonight's sleep:
+ *                   Wind-down window, Screens off.
+ *
+ * A typical day lands ~3/2/2 instead of the 5/1/1 skew the tag-based
+ * Sleep/Training/Nutrition version produced.
  *
  * All lanes share the same y-axis hour range so items at the same time
  * align horizontally across columns. A single "now" line cuts across
@@ -45,7 +51,6 @@ import {
 import type {
   MatchedProtocolItem,
   ProtocolItem,
-  ProtocolTag,
 } from '@/utils/dailyProtocol'
 
 const DAY_OF_WEEK = [
@@ -58,43 +63,49 @@ const DAY_OF_WEEK = [
   'Saturday',
 ]
 
-type LaneKey = 'sleep' | 'training' | 'nutrition'
+type LaneKey = 'anchors' | 'focus' | 'recovery'
 
 interface LaneSpec {
   key: LaneKey
   label: string
   hint: string
-  tags: ProtocolTag[]
 }
 
 const LANES: LaneSpec[] = [
   {
-    key: 'sleep',
-    label: 'Sleep & circadian',
-    hint: 'Wake, caffeine cutoff, wind-down, screens-off, lights-out',
-    tags: ['sleep', 'circadian'],
+    key: 'anchors',
+    label: 'Anchors',
+    hint: 'Non-negotiable times — wake, training, lights-out',
   },
   {
-    key: 'training',
-    label: 'Training',
-    hint: 'The day’s session and overreaching-tinted items',
-    tags: ['training', 'recovery', 'overreaching'],
+    key: 'focus',
+    label: 'Focus areas',
+    hint: 'Things to actively choose or avoid today',
   },
   {
-    key: 'nutrition',
-    label: 'Nutrition & recovery',
-    hint: 'Iron-support window, anti-inflammatory emphasis',
-    tags: ['iron', 'anti-inflammation'],
+    key: 'recovery',
+    label: 'Recovery prep',
+    hint: 'Wind-down protocols protecting tonight’s sleep',
   },
 ]
 
-/** Return each item's lane assignment. An item goes into the first lane
- * whose tag set intersects its own; items with no match are skipped
- * (shouldn't happen for our canonical items, but don't crash on extras).
- */
+/** Title-based lane assignment. The protocol items emitted by
+ * buildDailyProtocol have stable titles, so we map by title rather than
+ * piggybacking on the tag palette (which is also consumed by the
+ * row-level tag badges and would otherwise double-duty as layout). */
 function assignLane(item: ProtocolItem): LaneKey | null {
-  for (const lane of LANES) {
-    if (item.tags.some((t) => lane.tags.includes(t))) return lane.key
+  if (item.title.startsWith('Training')) return 'anchors'
+  switch (item.title) {
+    case 'Wake':
+    case 'Lights out':
+      return 'anchors'
+    case 'Caffeine cutoff':
+    case 'Iron-support window':
+    case 'Anti-inflammatory emphasis':
+      return 'focus'
+    case 'Wind-down window':
+    case 'Screens off':
+      return 'recovery'
   }
   return null
 }
@@ -175,9 +186,9 @@ export function ProtocolsLanesView() {
   // matched so selection handlers can set the global requested index.
   const { laneSpecs, minHour, maxHour } = useMemo(() => {
     const byKey: Record<LaneKey, Array<{ item: ProtocolItem; originalIndex: number }>> = {
-      sleep: [],
-      training: [],
-      nutrition: [],
+      anchors: [],
+      focus: [],
+      recovery: [],
     }
     matched.forEach((m, i) => {
       const lane = assignLane(m.real)
