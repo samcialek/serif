@@ -823,7 +823,7 @@ function CaspianDataView() {
     <PageLayout
       title="Caspian's Raw Data"
       titleAccessory={
-        <MemberAvatar persona={caspianPersona} displayName={caspianPersona.name} size="lg" />
+        <MemberAvatar persona={caspianPersona} displayName={caspianPersona.name} size="xl" />
       }
       actions={<DataModeToggle />}
     >
@@ -896,7 +896,7 @@ function SyntheticDataPlaceholder({ displayName }: { displayName: string }) {
     <PageLayout
       title={`${displayName}'s Data`}
       titleAccessory={
-        <MemberAvatar persona={persona} displayName={displayName} size="lg" />
+        <MemberAvatar persona={persona} displayName={displayName} size="xl" />
       }
       subtitle="Synthetic 100-day timeseries · wearable + lifestyle signals"
       actions={<DataModeToggle />}

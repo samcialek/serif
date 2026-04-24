@@ -3,7 +3,6 @@ import { AppShell } from '@/components/layout'
 import {
   CoachLandingView,
   ProtocolsView,
-  ProtocolsVisualView,
   CoachView,
   ApiView,
   AdminView,
@@ -16,8 +15,6 @@ import {
   PortalView,
   InsightsV2View,
   TwinView,
-  TwinV2View,
-  ProtocolsV2View,
   BaselineView,
   ExplorationView,
 } from '@/views'
@@ -56,18 +53,16 @@ function App() {
           <Route path="/twin-living" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-workspace" element={<Navigate to="/twin" replace />} />
 
-          {/* Twin v2 — richer-modeling fork. */}
-          <Route path="/twin-v2" element={<TwinV2View />} />
+          {/* Twin v2 was folded back into /twin — keep redirect for old links. */}
+          <Route path="/twin-v2" element={<Navigate to="/twin" replace />} />
 
-          {/* Protocols — lanes is the canonical version. */}
+          {/* Protocols — unified view with a swim-lanes / compact toggle. */}
           <Route path="/protocols" element={<ProtocolsView />} />
-          <Route path="/protocols-visual" element={<ProtocolsVisualView />} />
+          <Route path="/protocols-visual" element={<Navigate to="/protocols" replace />} />
           <Route path="/protocols-lanes" element={<Navigate to="/protocols" replace />} />
           <Route path="/protocols-bar" element={<Navigate to="/protocols" replace />} />
           <Route path="/protocols-split" element={<Navigate to="/protocols" replace />} />
-
-          {/* Protocols v2 — receives Twin-v2 snapshots. */}
-          <Route path="/protocols-v2" element={<ProtocolsV2View />} />
+          <Route path="/protocols-v2" element={<Navigate to="/protocols" replace />} />
 
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />

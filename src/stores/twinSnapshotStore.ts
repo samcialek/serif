@@ -3,7 +3,7 @@
  * from the v2 Twin canvas.
  *
  * Each snapshot is a frozen copy of the twin's lever configuration plus
- * the outcomes it predicted at save time. Used by ProtocolsV2View to
+ * the outcomes it predicted at save time. Used by ProtocolsView to
  * show the user's tuned protocols as cards alongside the canonical
  * algorithmic schedule.
  *

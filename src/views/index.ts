@@ -2,10 +2,8 @@
 
 export { LandingView } from './LandingView'
 export { CoachLandingView } from './CoachLandingView'
-// Protocols — the lanes layout is the canonical version.
-export { ProtocolsLanesView as ProtocolsView } from './ProtocolsLanesView'
-// Visual-magnitude fork lives alongside the canonical route for review.
-export { ProtocolsVisualView } from './ProtocolsVisualView'
+// Protocols — unified tab with a swim-lanes / compact mode toggle.
+export { ProtocolsView } from './ProtocolsView'
 export { CoachView } from './CoachView'
 export { ApiView } from './ApiView'
 export { AdminView } from './AdminView'
@@ -17,11 +15,7 @@ export { default as CurveStyleDemoView } from './CurveStyleDemoView'
 export { DataValueView } from './DataValueView'
 export { PortalView } from './PortalView'
 export { InsightsV2View } from './InsightsV2View'
-// Twin — the painterly version is the canonical Twin.
-export { PainterlyTwinView as TwinView } from './twinForks/leverConcepts/PainterlyTwinView'
-// Twin v2 fork (richer modeling + actionability + UX polish).
-export { TwinV2View } from './v2/TwinV2View'
-// Protocols v2 fork.
-export { ProtocolsV2View } from './v2/ProtocolsV2View'
+// Twin — the v2 fork (richer modeling + solver + UX polish) is canonical.
+export { TwinV2View as TwinView } from './v2/TwinV2View'
 export { BaselineView } from './BaselineView'
 export { ExplorationView } from './ExplorationView'

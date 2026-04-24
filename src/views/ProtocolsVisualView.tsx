@@ -37,8 +37,10 @@ import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import {
   ProtocolContextVariantToggle,
   TodayContext,
+  TunedProtocolsSection,
   useContextVariants,
 } from '@/components/portal'
+import { useTwinSnapshotStore } from '@/stores/twinSnapshotStore'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
@@ -116,12 +118,23 @@ function writeExpandedToStorage(titles: Set<string>): void {
   }
 }
 
-export function ProtocolsVisualView() {
+export interface ProtocolsVisualViewProps {
+  /** Optional control rendered to the left of the existing actions —
+   *  used by the unified Protocols wrapper to inject the lanes/visual
+   *  mode toggle so it lives in the same row as the data-mode pill. */
+  modeToggle?: React.ReactNode
+}
+
+export function ProtocolsVisualView({ modeToggle }: ProtocolsVisualViewProps = {}) {
   const activePid = usePortalStore((s) => s.activePid)
   const { participant, isLoading, error } = useParticipant()
   const { displayName, persona } = useActiveParticipant()
   const [variants, setVariants] = useContextVariants()
   const dataMode = useDataMode()
+  const tunedSnapshots = useTwinSnapshotStore((s) =>
+    activePid != null ? s.snapshots.filter((x) => x.participantPid === activePid) : [],
+  )
+  const removeSnapshot = useTwinSnapshotStore((s) => s.remove)
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() =>
     readExpandedFromStorage(),
   )
@@ -146,7 +159,7 @@ export function ProtocolsVisualView() {
   }
 
   const titleAccessory = (
-    <MemberAvatar persona={persona} displayName={displayName} size="lg" />
+    <MemberAvatar persona={persona} displayName={displayName} size="xl" />
   )
 
   const today = useMemo(() => new Date(), [])
@@ -262,6 +275,7 @@ export function ProtocolsVisualView() {
 
   const actions = (
     <div className="flex items-center gap-2">
+      {modeToggle}
       <DataModeToggle />
       <ProtocolContextVariantToggle variants={variants} onChange={setVariants} />
     </div>
@@ -306,6 +320,12 @@ export function ProtocolsVisualView() {
             participant={participant}
             activeRegimes={twin.activeRegimes}
             date={today}
+          />
+
+          {/* Tuned-from-Twin protocol cards */}
+          <TunedProtocolsSection
+            snapshots={tunedSnapshots}
+            onRemove={removeSnapshot}
           />
 
           {/* Timeline */}

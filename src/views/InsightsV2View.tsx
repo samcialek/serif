@@ -196,7 +196,7 @@ export function InsightsV2View() {
   }, [activePid, setActivePid])
 
   const titleAccessory = (
-    <MemberAvatar persona={persona} displayName={displayName} size="lg" />
+    <MemberAvatar persona={persona} displayName={displayName} size="xl" />
   )
   const actions = (
     <div className="flex items-center gap-2 flex-wrap">
