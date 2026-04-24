@@ -20,13 +20,12 @@ import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import {
   cohensD,
   effectBand,
-  isBeneficial,
   predictedNativeEffectAtStep,
   type EffectBand,
 } from '@/utils/insightStandardization'
 import { effectMean } from '@/utils/twinSem'
 import { useDataMode } from '@/hooks/useDataMode'
-import { SlopeBar } from './SlopeBar'
+import { MiniDoseResponse } from './MiniDoseResponse'
 
 const ACTION_LABEL: Record<string, string> = {
   bedtime: 'Bedtime',
@@ -106,7 +105,6 @@ export function InsightActionRow({
   }
   const d = cohensD(effectiveEdge, participant)
   const band = effectBand(d)
-  const beneficial = isBeneficial(effectiveEdge)
   const contraction = edge.posterior.contraction ?? 0
   const dStr = `${d >= 0 ? '+' : ''}${d.toFixed(2)}σ`
   const native = predictedNativeEffectAtStep(effectiveEdge)
@@ -114,6 +112,7 @@ export function InsightActionRow({
   const outcomeUnit = OUTCOME_NATIVE_UNIT[edge.outcome] ?? ''
   const stepLabel = actionUnit ? `+1 ${actionUnit}` : '+1 step'
   const nativeStr = `${native >= 0 ? '+' : ''}${formatNative(native)}${outcomeUnit ? ' ' + outcomeUnit : ''} per ${stepLabel}`
+  const horizon = horizonLabel(edge.horizon_days)
 
   const evidenceLabel = (() => {
     if (dataMode === 'cohort') return 'cohort'
@@ -140,19 +139,17 @@ export function InsightActionRow({
         {ACTION_LABEL[edge.action] ?? edge.action}
       </div>
 
-      <SlopeBar
-        d={d}
-        beneficial={beneficial}
-        contraction={contraction}
-        band={band}
-      />
+      <MiniDoseResponse edge={effectiveEdge} participant={participant} band={band} />
 
       <div className={cn('w-14 text-right text-xs tabular-nums', BAND_TONE[band])}>
         {dStr}
       </div>
 
-      <div className="w-36 text-right text-[11px] text-slate-500 tabular-nums truncate hidden md:block">
-        {nativeStr}
+      <div className="w-44 text-right text-[11px] text-slate-500 tabular-nums truncate hidden md:block">
+        <span>{nativeStr}</span>
+        {horizon && (
+          <span className="ml-1 text-slate-400">· after {horizon}</span>
+        )}
       </div>
 
       <ContractionPip contraction={contraction} />
@@ -211,6 +208,25 @@ function formatNative(v: number): string {
   if (abs >= 10) return v.toFixed(1)
   if (abs >= 1) return v.toFixed(2)
   return v.toFixed(3)
+}
+
+/** Compact human label for the edge's horizon. Conveys timescale so
+ * the user knows the predicted effect is "after sustained ~N days at
+ * this dose," not an instantaneous response.
+ *
+ *   ≤ 7 days   → "{n}d"        quotidian (HRV, sleep_quality)
+ *   ≤ 30      → "{n}d"        weekly trends
+ *   ≤ 90      → "{n}w"        monthly biomarker turnover
+ *   ≤ 270     → "{n}mo"       seasonal (lipids, hormones)
+ *   > 270     → "long-term"   chronic (VO2peak, body comp)
+ */
+function horizonLabel(days?: number): string | null {
+  if (!days || days <= 0) return null
+  if (days <= 7) return `${days}d`
+  if (days <= 30) return `${days}d`
+  if (days <= 90) return `${Math.round(days / 7)}w`
+  if (days <= 270) return `${Math.round(days / 30)}mo`
+  return 'long-term'
 }
 
 export default InsightActionRow
