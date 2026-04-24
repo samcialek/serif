@@ -20,6 +20,20 @@
 
 import type { InsightBayesian, ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import { beneficialDirection } from '@/utils/rounding'
+import type { DataMode } from '@/hooks/useDataMode'
+
+/** Which magnitude to use for an edge under the current data-mode.
+ *
+ *   'personal' (default) → edge.posterior.mean (Bayesian blend of the
+ *                          cohort prior + user observations).
+ *   'cohort'             → edge.posterior.prior_mean (pure cohort prior;
+ *                          ignore the user's personal observations).
+ *
+ * Exposed so any caller that reads a Bayesian edge magnitude can swap
+ * the field consistently without re-implementing the switch. */
+export function effectMean(edge: InsightBayesian, mode: DataMode): number {
+  return mode === 'cohort' ? edge.posterior.prior_mean : edge.posterior.mean
+}
 
 // Actions that can appear in a candidate schedule.
 export type ScheduleActionKey =
@@ -295,6 +309,7 @@ export function scoreSchedule(
   participant: ParticipantPortal,
   schedule: CandidateSchedule,
   objective: ObjectiveOutcome[] = OBJECTIVE_ORON,
+  mode: DataMode = 'personal',
 ): ScoredSchedule {
   const candidateValues = scheduleActionValues(schedule)
   const current = participant.current_values || {}
@@ -332,8 +347,9 @@ export function scoreSchedule(
       if (Math.abs(deltaAction) < 1e-9 || edge.nominal_step === 0) continue
 
       const conflictDiscount = edge.direction_conflict ? CONFLICT_DISCOUNT : 1.0
+      const edgeMean = effectMean(edge, mode)
       const outcomeChange =
-        (deltaAction / edge.nominal_step) * edge.posterior.mean * conflictDiscount
+        (deltaAction / edge.nominal_step) * edgeMean * conflictDiscount
 
       const userBenefit =
         dir === 'neutral' ? 0 : outcomeChange * dirSign
@@ -347,7 +363,7 @@ export function scoreSchedule(
         pathway: edge.pathway ?? 'wearable',
         delta_action: deltaAction,
         nominal_step: edge.nominal_step,
-        posterior_mean: edge.posterior.mean,
+        posterior_mean: edgeMean,
         direction_conflict: edge.direction_conflict,
         benefit_direction: dir,
         outcome_change: outcomeChange,
@@ -431,9 +447,10 @@ export interface CounterfactualResult {
 export function pickOptimalSchedule(
   participant: ParticipantPortal,
   objective: ObjectiveOutcome[] = OBJECTIVE_ORON,
+  mode: DataMode = 'personal',
 ): CounterfactualResult {
   const candidates = enumerateSchedules(participant)
-  const scored = candidates.map((c) => scoreSchedule(participant, c, objective))
+  const scored = candidates.map((c) => scoreSchedule(participant, c, objective, mode))
   scored.sort((a, b) => b.total - a.total)
   return {
     best: scored[0],
@@ -455,13 +472,14 @@ export function pickOptimalSchedule(
 export function pickNeutralBaseline(
   participant: ParticipantPortal,
   objective: ObjectiveOutcome[] = OBJECTIVE_ORON,
+  mode: DataMode = 'personal',
 ): CounterfactualResult {
   const neutral: ParticipantPortal = {
     ...participant,
     regime_activations: {},
     loads_today: undefined,
   }
-  return pickOptimalSchedule(neutral, objective)
+  return pickOptimalSchedule(neutral, objective, mode)
 }
 
 /** Reconstruct an approximate `loads_today` map from `loads_history[-2]`
@@ -493,6 +511,7 @@ function buildYesterdayLoads(
 export function pickYesterdayProtocol(
   participant: ParticipantPortal,
   objective: ObjectiveOutcome[] = OBJECTIVE_ORON,
+  mode: DataMode = 'personal',
 ): { result: CounterfactualResult; yesterdayParticipant: ParticipantPortal } | null {
   const regHist = participant.regimes_history
   if (!regHist) return null
@@ -518,7 +537,7 @@ export function pickYesterdayProtocol(
     loads_today: yesterdayLoads,
   }
   return {
-    result: pickOptimalSchedule(yesterdayParticipant, objective),
+    result: pickOptimalSchedule(yesterdayParticipant, objective, mode),
     yesterdayParticipant,
   }
 }

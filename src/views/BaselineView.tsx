@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
-import { MemberAvatar } from '@/components/common'
+import { DataModeToggle, MemberAvatar } from '@/components/common'
 import { Card } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -499,6 +499,7 @@ export function BaselineView() {
       maxWidth="full"
       padding="none"
       className="pt-6 pb-6 pr-6 pl-3"
+      actions={<DataModeToggle />}
     >
       <motion.div
         initial={{ opacity: 0, y: 6 }}

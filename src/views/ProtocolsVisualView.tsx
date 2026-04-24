@@ -31,7 +31,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
-import { Card, MemberAvatar } from '@/components/common'
+import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
+import { useDataMode } from '@/hooks/useDataMode'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import {
   ProtocolContextVariantToggle,
@@ -120,6 +121,7 @@ export function ProtocolsVisualView() {
   const { participant, isLoading, error } = useParticipant()
   const { displayName, persona } = useActiveParticipant()
   const [variants, setVariants] = useContextVariants()
+  const dataMode = useDataMode()
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(() =>
     readExpandedFromStorage(),
   )
@@ -151,10 +153,10 @@ export function ProtocolsVisualView() {
 
   const twin = useMemo(() => {
     if (!participant) return null
-    const result = pickOptimalSchedule(participant, OBJECTIVE_ORON)
-    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON)
+    const result = pickOptimalSchedule(participant, OBJECTIVE_ORON, dataMode)
+    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON, dataMode)
     const yesterday = variants.yesterdayDiff
-      ? pickYesterdayProtocol(participant, OBJECTIVE_ORON)
+      ? pickYesterdayProtocol(participant, OBJECTIVE_ORON, dataMode)
       : null
     const wakeTime = derivedWakeTime(participant)
     const regimes = participant.regime_activations ?? {}
@@ -163,7 +165,7 @@ export function ProtocolsVisualView() {
       .sort((a, b) => b[1] - a[1])
       .map(([key, activation]) => ({ key, activation }))
     return { result, neutralBaseline, yesterday, wakeTime, activeRegimes }
-  }, [participant, variants.yesterdayDiff])
+  }, [participant, variants.yesterdayDiff, dataMode])
 
   const { matched, yesterdayByTitle } = useMemo(() => {
     if (!participant || !twin) {
@@ -259,7 +261,10 @@ export function ProtocolsVisualView() {
   })
 
   const actions = (
-    <ProtocolContextVariantToggle variants={variants} onChange={setVariants} />
+    <div className="flex items-center gap-2">
+      <DataModeToggle />
+      <ProtocolContextVariantToggle variants={variants} onChange={setVariants} />
+    </div>
   )
 
   return (

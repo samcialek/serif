@@ -24,13 +24,14 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle, Calendar, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
-import { Card, MemberAvatar } from '@/components/common'
+import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import {
   ProtocolContextVariantToggle,
   TodayContext,
   useContextVariants,
 } from '@/components/portal'
+import { useDataMode } from '@/hooks/useDataMode'
 import { ProtocolVerticalLanes } from '@/components/portal/ProtocolVerticalLanes'
 import type { VerticalLaneSpec } from '@/components/portal/ProtocolVerticalLanes'
 import { ProtocolDetailCard } from '@/components/portal/ProtocolDetailCard'
@@ -116,6 +117,7 @@ export function ProtocolsLanesView() {
   const { displayName, persona } = useActiveParticipant()
   const [variants, setVariants] = useContextVariants()
   const [requestedIndex, setRequestedIndex] = useState<number>(0)
+  const dataMode = useDataMode()
 
   const titleAccessory = (
     <MemberAvatar persona={persona} displayName={displayName} size="lg" />
@@ -126,10 +128,10 @@ export function ProtocolsLanesView() {
 
   const twin = useMemo(() => {
     if (!participant) return null
-    const result = pickOptimalSchedule(participant, OBJECTIVE_ORON)
-    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON)
+    const result = pickOptimalSchedule(participant, OBJECTIVE_ORON, dataMode)
+    const neutralBaseline = pickNeutralBaseline(participant, OBJECTIVE_ORON, dataMode)
     const yesterday = variants.yesterdayDiff
-      ? pickYesterdayProtocol(participant, OBJECTIVE_ORON)
+      ? pickYesterdayProtocol(participant, OBJECTIVE_ORON, dataMode)
       : null
     const wakeTime = derivedWakeTime(participant)
     const regimes = participant.regime_activations ?? {}
@@ -138,7 +140,7 @@ export function ProtocolsLanesView() {
       .sort((a, b) => b[1] - a[1])
       .map(([key, activation]) => ({ key, activation }))
     return { result, neutralBaseline, yesterday, wakeTime, activeRegimes }
-  }, [participant, variants.yesterdayDiff])
+  }, [participant, variants.yesterdayDiff, dataMode])
 
   const { matched, yesterdayByTitle } = useMemo(() => {
     if (!participant || !twin) {
@@ -276,7 +278,10 @@ export function ProtocolsLanesView() {
   })
 
   const actions = (
-    <ProtocolContextVariantToggle variants={variants} onChange={setVariants} />
+    <div className="flex items-center gap-2">
+      <DataModeToggle />
+      <ProtocolContextVariantToggle variants={variants} onChange={setVariants} />
+    </div>
   )
 
   const selected = selectedIndex != null ? matched[selectedIndex] ?? null : null

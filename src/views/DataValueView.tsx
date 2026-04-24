@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { PageLayout } from '@/components/layout'
+import { DataModeToggle } from '@/components/common'
 import { Tabs, TabList, TabTrigger, TabContent } from '@/components/common/Tabs'
 import { DataValueSummary, MarginalValuePanel, CurrentSourcesPanel } from '@/components/dataValue'
 import { IntegrationsPanel } from '@/components/integration/IntegrationsPanel'
@@ -123,6 +124,7 @@ export function DataValueView() {
     <PageLayout
       title="Devices"
       subtitle="Connected sources and evaluated additions"
+      actions={<DataModeToggle />}
     >
       {/* Hero stats */}
       <DataValueSummary

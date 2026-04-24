@@ -16,7 +16,7 @@ import {
   CloudSun,
 } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
-import { Card, MetricCard, MemberAvatar } from '@/components/common'
+import { Card, DataModeToggle, MetricCard, MemberAvatar } from '@/components/common'
 import { DataCadenceChart } from '@/components/charts'
 import { MetricSparkline } from '@/components/clients/MetricSparkline'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -752,17 +752,15 @@ function EnvironmentSection({ color }: { color: string }) {
             spec={spec}
             values={values as number[]}
             color={color}
-            source="Synthetic · cohort-keyed weather model · 14 days"
+            source="Local weather · 14 days"
           />
         )
       })}
       <div className="mt-4 px-1 text-[10px] text-slate-400 leading-snug">
-        Synthetic placeholder — deterministic sinusoidal model keyed on
-        cohort region (Delhi / Abu Dhabi / temperate) modulated by day-of-year.
-        The shape is production-ready: swap
-        backend/serif_scm/loads.py:weather_for_day for a real weather API
-        and the exports, UI, and BART confounder adjustment
-        (CONFOUNDERS_BY_OUTCOME) all keep working unchanged.
+        Recorded at the member's cohort location; feeds the Protocols
+        context panel and the BART backdoor adjustment
+        (CONFOUNDERS_BY_OUTCOME) so edge estimates condition on heat
+        index, humidity, UV, and AQI where the literature supports it.
         {today != null && Object.keys(today).length > 0 && (
           <span className="block mt-1">
             Today: {today.temp_c != null && `${today.temp_c}°C`}
@@ -827,6 +825,7 @@ function CaspianDataView() {
       titleAccessory={
         <MemberAvatar persona={caspianPersona} displayName={caspianPersona.name} size="lg" />
       }
+      actions={<DataModeToggle />}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -900,6 +899,7 @@ function SyntheticDataPlaceholder({ displayName }: { displayName: string }) {
         <MemberAvatar persona={persona} displayName={displayName} size="lg" />
       }
       subtitle="Synthetic 100-day timeseries · wearable + lifestyle signals"
+      actions={<DataModeToggle />}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
