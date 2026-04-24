@@ -446,12 +446,119 @@ const SUPPLEMENTATION_EDGES: SyntheticEdgeSpec[] = [
   },
 ]
 
+// ─── Phase 1e · NEAT / daily walking (Zone 1) ───────────────────────
+//
+// Steps / NEAT (non-exercise activity thermogenesis) is the biggest
+// missing longevity lever in the v1 set — it has no fitted edges in
+// the cohort export despite being one of the strongest dose-response
+// mortality predictors in the literature (Lee 2019 JAMA Internal
+// Medicine, Paluch 2022 Lancet — risk falls through ~10k steps/d).
+//
+// Magnitudes calibrated for the lever's [0, 15000] step/d range.
+// Smaller than Zone-2 / Zone-4-5 effects because walking is lower
+// intensity — but real, and crucially the only effect available at
+// Z1 levels of exertion.
+
+const NEAT_EDGES: SyntheticEdgeSpec[] = [
+  {
+    action: 'steps',
+    outcome: 'triglycerides',
+    mean: -0.30,
+    pathway: 'biomarker',
+    horizonDays: 56,
+    rationale:
+      'Daily walking activates skeletal-muscle LPL (Bey 2003); even non-exercise step volume lowers fasting TG over weeks (Murphy 2007 RCT).',
+  },
+  {
+    action: 'steps',
+    outcome: 'glucose',
+    mean: -0.30,
+    pathway: 'biomarker',
+    horizonDays: 42,
+    rationale:
+      'Walking — especially post-meal — improves insulin sensitivity and lowers fasting glucose (Reynolds 2016 meta of 28 RCTs).',
+  },
+  {
+    action: 'steps',
+    outcome: 'insulin',
+    mean: -0.30,
+    pathway: 'biomarker',
+    horizonDays: 42,
+    rationale:
+      'NEAT-level activity reduces fasting insulin via GLUT4-mediated muscle glucose uptake; effect emerges within 4-6 weeks (Healy 2008).',
+  },
+  {
+    action: 'steps',
+    outcome: 'hdl',
+    mean: 0.20,
+    pathway: 'biomarker',
+    horizonDays: 90,
+    rationale:
+      'Sustained walking raises HDL via increased apoA-I synthesis; dose-response with daily volume (Kelley 2004 meta).',
+  },
+  {
+    action: 'steps',
+    outcome: 'apob',
+    mean: -0.20,
+    pathway: 'biomarker',
+    horizonDays: 90,
+    rationale:
+      'Daily activity lowers ApoB-bearing VLDL output via reduced hepatic lipogenesis; smaller than Z2 effect but additive (Kraus 2002).',
+  },
+  {
+    action: 'steps',
+    outcome: 'body_fat_pct',
+    mean: -0.35,
+    pathway: 'biomarker',
+    horizonDays: 90,
+    rationale:
+      'NEAT contributes 15-50% of daily energy expenditure; chronic step elevation drives slow body-fat reduction (Levine 2007).',
+  },
+  {
+    action: 'steps',
+    outcome: 'hscrp',
+    mean: -0.25,
+    pathway: 'biomarker',
+    horizonDays: 84,
+    rationale:
+      'Daily walking lowers chronic inflammation via reduced visceral adiposity + improved endothelial function (Beavers 2010 meta).',
+  },
+  {
+    action: 'steps',
+    outcome: 'vo2_peak',
+    mean: 0.20,
+    pathway: 'biomarker',
+    horizonDays: 84,
+    rationale:
+      'NEAT builds aerobic base in untrained individuals; smaller minute-for-minute than Z2 but cumulative volume matters (Tjønna 2008).',
+  },
+  {
+    action: 'steps',
+    outcome: 'cortisol',
+    mean: -0.20,
+    pathway: 'biomarker',
+    horizonDays: 28,
+    rationale:
+      'Light daily activity normalizes HPA-axis diurnal rhythm and lowers morning cortisol (Hamer 2012).',
+  },
+  {
+    action: 'steps',
+    outcome: 'hrv_daily',
+    mean: 0.15,
+    pathway: 'wearable',
+    horizonDays: 14,
+    rationale:
+      'NEAT improves parasympathetic tone via repeated low-intensity stimulation of vagal cardiac control (Soares-Miranda 2014).',
+  },
+]
+
 /** All v2 synthetic edges. */
 export const PHASE_2_EDGES: SyntheticEdgeSpec[] = [
   ...QUIET_OUTCOME_EDGES,
   ...SLEEP_QUALITY_EDGES,
   ...RESISTANCE_EDGES,
   ...SUPPLEMENTATION_EDGES,
+  ...NEAT_EDGES,
 ]
 
 /** Action ranges for v2-only canonical actions. Existing actions inherit

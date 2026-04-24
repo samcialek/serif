@@ -427,10 +427,16 @@ const STEPS_STEP = 500
 const SLEEP_HOURS_DEFAULT = 8
 const SLEEP_QUALITY_DEFAULT = 80
 
-const RESISTANCE_MIN_DEFAULT = 60 // weekly minutes — moderate baseline
+// Sessions/week is the user-facing unit; the engine still consumes
+// resistance_training_minutes. We use 30 min/session as the conversion
+// — a typical compact compound-lift session that fits 0..6 sessions/wk
+// into the 0-180 min span the literature edges are calibrated to.
+const RESISTANCE_MIN_PER_SESSION = 30
+const RESISTANCE_SETS_PER_SESSION = 8
+const RESISTANCE_MIN_DEFAULT = 60 // weekly minutes — 2 sessions baseline
 const RESISTANCE_MIN_MIN = 0
 const RESISTANCE_MIN_MAX = 180
-const RESISTANCE_MIN_STEP = 15
+const RESISTANCE_MIN_STEP = RESISTANCE_MIN_PER_SESSION
 
 function defaultState(): AllState {
   return {
@@ -850,6 +856,10 @@ interface CompactHRDialProps {
   values: [number, number, number]
   onChange: (next: [number, number, number]) => void
   size?: number
+  /** Quotidian = daily TRIMP (raw score from daily minutes); Longevity =
+   *  weekly TRIMP (×7). The HR zone values themselves are still
+   *  minutes/day — only the center-of-dial readout is regime-scaled. */
+  regime?: Regime
 }
 
 /** Height (px) added below the dial for the per-zone legend. The
@@ -857,14 +867,16 @@ interface CompactHRDialProps {
  *  flow from below the legend rather than crossing through it. */
 const HR_LEGEND_H = 36
 
-function CompactHRDial({ values, onChange, size = 180 }: CompactHRDialProps) {
+function CompactHRDial({ values, onChange, size = 180, regime = 'quotidian' }: CompactHRDialProps) {
   const cx = size / 2
   const cy = size / 2
   const radii = [size * 0.42, size * 0.32, size * 0.22]
   const arcW = Math.max(7, size * 0.045)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [dragging, setDragging] = useState<0 | 1 | 2 | null>(null)
-  const trimp = trimpFor(values)
+  const isWeekly = regime === 'longevity'
+  const trimp = Math.round(trimpFor(values) * (isWeekly ? 7 : 1))
+  const trimpLabel = isWeekly ? 'TRIMP / WK' : 'TRIMP / DAY'
 
   const updateBand = useCallback(
     (idx: 0 | 1 | 2, frac: number) => {
@@ -961,15 +973,15 @@ function CompactHRDial({ values, onChange, size = 180 }: CompactHRDialProps) {
           x={cx}
           y={cy + size * 0.115}
           textAnchor="middle"
-          fontSize={size * 0.06}
+          fontSize={size * 0.055}
           fill="#78716c"
           style={{
             fontFamily: 'Inter, sans-serif',
-            letterSpacing: '0.18em',
+            letterSpacing: '0.16em',
             textTransform: 'uppercase',
           }}
         >
-          TRIMP
+          {trimpLabel}
         </text>
       </svg>
       {/* Per-zone legend — name + minutes/day in the band's color */}
@@ -1582,9 +1594,11 @@ function SleepLongevityLever({
 
 // ─── Resistance training lever (v2 — longevity only) ─────────────
 //
-// Slim horizontal bar with set-count tick marks. 1 set ≈ 5 min, so the
-// 0-180 min/wk range covers ~0-36 sets/wk. Default 60 min ≈ 12 sets,
-// roughly 2-3 sessions/week.
+// Sessions/week as the primary unit (the volume metric the literature
+// actually keys on). The bar snaps to discrete sessions; under the hood
+// each session converts to RESISTANCE_MIN_PER_SESSION minutes for the
+// engine action. Sets per session are surfaced as fine print so the
+// user can see what we're assuming.
 
 const RES_W = 280
 const RES_BAR_H = 38
@@ -1625,8 +1639,8 @@ function ResistanceLever({
     [onChange],
   )
 
-  const sets = Math.round(minutes / 5)
-  const sessionsPerWeek = sets >= 24 ? 4 : sets >= 12 ? 3 : sets >= 6 ? 2 : sets > 0 ? 1 : 0
+  const sessions = Math.round(minutes / RESISTANCE_MIN_PER_SESSION)
+  const sets = sessions * RESISTANCE_SETS_PER_SESSION
 
   return (
     <div className="select-none" style={{ width: RES_W }}>
@@ -1635,10 +1649,12 @@ function ResistanceLever({
           className="text-[15px] text-stone-700"
           style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
         >
-          {minutes} min/wk
-          <span className="text-stone-400 ml-1.5 text-[12px]">
-            ≈ {sets} sets · {sessionsPerWeek}× / wk
-          </span>
+          {sessions === 0 ? 'No training' : `${sessions} session${sessions === 1 ? '' : 's'}/wk`}
+          {sessions > 0 && (
+            <span className="text-stone-400 ml-1.5 text-[12px]">
+              ≈ {RESISTANCE_MIN_PER_SESSION} min · {sets} sets total
+            </span>
+          )}
         </span>
       </div>
       <div
@@ -1687,8 +1703,12 @@ function ResistanceLever({
             borderRadius: 5,
           }}
         />
-        {/* Tick marks every 30 min (≈ one short session) */}
-        {[30, 60, 90, 120, 150].map((t) => {
+        {/* Tick marks at session boundaries — one tick per session.
+            Hides the first/last (covered by track edge / handle). */}
+        {Array.from(
+          { length: Math.floor(RESISTANCE_MIN_MAX / RESISTANCE_MIN_PER_SESSION) - 1 },
+          (_, i) => (i + 1) * RESISTANCE_MIN_PER_SESSION,
+        ).map((t) => {
           const px = (t / RESISTANCE_MIN_MAX) * RES_INNER_W
           return (
             <div
@@ -1730,7 +1750,9 @@ function ResistanceLever({
         }}
       >
         <span>0</span>
-        <span>{RESISTANCE_MIN_MAX} min/wk</span>
+        <span>
+          {Math.round(RESISTANCE_MIN_MAX / RESISTANCE_MIN_PER_SESSION)} sessions/wk
+        </span>
       </div>
     </div>
   )
@@ -1927,6 +1949,194 @@ interface SolverState {
   preSolveState: AllState
 }
 
+// ─── Hover card for outcome chits ────────────────────────────────
+//
+// Painterly tooltip rendered above the chit on hover. Replaces the
+// native browser title with a structured panel: header (label + tone
+// pill + confidence pill) → divider → outcome description → optional
+// posterior-band footer. Includes a tiny ▼ pointer below the panel so
+// the eye sticks to the chit it's annotating.
+
+function OutcomeHoverCard({
+  outcome,
+  conf,
+  confColor,
+  confTitle,
+  showBand,
+}: {
+  outcome: OutcomeWithDelta
+  conf: 'high' | 'med' | 'low' | 'lit'
+  confColor: string
+  confTitle: string
+  showBand: boolean
+}) {
+  const tc = TONE_TEXT[outcome.tone]
+  const eps = Math.pow(10, -outcome.decimals - 1)
+  const hasDelta = Math.abs(outcome.delta) > eps
+  const after = outcome.baseline + outcome.delta
+  const beneficialLabel = outcome.beneficial === 'higher' ? 'higher is better' : 'lower is better'
+  const confLabel: Record<typeof conf, string> = {
+    high: 'High confidence',
+    med: 'Moderate confidence',
+    low: 'Low confidence',
+    lit: 'Literature only',
+  }
+  return (
+    <div
+      role="tooltip"
+      className="absolute pointer-events-none"
+      style={{
+        bottom: 'calc(100% + 10px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 280,
+        background: '#fff',
+        border: `1px solid ${BORDER}`,
+        borderRadius: 14,
+        boxShadow:
+          '0 12px 28px rgba(28, 25, 23, 0.14), 0 2px 6px rgba(28, 25, 23, 0.06)',
+        padding: '12px 14px 13px',
+        textAlign: 'left',
+        fontFamily: 'Inter, sans-serif',
+        zIndex: 50,
+      }}
+    >
+      {/* Header: label + beneficial-direction pill */}
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: '#1c1917',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {outcome.label}
+        </span>
+        <span
+          style={{
+            fontSize: 9,
+            color: '#a8a29e',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}
+        >
+          {beneficialLabel}
+        </span>
+      </div>
+
+      {/* Current → projected snippet (only if there's actually movement) */}
+      {hasDelta && (
+        <div
+          className="flex items-baseline gap-2 mb-2 tabular-nums"
+          style={{ fontSize: 11, color: '#78716c' }}
+        >
+          <span>
+            {fmt(outcome.baseline, outcome.decimals)}
+            {outcome.unit && ' ' + outcome.unit}
+          </span>
+          <span style={{ color: '#d6d3d1' }}>→</span>
+          <span style={{ color: tc, fontWeight: 500 }}>
+            {fmt(after, outcome.decimals)}
+            {outcome.unit && ' ' + outcome.unit}
+          </span>
+          <span style={{ color: tc, marginLeft: 'auto', fontWeight: 500 }}>
+            {signed(outcome.delta, outcome.decimals)}
+            {outcome.unit && (
+              <span style={{ fontSize: 9, marginLeft: 1, opacity: 0.7 }}>
+                {outcome.unit}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Divider */}
+      <div
+        style={{
+          height: 1,
+          background: 'linear-gradient(90deg, transparent, #ede5d2, transparent)',
+          marginBottom: 9,
+        }}
+      />
+
+      {/* Description body */}
+      <div
+        style={{
+          fontSize: 11,
+          color: '#5b524a',
+          lineHeight: 1.55,
+        }}
+      >
+        {outcome.description}
+      </div>
+
+      {/* Footer pills — confidence + posterior band */}
+      <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+        <span
+          title={confTitle}
+          className="inline-flex items-center gap-1 rounded-full"
+          style={{
+            background: conf === 'lit' ? '#fafaf9' : `${confColor}1f`,
+            border: `1px solid ${conf === 'lit' ? '#e7e5e4' : confColor + '55'}`,
+            padding: '2px 8px',
+            fontSize: 9.5,
+            color: conf === 'lit' ? '#78716c' : confColor,
+            fontWeight: 500,
+            letterSpacing: '0.01em',
+          }}
+        >
+          <span
+            className="inline-block rounded-full"
+            style={{
+              width: 5,
+              height: 5,
+              background: conf === 'lit' ? 'transparent' : confColor,
+              border: conf === 'lit' ? `1px dashed ${confColor}` : 'none',
+            }}
+          />
+          {confLabel[conf]}
+        </span>
+        {showBand && outcome.afterLow != null && outcome.afterHigh != null && (
+          <span
+            className="inline-flex items-center rounded-full tabular-nums"
+            style={{
+              background: '#f5f0e3',
+              border: '1px solid #ebe2cb',
+              padding: '2px 8px',
+              fontSize: 9.5,
+              color: '#7a6b48',
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+            }}
+          >
+            BART 90% · {fmt(outcome.afterLow, outcome.decimals)}–
+            {fmt(outcome.afterHigh, outcome.decimals)}
+            {outcome.unit ? ' ' + outcome.unit : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Pointer ▼ stitched onto the bottom of the card so it visually
+          points at the chit underneath. */}
+      <div
+        aria-hidden
+        className="absolute"
+        style={{
+          left: '50%',
+          bottom: -6,
+          transform: 'translateX(-50%) rotate(45deg)',
+          width: 10,
+          height: 10,
+          background: '#fff',
+          borderRight: `1px solid ${BORDER}`,
+          borderBottom: `1px solid ${BORDER}`,
+        }}
+      />
+    </div>
+  )
+}
+
 function OutcomeBubble({
   outcome,
   width = 120,
@@ -1984,20 +2194,18 @@ function OutcomeBubble({
     low: 'Low confidence — posterior band is wider than the projected delta',
     lit: 'Literature-only — no per-participant posterior; effect size from RCT priors',
   }
-  const bandTitle =
-    showBand && outcome.afterLow != null && outcome.afterHigh != null
-      ? `Posterior 90% credible band: ${fmt(outcome.afterLow, outcome.decimals)} – ${fmt(
-          outcome.afterHigh,
-          outcome.decimals,
-        )}${outcome.unit ? ' ' + outcome.unit : ''} (BART)`
-      : ''
-  const tooltip = bandTitle
-    ? `${outcome.description}\n\n${bandTitle}`
-    : outcome.description
+  // ─── Hover tooltip state ──
+  // Suppressed when the detail panel is open for this chit (isSelected)
+  // or when the solver is targeting this outcome (isGoal) — both states
+  // already surface richer info that the hover would just duplicate.
+  const [hovered, setHovered] = useState(false)
+  const showTooltip = hovered && !isSelected && !isGoal
+
   return (
     <div
-      title={tooltip}
       onClick={onClick ? () => onClick(outcome.id) : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         width,
         textAlign: 'center',
@@ -2015,11 +2223,19 @@ function OutcomeBubble({
         transition: 'box-shadow 200ms ease, border-color 200ms ease',
       }}
     >
+      {showTooltip && (
+        <OutcomeHoverCard
+          outcome={outcome}
+          conf={conf}
+          confColor={confColor[conf]}
+          confTitle={confTitle[conf]}
+          showBand={showBand}
+        />
+      )}
       {/* Confidence dot — top-left. Uses BART posterior bandwidth
           relative to the projected delta to bucket high/med/low; falls
           back to "lit" (literature-only) when no band is available. */}
       <div
-        title={confTitle[conf]}
         className="absolute"
         style={{
           top: 6,
@@ -2281,6 +2497,7 @@ function LeverRow({
               values={state.hrValues}
               onChange={(v) => setState((s) => ({ ...s, hrValues: v }))}
               size={hrSize}
+              regime={regime}
             />
           </div>
         )
