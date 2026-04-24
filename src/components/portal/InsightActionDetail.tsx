@@ -97,7 +97,7 @@ export function InsightActionDetail({ edge, participant }: Props) {
         <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-1.5">
           Response curve
         </div>
-        <DoseResponseChart edge={edge} participant={participant} width={420} height={120} />
+        <DoseResponseChart edge={edge} participant={participant} width={560} height={200} />
       </div>
 
       {/* Bayesian breakdown */}

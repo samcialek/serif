@@ -19,8 +19,7 @@
  */
 
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
-import type { SyntheticShape } from '@/data/scm/syntheticEdges'
-import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
+import { inferShape, slopeOfShape } from '@/utils/insightShape'
 
 /** Cohort-marginal outcome SD (units below). Mirrored from
  * backend/serif_scm/synthetic/config.py BIOMARKER_PRIORS + WEARABLE_PRIORS.
@@ -124,55 +123,21 @@ export function slopePerNativeUnit(edge: InsightBayesian): number {
   return edge.posterior.mean / edge.nominal_step
 }
 
-const SHAPE_BY_EDGE = new Map<string, SyntheticShape | null>()
-function lookupShape(action: string, outcome: string): SyntheticShape | null {
-  const key = `${action}::${outcome}`
-  if (SHAPE_BY_EDGE.has(key)) return SHAPE_BY_EDGE.get(key) ?? null
-  const spec = PHASE_1_EDGES.find(
-    (e) => e.action === action && e.outcome === outcome,
-  )
-  const shape = spec?.shape ?? null
-  SHAPE_BY_EDGE.set(key, shape)
-  return shape
-}
-
-function evaluateShape(shape: SyntheticShape, dose: number): number {
-  switch (shape.kind) {
-    case 'linear':
-      return shape.slope * dose
-    case 'saturating': {
-      if (dose <= shape.knee) return shape.slope * dose
-      const after = shape.slopeAfter ?? 0
-      return shape.slope * shape.knee + after * (dose - shape.knee)
-    }
-    case 'smooth_saturating':
-      if (dose <= 0) return 0
-      return shape.asymptote * (1 - Math.pow(2, -dose / shape.halfDose))
-    case 'inverted_u': {
-      if (dose <= shape.peak) return shape.slopeUp * dose
-      return shape.slopeUp * shape.peak + shape.slopeDown * (dose - shape.peak)
-    }
-  }
-}
-
 /** Local tangent slope at the user's current operating point — i.e., the
  * derivative of the response curve at x = current_value. This is the
- * slope the user actually experiences from a marginal change. Uses the
- * registered SyntheticShape numerically when available; falls back to
- * the engine's posterior.mean/nominal_step (which is a global linear
- * approximation, not local). */
+ * slope the user actually experiences from a marginal change. Uses
+ * inferShape so every edge has a curve (saturating / inverted-U /
+ * explicit) rather than falling back to a flat linear approximation. */
 export function slopeAtBaseline(
   edge: InsightBayesian,
   participant: ParticipantPortal,
 ): number {
-  const shape = lookupShape(edge.action, edge.outcome)
   const x0 = participant.current_values?.[edge.action]
-  if (shape && x0 != null) {
-    const sd = participant.behavioral_sds?.[edge.action] ?? 1
-    const h = Math.max(Math.abs(sd) * 0.05, 1e-3)
-    return (evaluateShape(shape, x0 + h) - evaluateShape(shape, x0 - h)) / (2 * h)
-  }
-  return slopePerNativeUnit(edge)
+  if (x0 == null) return slopePerNativeUnit(edge)
+  const shape = inferShape(edge)
+  const sd = participant.behavioral_sds?.[edge.action] ?? 1
+  const h = Math.max(Math.abs(sd) * 0.05, 1e-3)
+  return slopeOfShape(shape, x0, h)
 }
 
 /** Standardized effect (Cohen's d, unitless) at the user's current

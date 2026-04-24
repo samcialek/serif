@@ -1,88 +1,30 @@
 /**
- * DoseResponseChart — small SVG plot of an edge's actual response
- * curve, with the user's current operating point marked.
+ * DoseResponseChart — expanded per-edge chart showing the engine's
+ * full response curve with the user's current operating point and
+ * the local tangent that the row preview is drawing.
  *
- * Replaces the prior abstract "tilt = magnitude" slope-bar with the
- * real shape the engine encodes (saturating, smooth-saturating,
- * inverted-U, linear). User can see at a glance:
- *   - where they are on the curve
- *   - whether moving up/down is steep or flat
- *   - whether the curve plateaus / inverts beyond their range
+ * Rendering layers (back → front):
+ *   1. Dashed zero-line at Δ=0 for reference.
+ *   2. Soft-tinted area under the curve (emerald for beneficial
+ *      direction, rose for adverse) so the eye reads direction.
+ *   3. Response curve — thick, colored, with slight transparency so
+ *      the tangent can sit over top without disappearing.
+ *   4. Dashed vertical guide through the user's x-position.
+ *   5. Tangent line — bright indigo, bold, with arrow caps so it
+ *      reads as a distinct segment resting on the curve.
+ *   6. "You, now" dot on the curve.
+ *   7. Axis tick labels + bottom legend.
  *
- * Curve shape comes from PHASE_1_EDGES synthetic edge specs when
- * available; otherwise falls back to a linear approximation derived
- * from the posterior mean.
+ * Curve shape comes from inferShape: every edge has a plausible
+ * nonlinear shape (saturating, inverted-U, smooth-saturating,
+ * explicit shape from PHASE_1_EDGES). No more linear fallback that
+ * coincides with the tangent.
  */
 
 import { useMemo } from 'react'
-import { cn } from '@/utils/classNames'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
-import type { SyntheticShape } from '@/data/scm/syntheticEdges'
-import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
-import { isBeneficial, slopePerNativeUnit } from '@/utils/insightStandardization'
-
-const SHAPE_CACHE = new Map<string, SyntheticShape | null>()
-
-function shapeKey(action: string, outcome: string): string {
-  return `${action}::${outcome}`
-}
-
-/** Lookup the SyntheticShape for an (action, outcome) pair from
- * PHASE_1_EDGES. Returns null when no shape is registered (caller
- * should fall back to a linear projection of the posterior mean). */
-function lookupShape(action: string, outcome: string): SyntheticShape | null {
-  const key = shapeKey(action, outcome)
-  if (SHAPE_CACHE.has(key)) return SHAPE_CACHE.get(key) ?? null
-  const spec = PHASE_1_EDGES.find(
-    (e) => e.action === action && e.outcome === outcome,
-  )
-  const shape = spec?.shape ?? null
-  SHAPE_CACHE.set(key, shape)
-  return shape
-}
-
-/** Evaluate a SyntheticShape at a given dose; returns the predicted
- * outcome change (relative to dose=0). */
-function evaluateShape(shape: SyntheticShape, dose: number): number {
-  switch (shape.kind) {
-    case 'linear':
-      return shape.slope * dose
-    case 'saturating': {
-      if (dose <= shape.knee) return shape.slope * dose
-      const after = shape.slopeAfter ?? 0
-      return shape.slope * shape.knee + after * (dose - shape.knee)
-    }
-    case 'smooth_saturating':
-      if (dose <= 0) return 0
-      return shape.asymptote * (1 - Math.pow(2, -dose / shape.halfDose))
-    case 'inverted_u': {
-      if (dose <= shape.peak) return shape.slopeUp * dose
-      return shape.slopeUp * shape.peak + shape.slopeDown * (dose - shape.peak)
-    }
-  }
-}
-
-/** Plot domain (x-axis range) per action — natural sensible bounds.
- * Falls back to ±3·SD around the user's current value. */
-const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
-  bedtime: { min: 21.5, max: 24.5 },
-  sleep_duration: { min: 4, max: 10 },
-  caffeine_mg: { min: 0, max: 600 },
-  caffeine_cutoff: { min: 0, max: 14 },
-  alcohol_units: { min: 0, max: 6 },
-  zone2_minutes: { min: 0, max: 300 },
-  zone2_volume: { min: 0, max: 50 },
-  zone4_5_minutes: { min: 0, max: 90 },
-  training_volume: { min: 0, max: 3 },
-  training_load: { min: 0, max: 200 },
-  running_volume: { min: 0, max: 30 },
-  steps: { min: 0, max: 25000 },
-  active_energy: { min: 0, max: 3000 },
-  dietary_protein: { min: 30, max: 250 },
-  dietary_energy: { min: 1500, max: 4000 },
-  acwr: { min: 0.5, max: 2 },
-  sleep_debt: { min: 0, max: 20 },
-}
+import { isBeneficial } from '@/utils/insightStandardization'
+import { ACTION_DOMAIN, evaluateShape, inferShape } from '@/utils/insightShape'
 
 interface Props {
   edge: InsightBayesian
@@ -94,14 +36,13 @@ interface Props {
 export function DoseResponseChart({
   edge,
   participant,
-  width = 320,
-  height = 120,
+  width = 520,
+  height = 180,
 }: Props) {
-  const padX = 28
-  const padY = 14
+  const padX = 36
+  const padY = 18
 
   const data = useMemo(() => {
-    // Pick the action's plot domain.
     const explicit = ACTION_DOMAIN[edge.action]
     const currentVal = participant.current_values?.[edge.action]
     let xMin: number
@@ -121,31 +62,25 @@ export function DoseResponseChart({
       xMax = 1
     }
 
-    // Resolve the curve. If we don't have an explicit shape, project a
-    // linear curve from the posterior mean / nominal_step.
-    const shape = lookupShape(edge.action, edge.outcome)
-    const linearSlope = slopePerNativeUnit(edge)
-    const f = (x: number): number => {
-      if (shape) {
-        const baseline = currentVal ?? (xMin + xMax) / 2
-        return evaluateShape(shape, x) - evaluateShape(shape, baseline)
-      }
-      // Linear fallback — relative to the user's current value, so the
-      // curve passes through (currentVal, 0).
-      const anchor = currentVal ?? (xMin + xMax) / 2
-      return linearSlope * (x - anchor)
-    }
+    // Universal nonlinear shape per edge via inferShape.
+    const shape = inferShape(edge)
+    const anchor = currentVal ?? (xMin + xMax) / 2
+    const fAbs = (x: number): number => evaluateShape(shape, x)
+    const f = (x: number): number => fAbs(x) - fAbs(anchor)
 
-    // Sample the curve at 64 points.
-    const N = 64
-    const xs = Array.from({ length: N + 1 }, (_, i) => xMin + (i / N) * (xMax - xMin))
+    // Sample the curve densely.
+    const N = 96
+    const xs = Array.from(
+      { length: N + 1 },
+      (_, i) => xMin + (i / N) * (xMax - xMin),
+    )
     const ys = xs.map(f)
 
     // Y-axis range — pad slightly so curve isn't flush against edges.
     const minY = Math.min(...ys, 0)
     const maxY = Math.max(...ys, 0)
     const ySpan = Math.max(Math.abs(maxY - minY), 1e-9)
-    const yPad = ySpan * 0.15
+    const yPad = ySpan * 0.22
     const yLo = minY - yPad
     const yHi = maxY + yPad
 
@@ -158,44 +93,59 @@ export function DoseResponseChart({
       .map((x, i) => `${i === 0 ? 'M' : 'L'} ${toX(x).toFixed(1)} ${toY(ys[i]).toFixed(1)}`)
       .join(' ')
 
-    // Zero line (Δ=0, where the user currently sits relative to baseline).
     const zeroY = toY(0)
     const currentX = currentVal != null ? toX(currentVal) : null
     const currentY = currentVal != null ? toY(f(currentVal)) : null
 
-    // Tangent line at the user's current point — same construction as
-    // MiniDoseResponse so the in-row preview and the expanded chart
-    // tell the same visual story. Local slope by central difference;
-    // segment extended ~12% of the x-range either side of the point.
+    // Tangent line at the user's current point — extended so it
+    // clearly leaves the curve's neighborhood on both sides.
     let tangentPath: string | null = null
     let tangentSlope: number | null = null
+    let tangentX0: number | null = null
+    let tangentY0: number | null = null
+    let tangentX1: number | null = null
+    let tangentY1: number | null = null
     if (currentVal != null) {
-      const dx = (xMax - xMin) * 0.12
-      const localSlope = (f(currentVal + dx) - f(currentVal - dx)) / (2 * dx)
+      const dx = (xMax - xMin) * 0.18 // wider than the 12% in the row preview so the tangent is visible
+      const localSlope = (f(currentVal + dx * 0.1) - f(currentVal - dx * 0.1)) / (0.2 * dx)
       tangentSlope = localSlope
-      const tx0 = toX(currentVal - dx)
-      const ty0 = toY(f(currentVal) - localSlope * dx)
-      const tx1 = toX(currentVal + dx)
-      const ty1 = toY(f(currentVal) + localSlope * dx)
-      tangentPath = `M ${tx0.toFixed(1)} ${ty0.toFixed(1)} L ${tx1.toFixed(1)} ${ty1.toFixed(1)}`
+      tangentX0 = toX(currentVal - dx)
+      tangentY0 = toY(f(currentVal) - localSlope * dx)
+      tangentX1 = toX(currentVal + dx)
+      tangentY1 = toY(f(currentVal) + localSlope * dx)
+      tangentPath = `M ${tangentX0.toFixed(1)} ${tangentY0.toFixed(1)} L ${tangentX1.toFixed(1)} ${tangentY1.toFixed(1)}`
     }
 
     return {
-      xMin, xMax, yLo, yHi, path, zeroY, currentX, currentY, shape,
-      tangentPath, tangentSlope, currentVal,
+      xMin, xMax, yLo, yHi, path, zeroY,
+      currentVal, currentX, currentY,
+      tangentPath, tangentSlope, tangentX0, tangentY0, tangentX1, tangentY1,
+      shape,
     }
   }, [edge, participant, width, height, padX, padY])
 
-  const stroke = isBeneficial(edge) ? '#10b981' : '#f43f5e'
-  const fillSoft = isBeneficial(edge) ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)'
+  const beneficial = isBeneficial(edge)
+  const curveStroke = beneficial ? '#10b981' : '#f43f5e'
+  const curveFill = beneficial ? 'rgba(16,185,129,0.14)' : 'rgba(244,63,94,0.14)'
 
-  // Axis tick labels.
-  const xTickFmt = formatX(edge.action)
-  const yTickFmt = formatY(edge.outcome)
-
+  // Arrow marker def — for the tangent line ends.
   return (
     <div className="w-full">
       <svg width={width} height={height} className="overflow-visible">
+        <defs>
+          <marker
+            id="tangent-arrow"
+            viewBox="0 0 10 10"
+            refX={5}
+            refY={5}
+            markerWidth={5}
+            markerHeight={5}
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#4f46e5" />
+          </marker>
+        </defs>
+
         {/* y=0 reference line */}
         <line
           x1={padX}
@@ -207,109 +157,158 @@ export function DoseResponseChart({
           strokeDasharray="3 3"
         />
 
-        {/* Filled area under the curve from the zero line — soft tone */}
+        {/* Soft area under the curve — direction cue */}
         <path
           d={`${data.path} L ${(width - padX).toFixed(1)} ${data.zeroY.toFixed(1)} L ${padX.toFixed(1)} ${data.zeroY.toFixed(1)} Z`}
-          fill={fillSoft}
+          fill={curveFill}
         />
 
-        {/* Curve itself */}
+        {/* The response curve (thick, semi-opaque so tangent can sit on top). */}
         <path
           d={data.path}
           fill="none"
-          stroke={stroke}
-          strokeWidth={1.75}
+          stroke={curveStroke}
+          strokeWidth={3}
           strokeLinecap="round"
           strokeLinejoin="round"
+          opacity={0.85}
         />
 
-        {/* User's current point + tangent */}
-        {data.currentX !== null && data.currentY !== null && (
-          <g>
-            <line
-              x1={data.currentX}
-              x2={data.currentX}
-              y1={padY}
-              y2={height - padY}
-              stroke="#6366f1"
-              strokeWidth={1}
-              strokeDasharray="2 3"
-              opacity={0.4}
-            />
-            {/* Tangent line — same indigo as the row preview, bolder */}
-            {data.tangentPath && (
-              <path
-                d={data.tangentPath}
-                fill="none"
-                stroke="#4f46e5"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                opacity={0.95}
-              />
-            )}
-            <circle
-              cx={data.currentX}
-              cy={data.currentY}
-              r={4}
-              fill="#4f46e5"
-              stroke="white"
-              strokeWidth={1.5}
-            />
-          </g>
+        {/* Vertical guide through the user's x-position */}
+        {data.currentX !== null && (
+          <line
+            x1={data.currentX}
+            x2={data.currentX}
+            y1={padY}
+            y2={height - padY}
+            stroke="#4f46e5"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+            opacity={0.35}
+          />
         )}
 
-        {/* X-axis labels */}
+        {/* Tangent line — bright indigo, with arrow caps so it clearly
+            reads as a separate surface from the green/rose curve */}
+        {data.tangentPath && (
+          <path
+            d={data.tangentPath}
+            fill="none"
+            stroke="#4f46e5"
+            strokeWidth={2.75}
+            strokeLinecap="round"
+            markerStart="url(#tangent-arrow)"
+            markerEnd="url(#tangent-arrow)"
+            opacity={1}
+          />
+        )}
+
+        {/* User's "you, now" dot sitting on the curve */}
+        {data.currentX !== null && data.currentY !== null && (
+          <circle
+            cx={data.currentX}
+            cy={data.currentY}
+            r={5}
+            fill="#4f46e5"
+            stroke="white"
+            strokeWidth={2}
+          />
+        )}
+
+        {/* X-axis labels (min / current / max) */}
         <text
           x={padX}
-          y={height - 2}
+          y={height - 3}
           textAnchor="start"
-          fontSize={9}
+          fontSize={10}
           className="fill-slate-400 tabular-nums"
         >
-          {xTickFmt(data.xMin)}
+          {formatX(edge.action)(data.xMin)}
         </text>
         <text
           x={width - padX}
-          y={height - 2}
+          y={height - 3}
           textAnchor="end"
-          fontSize={9}
+          fontSize={10}
           className="fill-slate-400 tabular-nums"
         >
-          {xTickFmt(data.xMax)}
+          {formatX(edge.action)(data.xMax)}
         </text>
+        {data.currentVal != null && data.currentX !== null && (
+          <text
+            x={data.currentX}
+            y={height - 3}
+            textAnchor="middle"
+            fontSize={10}
+            className="fill-indigo-600 tabular-nums font-semibold"
+          >
+            {formatX(edge.action)(data.currentVal)}
+          </text>
+        )}
 
-        {/* Y-axis Δ labels */}
+        {/* Y-axis Δ range labels */}
         <text
           x={padX - 4}
           y={padY + 4}
           textAnchor="end"
-          fontSize={9}
+          fontSize={10}
           className="fill-slate-400 tabular-nums"
         >
           {data.yHi >= 0 ? '+' : ''}
-          {yTickFmt(data.yHi)}
+          {formatNumber(data.yHi)}
         </text>
         <text
           x={padX - 4}
           y={height - padY}
           textAnchor="end"
-          fontSize={9}
+          fontSize={10}
           className="fill-slate-400 tabular-nums"
         >
           {data.yLo >= 0 ? '+' : ''}
-          {yTickFmt(data.yLo)}
+          {formatNumber(data.yLo)}
         </text>
       </svg>
+
+      {/* Axis label row */}
       <div className="px-1 mt-0.5 flex items-center justify-between text-[10px] text-slate-500">
-        <span className="flex items-center gap-2">
-          <span>
-            {LABEL_X(edge.action)} →
-            <span className="ml-1 text-slate-400">{shapeName(data.shape)}</span>
-          </span>
+        <span>
+          {edge.action.replace(/_/g, ' ')} →
+          <span className="ml-1 text-slate-400">{shapeName(data.shape)}</span>
         </span>
-        <span>Δ {LABEL_Y(edge.outcome)}</span>
+        <span>Δ {edge.outcome.replace(/_/g, ' ')}</span>
       </div>
-      <div className="px-1 mt-1 flex items-center gap-3 text-[10px] text-slate-500">
+
+      {/* Legend row */}
+      <div className="px-1 mt-2 flex items-center gap-4 text-[10px] text-slate-500 flex-wrap">
+        <span className="flex items-center gap-1.5">
+          <svg width={14} height={4} aria-hidden>
+            <line
+              x1={0}
+              x2={14}
+              y1={2}
+              y2={2}
+              stroke={curveStroke}
+              strokeWidth={3}
+              strokeLinecap="round"
+              opacity={0.85}
+            />
+          </svg>
+          Response curve (engine's shape)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <svg width={16} height={5} aria-hidden>
+            <line
+              x1={1}
+              x2={15}
+              y1={2.5}
+              y2={2.5}
+              stroke="#4f46e5"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+          </svg>
+          Local tangent (your marginal effect)
+        </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" aria-hidden />
           You, now
@@ -319,27 +318,18 @@ export function DoseResponseChart({
             </span>
           )}
         </span>
-        <span className="flex items-center gap-1.5">
-          <svg width={14} height={4} aria-hidden>
-            <line x1={0} x2={14} y1={2} y2={2} stroke="#4f46e5" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-          Local slope (your marginal effect)
-        </span>
       </div>
     </div>
   )
 }
 
-const LABEL_X = (a: string): string => a.replace(/_/g, ' ')
-const LABEL_Y = (o: string): string => o.replace(/_/g, ' ')
-
-function shapeName(shape: SyntheticShape | null): string {
-  if (!shape) return 'linear approximation'
+function shapeName(shape: { kind: string }): string {
   switch (shape.kind) {
     case 'linear': return 'linear'
     case 'saturating': return 'piecewise saturating'
     case 'smooth_saturating': return 'smooth saturating (Hill)'
-    case 'inverted_u': return 'inverted-U'
+    case 'inverted_u': return 'inverted-U (optimum)'
+    default: return ''
   }
 }
 
@@ -358,10 +348,6 @@ function formatX(action: string): (n: number) => string {
   return (n) => formatNumber(n)
 }
 
-function formatY(_outcome: string): (n: number) => string {
-  return (n) => formatNumber(n)
-}
-
 function formatNumber(n: number): string {
   const abs = Math.abs(n)
   if (abs >= 100) return n.toFixed(0)
@@ -369,8 +355,5 @@ function formatNumber(n: number): string {
   if (abs >= 1) return n.toFixed(2)
   return n.toFixed(3)
 }
-
-// silence unused-import lint when cn is unused
-void cn
 
 export default DoseResponseChart

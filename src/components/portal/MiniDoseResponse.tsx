@@ -16,64 +16,11 @@
 import { useMemo } from 'react'
 import { cn } from '@/utils/classNames'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
-import type { SyntheticShape } from '@/data/scm/syntheticEdges'
-import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
 import {
   isBeneficial,
-  slopeAtBaseline,
   type EffectBand,
 } from '@/utils/insightStandardization'
-
-const SHAPE_CACHE = new Map<string, SyntheticShape | null>()
-function lookupShape(action: string, outcome: string): SyntheticShape | null {
-  const key = `${action}::${outcome}`
-  if (SHAPE_CACHE.has(key)) return SHAPE_CACHE.get(key) ?? null
-  const spec = PHASE_1_EDGES.find(
-    (e) => e.action === action && e.outcome === outcome,
-  )
-  const shape = spec?.shape ?? null
-  SHAPE_CACHE.set(key, shape)
-  return shape
-}
-
-function evaluateShape(shape: SyntheticShape, dose: number): number {
-  switch (shape.kind) {
-    case 'linear':
-      return shape.slope * dose
-    case 'saturating': {
-      if (dose <= shape.knee) return shape.slope * dose
-      const after = shape.slopeAfter ?? 0
-      return shape.slope * shape.knee + after * (dose - shape.knee)
-    }
-    case 'smooth_saturating':
-      if (dose <= 0) return 0
-      return shape.asymptote * (1 - Math.pow(2, -dose / shape.halfDose))
-    case 'inverted_u': {
-      if (dose <= shape.peak) return shape.slopeUp * dose
-      return shape.slopeUp * shape.peak + shape.slopeDown * (dose - shape.peak)
-    }
-  }
-}
-
-const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
-  bedtime: { min: 21.5, max: 24.5 },
-  sleep_duration: { min: 4, max: 10 },
-  caffeine_mg: { min: 0, max: 600 },
-  caffeine_cutoff: { min: 0, max: 14 },
-  alcohol_units: { min: 0, max: 6 },
-  zone2_minutes: { min: 0, max: 300 },
-  zone2_volume: { min: 0, max: 50 },
-  zone4_5_minutes: { min: 0, max: 90 },
-  training_volume: { min: 0, max: 3 },
-  training_load: { min: 0, max: 200 },
-  running_volume: { min: 0, max: 30 },
-  steps: { min: 0, max: 25000 },
-  active_energy: { min: 0, max: 3000 },
-  dietary_protein: { min: 30, max: 250 },
-  dietary_energy: { min: 1500, max: 4000 },
-  acwr: { min: 0.5, max: 2 },
-  sleep_debt: { min: 0, max: 20 },
-}
+import { ACTION_DOMAIN, evaluateShape, inferShape } from '@/utils/insightShape'
 
 interface Props {
   edge: InsightBayesian
@@ -113,20 +60,12 @@ export function MiniDoseResponse({
       xMax = 1
     }
 
-    const shape = lookupShape(edge.action, edge.outcome)
-    const linearSlope = (() => {
-      if (!edge.nominal_step || Math.abs(edge.nominal_step) < 1e-12) return 0
-      return edge.posterior.mean / edge.nominal_step
-    })()
-
-    const f = (x: number): number => {
-      if (shape) {
-        const baseline = x0 ?? (xMin + xMax) / 2
-        return evaluateShape(shape, x) - evaluateShape(shape, baseline)
-      }
-      const anchor = x0 ?? (xMin + xMax) / 2
-      return linearSlope * (x - anchor)
-    }
+    // Every edge has a plausible nonlinear shape via inferShape, so
+    // the curve always has visible structure (no linear fallback).
+    const shape = inferShape(edge)
+    const anchor = x0 ?? (xMin + xMax) / 2
+    const fAbs = (x: number): number => evaluateShape(shape, x)
+    const f = (x: number): number => fAbs(x) - fAbs(anchor)
 
     const N = 40
     const xs = Array.from(
