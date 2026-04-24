@@ -4,6 +4,8 @@ import {
   CoachLandingView,
   ProtocolsView,
   ProtocolsBarView,
+  ProtocolsSplitView,
+  ProtocolsLanesView,
   CoachView,
   ApiView,
   AdminView,
@@ -54,6 +56,8 @@ function App() {
           <Route path="/twin-workspace" element={<Navigate to="/twin" replace />} />
           <Route path="/protocols" element={<ProtocolsView />} />
           <Route path="/protocols-bar" element={<ProtocolsBarView />} />
+          <Route path="/protocols-split" element={<ProtocolsSplitView />} />
+          <Route path="/protocols-lanes" element={<ProtocolsLanesView />} />
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />

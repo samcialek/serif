@@ -56,6 +56,8 @@ const navItems: NavItem[] = [
       { to: '/twin/painterly', icon: Network, label: 'Twin painterly' },
       { to: '/protocols', icon: ListChecks, label: 'Protocols' },
       { to: '/protocols-bar', icon: ListChecks, label: 'Protocols (bar)' },
+      { to: '/protocols-split', icon: ListChecks, label: 'Protocols (split)' },
+      { to: '/protocols-lanes', icon: ListChecks, label: 'Protocols (lanes)' },
     ],
   },
   { to: '/api', icon: Code, label: 'API' },
