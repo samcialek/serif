@@ -9,7 +9,9 @@ import type { Persona, Insight, DailyMetrics, LabResult, Protocol, DailyPlan } f
 export const caspianPersona: Persona = {
   id: 'caspian',
   name: 'Caspian R.',
-  avatar: `${import.meta.env.BASE_URL}CaspianR.jpeg`,
+  // v2 = background-stripped PNG. Query string busts the browser cache so
+  // this replaces any previously-cached CaspianR.jpeg without a hard reload.
+  avatar: `${import.meta.env.BASE_URL}CaspianR.png?v=2`,
   persona: 'Triathlete optimizing iron status & endurance performance',
   age: 38,
   archetype: 'The Iron-Depleted Endurance Athlete',
