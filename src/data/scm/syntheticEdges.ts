@@ -69,7 +69,7 @@ export type SyntheticShape =
       slopeDown: number
     }
 
-interface SyntheticEdgeSpec {
+export interface SyntheticEdgeSpec {
   action: string
   outcome: string
   /** Causal shape with physical units. When present, this drives the engine
@@ -157,7 +157,7 @@ export function applyOutcomeBound(outcome: string, value: number): number {
   return v
 }
 
-const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
+export const PHASE_1_EDGES: SyntheticEdgeSpec[] = [
   // ── Training → VO2max (canonical aerobic adaptation) ───────────────
   { action: 'zone2_minutes',   outcome: 'vo2_peak',      mean:  0.80, pathway: 'biomarker', horizonDays: 84, rationale: 'Zone-2 mitochondrial adaptation → VO2max (Seiler 2010)' },
   { action: 'zone4_5_minutes', outcome: 'vo2_peak',      mean:  0.85, pathway: 'biomarker', horizonDays: 56, rationale: 'Minute-for-minute the strongest VO2max stimulus — 4×4-min Z4 intervals (Helgerud 2007 RCT) saturate central adaptations faster than Z2 volume.' },
@@ -512,11 +512,23 @@ function shapeToEquationParams(
 export function buildSyntheticEquations(
   existingEquationKeys: Set<string> = new Set(),
   existingEdgeKeys: Set<string> = new Set(),
+  /** Optional override for the edge specs to translate. Defaults to
+   *  PHASE_1_EDGES; v2 callers pass a merged [PHASE_1, PHASE_2] list
+   *  so the additive v2 edges flow through the same translation. */
+  edges: SyntheticEdgeSpec[] = PHASE_1_EDGES,
+  /** Optional action/outcome span overrides — same purpose as `edges`,
+   *  for actions/outcomes the v1 ACTION_SPAN/OUTCOME_SPAN don't cover. */
+  actionSpanOverride: Record<string, [number, number]> = {},
+  outcomeSpanOverride: Record<string, [number, number]> = {},
 ): SyntheticEngineBundle {
   const equations: StructuralEquation[] = []
   const structuralEdges: StructuralEdge[] = []
+  // Merge override maps in front of the canonical spans so v2 actions
+  // resolve without mutating the v1 tables.
+  const actionSpanLookup = { ...ACTION_SPAN, ...actionSpanOverride }
+  const outcomeSpanLookup = { ...OUTCOME_SPAN, ...outcomeSpanOverride }
 
-  for (const spec of PHASE_1_EDGES) {
+  for (const spec of edges) {
     const key = `${spec.action}→${spec.outcome}`
 
     if (!existingEquationKeys.has(key)) {
@@ -528,7 +540,7 @@ export function buildSyntheticEquations(
       if (spec.shape) {
         // Shape carries the literature physical effect directly; no need
         // to round-trip through normalized mean × span.
-        const params = shapeToEquationParams(spec.shape, midOf(ACTION_SPAN, spec.action))
+        const params = shapeToEquationParams(spec.shape, midOf(actionSpanLookup, spec.action))
         curveType = params.curveType
         bb = params.bb
         ba = params.ba
@@ -536,13 +548,13 @@ export function buildSyntheticEquations(
       } else {
         // Legacy edges still translate the [-1, 1] mean to a physical
         // slope via action/outcome spans.
-        const actionSpan = spanOf(ACTION_SPAN, spec.action)
-        const outcomeSpan = spanOf(OUTCOME_SPAN, spec.outcome)
+        const actionSpan = spanOf(actionSpanLookup, spec.action)
+        const outcomeSpan = spanOf(outcomeSpanLookup, spec.outcome)
         const slope = (spec.mean * outcomeSpan) / actionSpan
         curveType = 'linear'
         bb = slope
         ba = slope
-        theta = midOf(ACTION_SPAN, spec.action)
+        theta = midOf(actionSpanLookup, spec.action)
       }
 
       equations.push({

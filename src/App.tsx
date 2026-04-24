@@ -15,6 +15,8 @@ import {
   DataValueView,
   PortalView,
   TwinView,
+  TwinV2View,
+  ProtocolsV2View,
   BaselineView,
   ExplorationView,
 } from '@/views'
@@ -52,12 +54,18 @@ function App() {
           <Route path="/twin-living" element={<Navigate to="/twin" replace />} />
           <Route path="/twin-workspace" element={<Navigate to="/twin" replace />} />
 
+          {/* Twin v2 — richer-modeling fork. */}
+          <Route path="/twin-v2" element={<TwinV2View />} />
+
           {/* Protocols — lanes is the canonical version. */}
           <Route path="/protocols" element={<ProtocolsView />} />
           <Route path="/protocols-visual" element={<ProtocolsVisualView />} />
           <Route path="/protocols-lanes" element={<Navigate to="/protocols" replace />} />
           <Route path="/protocols-bar" element={<Navigate to="/protocols" replace />} />
           <Route path="/protocols-split" element={<Navigate to="/protocols" replace />} />
+
+          {/* Protocols v2 — receives Twin-v2 snapshots. */}
+          <Route path="/protocols-v2" element={<ProtocolsV2View />} />
 
           <Route path="/exploration" element={<ExplorationView />} />
           <Route path="/members" element={<CoachView />} />

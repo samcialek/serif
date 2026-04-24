@@ -16,6 +16,13 @@ export interface PersonaPortraitProps {
   cohort?: string | null
   stats?: PersonaPortraitStat[]
   className?: string
+  /** Portrait diameter in px. Defaults to 72. */
+  size?: number
+  /** When true, skip the conic-gradient halo and feather the photo's
+   *  edges to transparent via a radial mask — useful for placing the
+   *  portrait against a textured backdrop without the photo's own
+   *  background fighting the page (e.g. the painterly Twin canvas). */
+  cleanBackground?: boolean
 }
 
 const TONE: Record<NonNullable<PersonaPortraitStat['tone']>, string> = {
@@ -32,58 +39,106 @@ export function PersonaPortrait({
   cohort,
   stats = [],
   className,
+  size = 72,
+  cleanBackground = false,
 }: PersonaPortraitProps) {
   const name = displayName ?? persona?.name ?? 'Member'
   const archetype = persona?.archetype
   const age = persona?.age
 
+  // cleanBackground mode strategy:
+  //   1. `mix-blend-mode: darken` — lets the photo's bright background
+  //      pixels (bar lights, ceiling, walls) drop out by being lighter
+  //      than the cream canvas backdrop, while preserving Caspian's
+  //      darker tones (hair, eyes, clothing, skin shadows).
+  //   2. `object-position` shifted up so the crop is head-and-shoulders
+  //      rather than centered on chest.
+  //   3. A soft radial feather still cleans up the edges where the
+  //      darken result has faint halo artifacts.
+  //   4. Mild contrast/saturation boost makes the subject pop against
+  //      the now-empty backdrop.
+  const featherMask =
+    'radial-gradient(ellipse 70% 92% at 50% 38%, black 0%, black 60%, transparent 95%)'
+
   return (
     <div className={cn('flex items-center gap-4', className)}>
-      <div className="relative w-[72px] h-[72px] flex-shrink-0">
-        {/* Animated plasma halo — slow conic-gradient rotation. */}
-        <motion.div
-          aria-hidden
-          className="absolute inset-0 rounded-full"
-          style={{
-            background:
-              'conic-gradient(from 0deg, #38bdf8, #a855f7, #ec4899, #f59e0b, #38bdf8)',
-            filter: 'blur(8px)',
-            opacity: 0.55,
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 14, ease: 'linear', repeat: Infinity }}
-        />
-        {/* Sharp ring on top. */}
-        <motion.div
-          aria-hidden
-          className="absolute inset-0 rounded-full"
-          style={{
-            background:
-              'conic-gradient(from 0deg, #38bdf8, #a855f7, #ec4899, #f59e0b, #38bdf8)',
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 14, ease: 'linear', repeat: Infinity }}
-        />
-        {/* Inner white plate so the portrait sits on the ring, not under it. */}
-        <div className="absolute inset-[3px] rounded-full bg-white" />
+      <div
+        className="relative flex-shrink-0"
+        style={{ width: size, height: size }}
+      >
+        {!cleanBackground && (
+          <>
+            {/* Animated plasma halo — slow conic-gradient rotation. */}
+            <motion.div
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, #38bdf8, #a855f7, #ec4899, #f59e0b, #38bdf8)',
+                filter: 'blur(8px)',
+                opacity: 0.55,
+              }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 14, ease: 'linear', repeat: Infinity }}
+            />
+            {/* Sharp ring on top. */}
+            <motion.div
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, #38bdf8, #a855f7, #ec4899, #f59e0b, #38bdf8)',
+              }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 14, ease: 'linear', repeat: Infinity }}
+            />
+            {/* Inner white plate so the portrait sits on the ring, not under it. */}
+            <div className="absolute inset-[3px] rounded-full bg-white" />
+          </>
+        )}
         {persona?.avatar ? (
           <img
             src={persona.avatar}
             alt={name}
-            className="absolute inset-[5px] rounded-full object-cover"
+            className={cn(
+              'absolute object-cover',
+              cleanBackground ? 'inset-0' : 'inset-[5px] rounded-full',
+            )}
+            style={
+              cleanBackground
+                ? {
+                    WebkitMaskImage: featherMask,
+                    maskImage: featherMask,
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    mixBlendMode: 'darken',
+                    objectPosition: '50% 28%',
+                    filter: 'contrast(1.12) saturate(1.05)',
+                  }
+                : undefined
+            }
           />
         ) : (
-          <div className="absolute inset-[5px] rounded-full bg-primary-50 flex items-center justify-center text-lg font-semibold text-primary-600">
+          <div
+            className={cn(
+              'absolute flex items-center justify-center font-semibold text-primary-600',
+              cleanBackground
+                ? 'inset-0 bg-transparent'
+                : 'inset-[5px] rounded-full bg-primary-50 text-lg',
+            )}
+            style={cleanBackground ? { fontSize: size * 0.4 } : undefined}
+          >
             {name.charAt(0).toUpperCase()}
           </div>
         )}
-        {/* Soft pulse — signals the twin is "live". */}
-        <motion.div
-          aria-hidden
-          className="absolute inset-0 rounded-full ring-2 ring-sky-300"
-          animate={{ scale: [1, 1.12, 1], opacity: [0.45, 0, 0.45] }}
-          transition={{ duration: 2.6, ease: 'easeOut', repeat: Infinity }}
-        />
+        {!cleanBackground && (
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 rounded-full ring-2 ring-sky-300"
+            animate={{ scale: [1, 1.12, 1], opacity: [0.45, 0, 0.45] }}
+            transition={{ duration: 2.6, ease: 'easeOut', repeat: Infinity }}
+          />
+        )}
       </div>
 
       <div className="min-w-0">
