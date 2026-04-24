@@ -75,13 +75,18 @@ REGIME_TO_DRIVER: dict[str, str] = {
 # Only `confounds` edges are listed here — `causal` edges already enter
 # via the SCM equations and are picked up by `discover_fit_targets`.
 CONFOUNDERS_BY_OUTCOME: dict[str, list[str]] = {
-    "training_volume":  ["season", "location", "is_weekend"],
-    "vitamin_d":        ["season"],
+    # Heat + humidity affect training capacity, sleep, and autonomic
+    # tone — real weather joins season/location as backdoor confounders
+    # the BART adjustment conditions on. "heat_index" collapses temp +
+    # humidity into one observable; "temp_c" stays separate where the
+    # literature treats temperature and humidity as independent inputs.
+    "training_volume":  ["season", "location", "is_weekend", "heat_index"],
+    "vitamin_d":        ["season", "uv_index"],
     "testosterone":     ["season", "vitamin_d"],
-    "sleep_duration":   ["season", "is_weekend"],
-    "sleep_quality":    ["location", "travel_load"],
-    "hrv_daily":        ["travel_load"],
-    "resting_hr":       ["travel_load"],
+    "sleep_duration":   ["season", "is_weekend", "temp_c"],
+    "sleep_quality":    ["location", "travel_load", "temp_c", "humidity_pct"],
+    "hrv_daily":        ["travel_load", "heat_index"],
+    "resting_hr":       ["travel_load", "heat_index"],
     "bedtime":          ["is_weekend"],
     "omega3_index":     ["season"],
 }

@@ -255,13 +255,13 @@ export function buildRegimeDrivers(
 // when estimating causal effects — what we tell users we "control for."
 
 export const CONFOUNDERS_BY_OUTCOME: Record<string, string[]> = {
-  training_volume: ['season', 'location', 'is_weekend'],
-  vitamin_d: ['season'],
+  training_volume: ['season', 'location', 'is_weekend', 'heat_index'],
+  vitamin_d: ['season', 'uv_index'],
   testosterone: ['season', 'vitamin_d'],
-  sleep_duration: ['season', 'is_weekend'],
-  sleep_quality: ['location', 'travel_load'],
-  hrv_daily: ['travel_load'],
-  resting_hr: ['travel_load'],
+  sleep_duration: ['season', 'is_weekend', 'temp_c'],
+  sleep_quality: ['location', 'travel_load', 'temp_c', 'humidity_pct'],
+  hrv_daily: ['travel_load', 'heat_index'],
+  resting_hr: ['travel_load', 'heat_index'],
   bedtime: ['is_weekend'],
   omega3_index: ['season'],
 }
@@ -272,6 +272,11 @@ const CONFOUNDER_LABELS: Record<string, string> = {
   is_weekend: 'Weekend effect',
   travel_load: 'Travel load',
   vitamin_d: 'Vitamin D status',
+  heat_index: 'Heat index',
+  temp_c: 'Temperature',
+  humidity_pct: 'Humidity',
+  uv_index: 'UV index',
+  aqi: 'Air quality',
 }
 
 function seasonForDate(date: Date): string {
@@ -297,6 +302,24 @@ function confounderValue(
     // travel_load isn't in the engine's load summary (LOAD_COLUMNS doesn't
     // include it) — it's a BART confounder only. Show without a value.
     return undefined
+  }
+  // Weather confounders — resolve from participant.weather_today.
+  const wt = participant.weather_today
+  if (!wt) return undefined
+  if (key === 'heat_index' && wt.heat_index_c != null) {
+    return `${Math.round(wt.heat_index_c)}°C`
+  }
+  if (key === 'temp_c' && wt.temp_c != null) {
+    return `${Math.round(wt.temp_c)}°C`
+  }
+  if (key === 'humidity_pct' && wt.humidity_pct != null) {
+    return `${Math.round(wt.humidity_pct)}%`
+  }
+  if (key === 'uv_index' && wt.uv_index != null) {
+    return wt.uv_index.toFixed(1)
+  }
+  if (key === 'aqi' && wt.aqi != null) {
+    return Math.round(wt.aqi).toString()
   }
   return undefined
 }

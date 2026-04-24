@@ -55,7 +55,13 @@ from .protocols import (
 )
 from .reconcile import compute_regime_activations
 from .transform import compute_acwr, compute_sleep_debt
-from .loads import compute_loads_summary, compute_loads_history, compute_regimes_history
+from .loads import (
+    compute_loads_summary,
+    compute_loads_history,
+    compute_regimes_history,
+    weather_for_day,
+    weather_history,
+)
 from .scheduler import (
     compute_release_schedule, releases_to_dicts,
     release_count_warnings, release_count_distribution,
@@ -532,6 +538,8 @@ def _export_one(
     loads_summary: dict[str, dict[str, float]] | None = None,
     loads_history: dict[str, list[float]] | None = None,
     regimes_history: dict[str, list[float]] | None = None,
+    weather_today: dict[str, float] | None = None,
+    weather_history_cols: dict[str, list[float]] | None = None,
 ) -> dict:
     """Build the full per-participant record.
 
@@ -594,6 +602,8 @@ def _export_one(
         "loads_today": loads_summary or {},
         "loads_history": loads_history or {},
         "regimes_history": regimes_history or {},
+        "weather_today": weather_today or {},
+        "weather_history": weather_history_cols or {},
         "release_schedule": releases_to_dicts(releases),
         "exploration_recommendations": exploration_recommendations,
     }
@@ -748,6 +758,16 @@ def main():
             current_vals, behavioral_sds, loads_summary = {}, {}, {}
             loads_history = {}
 
+        # Weather (synthetic-but-structurally-real placeholder). Keyed
+        # on the canonical cohort ID so cohort_a = Delhi pattern,
+        # cohort_b = Abu Dhabi, cohort_c = temperate. Day-of-year is
+        # the current calendar day so the seasonal sinusoid tracks
+        # whenever the exporter runs.
+        import datetime as _dt
+        _today_doy = _dt.datetime.now().timetuple().tm_yday
+        weather_today = weather_for_day(cohort_id, _today_doy)
+        weather_hist = weather_history(cohort_id, _today_doy, n_days=14)
+
         # Regime inputs: acwr + sleep_debt from lifestyle, ferritin + hscrp from blood.
         p_blood = blood_df[blood_df["participant_id"] == pid]
         day_row = p_blood[p_blood["draw_day"] == eval_day]
@@ -799,6 +819,8 @@ def main():
             loads_summary=loads_summary,
             loads_history=loads_history,
             regimes_history=regimes_history,
+            weather_today=weather_today,
+            weather_history_cols=weather_hist,
         )
         (out_dir / f"participant_{pid:04d}.json").write_text(
             json.dumps(record, indent=2, default=float)

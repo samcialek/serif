@@ -131,6 +131,15 @@ export type LoadKey =
   | 'training_monotony'
   | 'training_consistency'
 
+/** Weather columns emitted alongside loads. Synthetic placeholder today;
+ * shape is production-ready for a real weather API swap. */
+export type WeatherKey =
+  | 'temp_c'
+  | 'humidity_pct'
+  | 'uv_index'
+  | 'heat_index_c'
+  | 'aqi'
+
 export interface LoadValue {
   /** Most recent value for this load. */
   value: number
@@ -199,6 +208,11 @@ export interface ParticipantPortal {
   /** Last 14 days of each regime activation, oldest-first. Last entry
    * matches regime_activations. Drives the yesterday-vs-today pick diff. */
   regimes_history?: Partial<Record<RegimeKey, number[]>>
+  /** Today's weather at the participant's cohort location. Synthetic
+   * placeholder — see backend/serif_scm/loads.py weather_for_day. */
+  weather_today?: Partial<Record<WeatherKey, number>>
+  /** Last 14 days of each weather column, oldest-first. */
+  weather_history?: Partial<Record<WeatherKey, number[]>>
   release_schedule?: ReleaseEntry[]
   exploration_recommendations?: ExplorationRecommendation[]
 }

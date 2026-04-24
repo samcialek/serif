@@ -15,16 +15,100 @@
  * that used to sit above the timeline. One box, three sections.
  */
 
-import { AlertTriangle, Compass } from 'lucide-react'
+import {
+  AlertTriangle,
+  Compass,
+  Droplets,
+  Sun,
+  Thermometer,
+  Wind,
+  type LucideIcon,
+} from 'lucide-react'
 import type {
   LoadKey,
   LoadValue,
   ParticipantPortal,
   RegimeKey,
+  WeatherKey,
 } from '@/data/portal/types'
 import { LoadGrid } from './ContextStrip'
 import { buildConfounderDrivers } from '@/utils/dailyProtocol'
 import { OBJECTIVE_ORON } from '@/utils/twinSem'
+
+const WEATHER_CONFOUNDER_KEYS = new Set([
+  'heat_index',
+  'temp_c',
+  'humidity_pct',
+  'uv_index',
+  'aqi',
+])
+
+interface WeatherChipSpec {
+  key: WeatherKey
+  label: string
+  icon: LucideIcon
+  format: (v: number) => string
+  /** Returns a tint band (good / watch / elevated) based on the value. */
+  band: (v: number) => 'good' | 'watch' | 'elevated'
+  tooltip: (v: number) => string
+}
+
+const WEATHER_CHIPS: WeatherChipSpec[] = [
+  {
+    key: 'heat_index_c',
+    label: 'Heat index',
+    icon: Thermometer,
+    format: (v) => `${Math.round(v)}°C`,
+    band: (v) => (v >= 35 ? 'elevated' : v >= 30 ? 'watch' : 'good'),
+    tooltip: (v) => {
+      if (v >= 35) return 'Extreme — caution for training, sleep, HRV'
+      if (v >= 30) return 'Hot — consider indoor training, lower intensity'
+      return 'Comfortable'
+    },
+  },
+  {
+    key: 'humidity_pct',
+    label: 'Humidity',
+    icon: Droplets,
+    format: (v) => `${Math.round(v)}%`,
+    band: (v) => (v >= 75 ? 'watch' : 'good'),
+    tooltip: (v) => (v >= 75 ? 'High — sleep quality + evaporative cooling impaired' : 'Comfortable'),
+  },
+  {
+    key: 'uv_index',
+    label: 'UV',
+    icon: Sun,
+    format: (v) => v.toFixed(1),
+    band: (v) => (v >= 8 ? 'watch' : 'good'),
+    tooltip: (v) => {
+      if (v >= 8) return 'Very high — sun protection essential outdoors'
+      if (v >= 3) return 'Moderate — protection for extended exposure'
+      return 'Low'
+    },
+  },
+  {
+    key: 'aqi',
+    label: 'AQI',
+    icon: Wind,
+    format: (v) => Math.round(v).toString(),
+    band: (v) => (v >= 150 ? 'elevated' : v >= 100 ? 'watch' : 'good'),
+    tooltip: (v) => {
+      if (v >= 200) return 'Very unhealthy — avoid outdoor training'
+      if (v >= 150) return 'Unhealthy — consider indoor training'
+      if (v >= 100) return 'Unhealthy for sensitive groups'
+      return 'Good'
+    },
+  },
+]
+
+const WEATHER_BAND_STYLES: Record<
+  'good' | 'watch' | 'elevated',
+  { chip: string; icon: string }
+> = {
+  good: { chip: 'bg-slate-50 border-slate-200 text-slate-800', icon: 'text-slate-500' },
+  watch: { chip: 'bg-amber-50 border-amber-200 text-amber-900', icon: 'text-amber-600' },
+  elevated: { chip: 'bg-rose-50 border-rose-200 text-rose-900', icon: 'text-rose-600' },
+}
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'Overreaching',
@@ -63,8 +147,14 @@ export function TodayContext({ participant, activeRegimes, date }: Props) {
     objectiveOutcomes,
     date ?? new Date(),
   )
-  // Only surface confounders with a resolvable value today.
-  const visibleConfounders = confounders.filter((c) => c.value)
+  // Weather gets its own dedicated section below; drop its keys from the
+  // generic "Adjusted for" chip row so we don't duplicate.
+  const visibleConfounders = confounders.filter(
+    (c) => c.value && !WEATHER_CONFOUNDER_KEYS.has(c.key),
+  )
+
+  const weather = participant.weather_today
+  const hasWeather = weather != null && Object.keys(weather).length > 0
 
   return (
     <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-b from-indigo-50/60 to-white overflow-hidden shadow-sm">
@@ -130,7 +220,50 @@ export function TodayContext({ participant, activeRegimes, date }: Props) {
         )}
       </div>
 
-      {/* Adjusted for */}
+      {/* Weather — dedicated section for the biggest environmental confounders */}
+      {hasWeather && (
+        <>
+          <div className="h-px bg-slate-200" />
+          <div className="p-3">
+            <div className="text-[11px] uppercase tracking-wider font-bold text-slate-700 mb-2">
+              Weather
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {WEATHER_CHIPS.map((spec) => {
+                const raw = weather?.[spec.key]
+                if (raw == null) return null
+                const band = spec.band(raw)
+                const styles = WEATHER_BAND_STYLES[band]
+                const Icon = spec.icon
+                return (
+                  <div
+                    key={spec.key}
+                    className={`rounded-lg border px-2.5 py-2 flex items-start gap-2 ${styles.chip}`}
+                    title={`${spec.label}: ${spec.tooltip(raw)}`}
+                  >
+                    <div
+                      className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center bg-white/60`}
+                      aria-hidden
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${styles.icon}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-base font-semibold tabular-nums leading-none">
+                        {spec.format(raw)}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wide font-semibold mt-1 opacity-80">
+                        {spec.label}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Adjusted for (non-weather confounders) */}
       {visibleConfounders.length > 0 && (
         <>
           <div className="h-px bg-slate-200" />

@@ -285,6 +285,145 @@ def compute_loads_summary(
     return out
 
 
+# ── Weather as a causal confounder ──────────────────────────────────
+#
+# SYNTHETIC placeholder. Shape and fields are production-ready (a real
+# weather API would emit the same keys), but the values come from a
+# deterministic sinusoidal model keyed on (cohort, day_of_year), not a
+# live data source. Swap the body of `weather_for_day` for a fetcher
+# against OpenWeatherMap / Visual Crossing / similar when ready — the
+# frontend and downstream causal pipeline don't need to change.
+#
+# Keyed on cohort because Serif's canonical cohort labels map to
+# specific regions (cohort_a = Delhi, cohort_b = Abu Dhabi, cohort_c =
+# remote/temperate). Day of year drives the seasonal sinusoid.
+
+
+WEATHER_COLUMNS: tuple[str, ...] = (
+    "temp_c",
+    "humidity_pct",
+    "uv_index",
+    "heat_index_c",
+    "aqi",
+)
+
+
+_CITY_PROFILES: dict[str, dict[str, float]] = {
+    # Delhi — humid subtropical; hot summers, smog-heavy winters
+    "cohort_a": {
+        "temp_mean": 25.0,
+        "temp_amp": 11.0,
+        "humidity_mean": 55.0,
+        "humidity_amp": 18.0,
+        "uv_peak": 10.0,
+        "aqi_mean": 180.0,
+        "aqi_winter_bump": 100.0,
+    },
+    # Abu Dhabi — hot desert; extreme summer, mild winter
+    "cohort_b": {
+        "temp_mean": 30.0,
+        "temp_amp": 13.0,
+        "humidity_mean": 50.0,
+        "humidity_amp": 15.0,
+        "uv_peak": 11.0,
+        "aqi_mean": 90.0,
+        "aqi_winter_bump": 20.0,
+    },
+    # Remote / temperate (northern mid-latitude)
+    "cohort_c": {
+        "temp_mean": 15.0,
+        "temp_amp": 12.0,
+        "humidity_mean": 62.0,
+        "humidity_amp": 12.0,
+        "uv_peak": 8.0,
+        "aqi_mean": 40.0,
+        "aqi_winter_bump": 15.0,
+    },
+}
+
+
+def _season_phase(day_of_year: int) -> float:
+    """Return a phase in [-1, 1] where +1 is northern-hemisphere summer
+    peak (mid-July, day ~196) and -1 is winter trough (mid-January)."""
+    import math
+    # Peak summer ~ day 196; use cos centered there.
+    return math.cos(2.0 * math.pi * ((day_of_year - 196) / 365.25))
+
+
+def _daily_jitter(cohort: str, day_of_year: int, which: str) -> float:
+    """Deterministic small perturbation in [-1, 1] for day-to-day
+    variation. Hash-based so the same (cohort, day, which) always
+    returns the same value."""
+    import hashlib
+    key = f"{cohort}:{day_of_year}:{which}".encode("utf-8")
+    h = int(hashlib.md5(key).hexdigest()[:8], 16)
+    return (h / 0xFFFFFFFF) * 2.0 - 1.0
+
+
+def _heat_index(temp_c: float, humidity_pct: float) -> float:
+    """Simplified heat-index: temp plus a humidity premium that kicks
+    in above 27°C. Close enough to Steadman for demo purposes."""
+    if temp_c < 27.0:
+        return temp_c
+    # ~0.08°C bump per % humidity above 40% when hot.
+    excess_rh = max(0.0, humidity_pct - 40.0)
+    return temp_c + 0.08 * excess_rh * ((temp_c - 27.0) / 13.0)
+
+
+def weather_for_day(cohort: str, day_of_year: int) -> dict[str, float]:
+    """Synthetic daily weather for (cohort, day_of_year).
+
+    Returns: temp_c, humidity_pct, uv_index, heat_index_c, aqi.
+    Deterministic — same inputs always yield the same values.
+    """
+    profile = _CITY_PROFILES.get(cohort) or _CITY_PROFILES["cohort_c"]
+    phase = _season_phase(day_of_year)  # +1 summer, -1 winter
+
+    temp_c = profile["temp_mean"] + profile["temp_amp"] * phase
+    temp_c += 2.5 * _daily_jitter(cohort, day_of_year, "temp")
+
+    humidity_pct = profile["humidity_mean"] + profile["humidity_amp"] * phase
+    humidity_pct += 6.0 * _daily_jitter(cohort, day_of_year, "humid")
+    humidity_pct = max(15.0, min(95.0, humidity_pct))
+
+    # UV peaks with the sun; positive phase = higher UV, winter floor ≈ 2.
+    uv_index = max(2.0, profile["uv_peak"] * max(0.25, (phase + 1) / 2))
+    uv_index += 0.6 * _daily_jitter(cohort, day_of_year, "uv")
+    uv_index = max(0.0, uv_index)
+
+    heat_index_c = _heat_index(temp_c, humidity_pct)
+
+    # AQI rises in winter (inversion layers trap pollutants).
+    winter_weight = max(0.0, -phase)
+    aqi = profile["aqi_mean"] + profile["aqi_winter_bump"] * winter_weight
+    aqi += 15.0 * _daily_jitter(cohort, day_of_year, "aqi")
+    aqi = max(5.0, aqi)
+
+    return {
+        "temp_c":       round(float(temp_c), 1),
+        "humidity_pct": round(float(humidity_pct), 0),
+        "uv_index":     round(float(uv_index), 1),
+        "heat_index_c": round(float(heat_index_c), 1),
+        "aqi":          round(float(aqi), 0),
+    }
+
+
+def weather_history(
+    cohort: str, today_day_of_year: int, n_days: int = 14,
+) -> dict[str, list[float]]:
+    """Per-column last-N-days weather series, oldest-first. Last entry
+    matches weather_for_day(cohort, today_day_of_year)."""
+    cols: dict[str, list[float]] = {c: [] for c in WEATHER_COLUMNS}
+    start = today_day_of_year - n_days + 1
+    for d in range(start, today_day_of_year + 1):
+        # Wrap to 1..365 for negative edge cases.
+        doy = ((d - 1) % 365) + 1
+        w = weather_for_day(cohort, doy)
+        for c in WEATHER_COLUMNS:
+            cols[c].append(float(w[c]))
+    return cols
+
+
 def compute_loads_history(
     life_df_pid: pd.DataFrame,
     n_days: int = 14,
