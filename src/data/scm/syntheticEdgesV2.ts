@@ -14,6 +14,7 @@
  * Phase 1c will add `resistance_training_minutes`.
  */
 
+import type { InsightBayesian } from '@/data/portal/types'
 import type { SyntheticEdgeSpec } from './syntheticEdges'
 
 // ─── Phase 1a · Quiet-outcome edges ────────────────────────────────
@@ -225,11 +226,86 @@ const SLEEP_QUALITY_EDGES: SyntheticEdgeSpec[] = [
 
 // ─── Phase 1c · Resistance training ─────────────────────────────────
 //
-// `resistance_training_minutes` (per week) is the biggest longevity
-// lever absent from the canonical action set. Edges below are sized
+// Bedroom-temperature edges sit before the resistance-training block.
 // for the widget's [0, 180] min/wk range — i.e. 0 to ~6 sessions/wk
-// of moderate strength training.
 
+// Phase 1b.1 - bedroom temperature as a sleep-environment lever.
+//
+// This is intentionally a synthetic-prior example: if a participant has
+// Ecobee/Nest/Eight Sleep/Oura ambient data, the same action key can be
+// replaced by person-specific fitted edges. Until then it gives the Twin a
+// biologically plausible prior with an optimal window around 21-22 C and a
+// steeper heat penalty than cold penalty.
+
+// Bedroom temperature: thermoneutral-window response with a flat
+// plateau between 19.5 and 23.5 C (the literature's safe range) and
+// asymmetric quadratic roll-off — heat penalty steeper than cold.
+// Replaces the earlier sharp inverted_u peaked at 21.5 which made small
+// deviations look much more dramatic than they are.
+const BEDROOM_TEMPERATURE_EDGES: SyntheticEdgeSpec[] = [
+  {
+    action: 'bedroom_temp_c',
+    outcome: 'sleep_efficiency',
+    mean: 0.30,
+    shape: {
+      kind: 'thermoneutral_window',
+      peakLow: 19.5, peakHigh: 23.5,
+      amplitude: 36.5,
+      halfBelow: 5.0, halfAbove: 3.5,
+    },
+    pathway: 'wearable',
+    horizonDays: 3,
+    rationale:
+      'Bedroom temperature has a thermoneutral sleep window of roughly 19.5-23.5 C — inside it, sleep efficiency is essentially flat. Cooler rooms below the window modestly fragment sleep; warmer rooms impair nocturnal heat dissipation more steeply.',
+  },
+  {
+    action: 'bedroom_temp_c',
+    outcome: 'deep_sleep',
+    mean: 0.28,
+    shape: {
+      kind: 'thermoneutral_window',
+      peakLow: 19.5, peakHigh: 23.5,
+      amplitude: 75,
+      halfBelow: 5.0, halfAbove: 3.0,
+    },
+    pathway: 'wearable',
+    horizonDays: 3,
+    rationale:
+      'Slow-wave sleep depends on the normal nocturnal core-temperature drop. The thermoneutral plateau covers the range over which the cooling phase proceeds normally; outside it the curve falls — heat side faster because it directly opposes cooling.',
+  },
+  {
+    action: 'bedroom_temp_c',
+    outcome: 'rem_sleep',
+    mean: 0.22,
+    shape: {
+      kind: 'thermoneutral_window',
+      peakLow: 19.5, peakHigh: 23.5,
+      amplitude: 47,
+      halfBelow: 5.0, halfAbove: 3.5,
+    },
+    pathway: 'wearable',
+    horizonDays: 3,
+    rationale:
+      'REM is sensitive to thermal stress because thermoregulation is blunted during REM. Inside the thermoneutral window the effect is flat; the curve falls faster on the warm side.',
+  },
+  {
+    action: 'bedroom_temp_c',
+    outcome: 'hrv_daily',
+    mean: 0.20,
+    shape: {
+      kind: 'thermoneutral_window',
+      peakLow: 19.5, peakHigh: 23.5,
+      amplitude: 30,
+      halfBelow: 5.5, halfAbove: 4.0,
+    },
+    pathway: 'wearable',
+    horizonDays: 4,
+    rationale:
+      'Thermal sleep stress raises autonomic load overnight. The 19.5-23.5 C plateau models a wide recovery-optimal range; warm nights suppress next-day RMSSD more than mildly cool nights.',
+  },
+]
+
+// Resistance training edges are sized for the widget's [0, 180] min/wk range.
 const RESISTANCE_EDGES: SyntheticEdgeSpec[] = [
   {
     action: 'resistance_training_minutes',
@@ -459,6 +535,122 @@ const SUPPLEMENTATION_EDGES: SyntheticEdgeSpec[] = [
 // intensity — but real, and crucially the only effect available at
 // Z1 levels of exertion.
 
+// Quotidian sleep aids (binary evening protocol toggles). These are deliberately
+// weak, wide priors: they are fast enough to simulate in the Quotidian Twin, but
+// the true effect is highly timing-, phenotype-, and deficiency-dependent. The
+// physical-unit `shape` drives Twin counterfactuals; normalized `mean` is only a
+// visual prior. `nominalEffect` keeps Insights in outcome units.
+const QUOTIDIAN_SUPPLEMENTATION_EDGES: SyntheticEdgeSpec[] = [
+  {
+    action: 'supp_melatonin',
+    outcome: 'sleep_onset_latency',
+    mean: -0.055,
+    nominalEffect: -5.0,
+    priorSd: 4.0,
+    shape: { kind: 'linear', slope: -5.0 },
+    pathway: 'wearable',
+    horizonDays: 2,
+    rationale:
+      'Low-dose melatonin taken before bed has a modest average sleep-latency effect; centered near -5 min with wide uncertainty because timing, circadian delay, and light exposure dominate response.',
+  },
+  {
+    action: 'supp_melatonin',
+    outcome: 'sleep_efficiency',
+    mean: 0.012,
+    nominalEffect: 0.6,
+    priorSd: 1.2,
+    shape: { kind: 'linear', slope: 0.6 },
+    pathway: 'wearable',
+    horizonDays: 3,
+    rationale:
+      'Any efficiency gain should be small: melatonin mainly shifts sleep onset, with objective sleep-time/continuity effects often modest or absent.',
+  },
+  {
+    action: 'supp_melatonin',
+    outcome: 'hrv_daily',
+    mean: 0.004,
+    nominalEffect: 0.5,
+    priorSd: 2.0,
+    shape: { kind: 'linear', slope: 0.5 },
+    pathway: 'wearable',
+    horizonDays: 4,
+    rationale:
+      'HRV is modeled only as a tiny indirect downstream recovery prior, not a direct melatonin effect; personal wearable response should dominate quickly.',
+  },
+  {
+    action: 'supp_l_theanine',
+    outcome: 'sleep_onset_latency',
+    mean: -0.017,
+    nominalEffect: -1.5,
+    priorSd: 3.0,
+    shape: { kind: 'linear', slope: -1.5 },
+    pathway: 'wearable',
+    horizonDays: 2,
+    rationale:
+      'L-theanine has mixed human sleep evidence; centered as a very small latency benefit, most plausible in high-rumination or high-evening-arousal phenotypes.',
+  },
+  {
+    action: 'supp_l_theanine',
+    outcome: 'sleep_efficiency',
+    mean: 0.004,
+    nominalEffect: 0.2,
+    priorSd: 1.0,
+    shape: { kind: 'linear', slope: 0.2 },
+    pathway: 'wearable',
+    horizonDays: 3,
+    rationale:
+      'Sleep-efficiency evidence is weak and not consistently objective, so the prior is close to zero until personal nights accumulate.',
+  },
+  {
+    action: 'supp_l_theanine',
+    outcome: 'hrv_daily',
+    mean: 0.002,
+    nominalEffect: 0.3,
+    priorSd: 2.0,
+    shape: { kind: 'linear', slope: 0.3 },
+    pathway: 'wearable',
+    horizonDays: 4,
+    rationale:
+      'Modeled as a tiny indirect autonomic prior rather than a confident HRV intervention; uncertainty is intentionally wider than the mean.',
+  },
+  {
+    action: 'supp_zinc',
+    outcome: 'sleep_efficiency',
+    mean: 0.005,
+    nominalEffect: 0.25,
+    priorSd: 1.2,
+    shape: { kind: 'linear', slope: 0.25 },
+    pathway: 'wearable',
+    horizonDays: 28,
+    rationale:
+      'Zinc is a slow, likely deficiency-dependent sleep-quality prior, not an acute sleep aid; effect is near zero unless low-zinc/inflammatory context supports it.',
+  },
+  {
+    action: 'supp_zinc',
+    outcome: 'deep_sleep',
+    mean: 0.006,
+    nominalEffect: 1.0,
+    priorSd: 5.0,
+    shape: { kind: 'linear', slope: 1.0 },
+    pathway: 'wearable',
+    horizonDays: 28,
+    rationale:
+      'Any slow-wave sleep effect should be small, slow, and mostly repletion-mediated; the prior is intentionally broad and close to null.',
+  },
+  {
+    action: 'supp_zinc',
+    outcome: 'hrv_daily',
+    mean: 0.001,
+    nominalEffect: 0.2,
+    priorSd: 2.0,
+    shape: { kind: 'linear', slope: 0.2 },
+    pathway: 'wearable',
+    horizonDays: 28,
+    rationale:
+      'Only a trace indirect HRV prior is retained for possible recovery-load resolution in deficient users; otherwise this should wash out with personal data.',
+  },
+]
+
 const NEAT_EDGES: SyntheticEdgeSpec[] = [
   {
     action: 'steps',
@@ -556,8 +748,10 @@ const NEAT_EDGES: SyntheticEdgeSpec[] = [
 export const PHASE_2_EDGES: SyntheticEdgeSpec[] = [
   ...QUIET_OUTCOME_EDGES,
   ...SLEEP_QUALITY_EDGES,
+  ...BEDROOM_TEMPERATURE_EDGES,
   ...RESISTANCE_EDGES,
   ...SUPPLEMENTATION_EDGES,
+  ...QUOTIDIAN_SUPPLEMENTATION_EDGES,
   ...NEAT_EDGES,
 ]
 
@@ -565,15 +759,20 @@ export const PHASE_2_EDGES: SyntheticEdgeSpec[] = [
  *  ranges from `ACTION_SPAN` in `syntheticEdges.ts`.
  *
  *  Supplements are binary [0, 1] — the action is "are you taking it?". The
- *  efficacious dose is encoded in the edge `mean` magnitude, not the span. */
+ *  expected physical effect is encoded on each edge's `shape`/`nominalEffect`,
+ *  not through the action span. */
 export const V2_ACTION_SPAN: Record<string, [number, number]> = {
   sleep_quality: [60, 100],
+  bedroom_temp_c: [16, 27],
   resistance_training_minutes: [0, 180],
   supp_omega3: [0, 1],
   supp_magnesium: [0, 1],
   supp_vitamin_d: [0, 1],
   supp_b_complex: [0, 1],
   supp_creatine: [0, 1],
+  supp_melatonin: [0, 1],
+  supp_l_theanine: [0, 1],
+  supp_zinc: [0, 1],
 }
 
 /** Outcome ranges for v2 outcomes the v1 OUTCOME_SPAN doesn't cover. */
@@ -581,4 +780,54 @@ export const V2_OUTCOME_SPAN: Record<string, [number, number]> = {
   uric_acid: [3, 10],
   homocysteine: [4, 20],
   magnesium_rbc: [3, 7],
+}
+
+function horizonDisplay(days: number): string {
+  if (days <= 21) return `${days} days`
+  if (days < 60) return `${Math.round(days / 7)} weeks`
+  return `${Math.round(days / 30)} months`
+}
+
+/** Expand Phase-2 synthetic priors into Insight rows so they are visible as
+ *  population/literature edges until enough personal data exists to replace
+ *  them with fitted participant-specific edges. */
+export function buildPhase2SyntheticEdges(): InsightBayesian[] {
+  return PHASE_2_EDGES.map((spec) => {
+    const effect = spec.nominalEffect ?? spec.mean
+    const sd = spec.priorSd ?? 0.5
+    return {
+      action: spec.action,
+      outcome: spec.outcome,
+      pathway: spec.pathway,
+      evidence_tier: 'cohort_level' as const,
+      literature_backed: true,
+      prior_provenance: 'synthetic+literature' as const,
+      horizon_days: spec.horizonDays,
+      horizon_display: horizonDisplay(spec.horizonDays),
+      supporting_data_description: spec.rationale,
+      nominal_step: 1,
+      dose_multiplier: 1,
+      dose_multiplier_raw: 1,
+      direction_conflict: false,
+      dose_bounded: false,
+      unbounded_dose_multiplier: 1,
+      unbounded_scaled_effect: effect,
+      scaled_effect: effect,
+      posterior: {
+        mean: effect,
+        variance: sd * sd,
+        sd,
+        contraction: 0.5,
+        prior_mean: effect,
+        prior_variance: sd * sd,
+        source: 'literature' as const,
+        lam_js: 0.5,
+        n_cohort: 0,
+        z_like: 0,
+      },
+      cohort_prior: null,
+      user_obs: null,
+      gate: { score: 0.5, tier: 'possible' as const },
+    }
+  })
 }

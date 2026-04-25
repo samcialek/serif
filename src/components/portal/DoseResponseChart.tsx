@@ -318,17 +318,23 @@ function shapeName(shape: { kind: string }): string {
     case 'inverted_u':
     case 'smooth_inverted_u':
       return 'inverted-U (optimum)'
+    case 'thermoneutral_window':
+      return 'thermoneutral window (tolerance band)'
     default: return ''
   }
 }
 
 function formatX(action: string): (n: number) => string {
-  if (action === 'bedtime' || action === 'caffeine_cutoff') {
+  if (action === 'bedtime' || action === 'caffeine_cutoff' || action === 'caffeine_timing' || action === 'alcohol_timing') {
     return (n) => `${n.toFixed(1)}h`
   }
+  if (action === 'bedroom_temp_c') return (n) => `${n.toFixed(1)} C`
   if (action === 'sleep_duration' || action === 'training_volume') {
     return (n) => `${n.toFixed(1)}h`
   }
+  if (action === 'sleep_quality') return (n) => `${n.toFixed(0)}`
+  if (action === 'resistance_training_minutes') return (n) => `${Math.round(n)}`
+  if (action.startsWith('supp_')) return (n) => (n >= 0.5 ? 'on' : 'off')
   if (action === 'caffeine_mg' || action === 'training_load' || action === 'active_energy') {
     return (n) => `${Math.round(n)}`
   }

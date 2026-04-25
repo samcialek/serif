@@ -68,6 +68,25 @@ export type SyntheticShape =
       slopeUp: number
       slopeDown: number
     }
+  | {
+      /** Tolerance-band response: a flat plateau between [peakLow,
+       *  peakHigh] with asymmetric quadratic roll-off outside it. Use
+       *  for actions where there's a "safe range" rather than a single
+       *  optimum — bedroom temperature, where the literature shows a
+       *  thermoneutral sleep window of roughly 19.5-23.5 C. Heat
+       *  penalty is typically steeper than cold penalty, so halfAbove
+       *  < halfBelow.
+       *
+       *    inside  [peakLow, peakHigh]           : amplitude (flat)
+       *    below   peakLow                       : amplitude × (1 − ((peakLow − x)/halfBelow)²)
+       *    above   peakHigh                      : amplitude × (1 − ((x − peakHigh)/halfAbove)²) */
+      kind: 'thermoneutral_window'
+      peakLow: number
+      peakHigh: number
+      amplitude: number
+      halfBelow: number
+      halfAbove: number
+    }
 
 export interface SyntheticEdgeSpec {
   action: string
@@ -81,6 +100,12 @@ export interface SyntheticEdgeSpec {
    *  from the shape; this field stays for legacy edges and as a tooltip
    *  fallback when shape is not yet calibrated. */
   mean: number
+  /** Optional effect at the nominal intervention step, in the outcome's
+   *  physical units. Use this for Insight rows when `shape` carries a
+   *  physical-unit SCM slope but `mean` remains a normalized visual weight. */
+  nominalEffect?: number
+  /** Optional prior SD in the same physical units as `nominalEffect`. */
+  priorSd?: number
   pathway: 'wearable' | 'biomarker'
   horizonDays: number
   /** Short rationale — surfaced in InsightRow tooltips as the
@@ -383,7 +408,8 @@ function horizonDisplay(days: number): string {
  *  into participant.effects_bayesian before buildGraph runs. */
 export function buildPhase1SyntheticEdges(): InsightBayesian[] {
   return PHASE_1_EDGES.map((spec) => {
-    const sd = 0.5
+    const effect = spec.nominalEffect ?? spec.mean
+    const sd = spec.priorSd ?? 0.5
     return {
       action: spec.action,
       outcome: spec.outcome,
@@ -402,14 +428,14 @@ export function buildPhase1SyntheticEdges(): InsightBayesian[] {
       direction_conflict: false,
       dose_bounded: false,
       unbounded_dose_multiplier: 1,
-      unbounded_scaled_effect: spec.mean,
-      scaled_effect: spec.mean,
+      unbounded_scaled_effect: effect,
+      scaled_effect: effect,
       posterior: {
-        mean: spec.mean,
+        mean: effect,
         variance: sd * sd,
         sd,
         contraction: 0.5,
-        prior_mean: spec.mean,
+        prior_mean: effect,
         prior_variance: sd * sd,
         source: 'literature',
         lam_js: 0.5,
@@ -539,6 +565,17 @@ function shapeToEquationParams(
       return { curveType: 'smooth_saturating', bb: shape.asymptote, ba: 0, theta: shape.halfDose }
     case 'inverted_u':
       return { curveType: 'linear', bb: shape.slopeUp, ba: shape.slopeDown, theta: shape.peak }
+    case 'thermoneutral_window': {
+      // Engine doesn't have a plateau curve type — approximate with a
+      // piecewise-linear inverted-U knee at the plateau midpoint, with
+      // ascending/descending slopes scaled by amplitude / half. The
+      // chart visualisation evaluates the true thermoneutral_window
+      // shape; the engine just sees a coarser piecewise version.
+      const peak = (shape.peakLow + shape.peakHigh) / 2
+      const slopeUp = shape.amplitude / Math.max(shape.halfBelow, 1e-9)
+      const slopeDown = -shape.amplitude / Math.max(shape.halfAbove, 1e-9)
+      return { curveType: 'linear', bb: slopeUp, ba: slopeDown, theta: peak }
+    }
   }
 }
 

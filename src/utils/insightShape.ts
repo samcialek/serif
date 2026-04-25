@@ -24,10 +24,14 @@
 
 import type { SyntheticShape } from '@/data/scm/syntheticEdges'
 import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
+import { PHASE_2_EDGES } from '@/data/scm/syntheticEdgesV2'
 import type { InsightBayesian } from '@/data/portal/types'
 
 /** Extended shape type used by the Insights v2 curves. Adds
- * smooth_inverted_u on top of the engine's SyntheticShape union. */
+ * smooth_inverted_u on top of the engine's SyntheticShape union.
+ * thermoneutral_window now lives on SyntheticShape itself (used by
+ * bedroom_temp_c PHASE_2 edges directly), so it flows through the
+ * union without a separate entry here. */
 export type InferredShape =
   | SyntheticShape
   | {
@@ -43,10 +47,14 @@ export type InferredShape =
 /** Plot-domain per action — shared with the chart components. */
 export const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
   bedtime: { min: 21.5, max: 24.5 },
+  bedroom_temp_c: { min: 16, max: 27 },
   sleep_duration: { min: 4, max: 10 },
+  sleep_quality: { min: 60, max: 100 },
   caffeine_mg: { min: 0, max: 600 },
   caffeine_cutoff: { min: 0, max: 14 },
+  caffeine_timing: { min: 0, max: 14 },
   alcohol_units: { min: 0, max: 6 },
+  alcohol_timing: { min: 0, max: 8 },
   zone2_minutes: { min: 0, max: 300 },
   zone2_volume: { min: 0, max: 50 },
   zone4_5_minutes: { min: 0, max: 90 },
@@ -55,8 +63,17 @@ export const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
   running_volume: { min: 0, max: 30 },
   steps: { min: 0, max: 25000 },
   active_energy: { min: 0, max: 3000 },
+  resistance_training_minutes: { min: 0, max: 180 },
   dietary_protein: { min: 30, max: 250 },
   dietary_energy: { min: 1500, max: 4000 },
+  supp_omega3: { min: 0, max: 1 },
+  supp_magnesium: { min: 0, max: 1 },
+  supp_vitamin_d: { min: 0, max: 1 },
+  supp_b_complex: { min: 0, max: 1 },
+  supp_creatine: { min: 0, max: 1 },
+  supp_melatonin: { min: 0, max: 1 },
+  supp_l_theanine: { min: 0, max: 1 },
+  supp_zinc: { min: 0, max: 1 },
   acwr: { min: 0.5, max: 2 },
   sleep_debt: { min: 0, max: 20 },
 }
@@ -68,6 +85,10 @@ const INVERTED_U_ACTIONS = new Set<string>([
   'zone4_5_minutes',
   'acwr',
   'dietary_energy',
+  // bedroom_temp_c was here historically; it's now modelled as a
+  // thermoneutral_window (flat plateau + asymmetric roll-off) on its
+  // PHASE_2 edges, so the synthetic-fallback inverted-U inference no
+  // longer applies.
 ])
 
 /** Evaluate an InferredShape at a given dose. Smooth everywhere — no
@@ -100,6 +121,19 @@ export function evaluateShape(shape: InferredShape, dose: number): number {
       const t = (dose - shape.peakX) / Math.max(shape.halfWidth, 1e-9)
       return shape.amplitude * (1 - t * t)
     }
+    case 'thermoneutral_window': {
+      // Flat amplitude inside the tolerance band; quadratic roll-off
+      // outside, asymmetric (heat penalty steeper than cold).
+      if (dose >= shape.peakLow && dose <= shape.peakHigh) {
+        return shape.amplitude
+      }
+      if (dose < shape.peakLow) {
+        const t = (shape.peakLow - dose) / Math.max(shape.halfBelow, 1e-9)
+        return shape.amplitude * (1 - t * t)
+      }
+      const t = (dose - shape.peakHigh) / Math.max(shape.halfAbove, 1e-9)
+      return shape.amplitude * (1 - t * t)
+    }
   }
 }
 
@@ -117,7 +151,7 @@ function lookupExplicitShape(
 ): SyntheticShape | null {
   const spec = PHASE_1_EDGES.find(
     (e) => e.action === action && e.outcome === outcome,
-  )
+  ) ?? PHASE_2_EDGES.find((e) => e.action === action && e.outcome === outcome)
   return spec?.shape ?? null
 }
 
