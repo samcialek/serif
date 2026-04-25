@@ -119,11 +119,37 @@ class RegimeStatus:
     margin: float           # distance from threshold (positive = safe)
     warning: str            # human-readable
 
+# Per-regime sigmoid steepness — calibrated so a +1 transition_width
+# move past the threshold lifts activation from 0.5 to ~0.9. The
+# previous code hardcoded a single steepness of 5.0 for "above"
+# regimes, which was right for acwr (where ±0.3 is meaningful) but
+# absurdly steep for sleep_debt (where ±5 hours is meaningful) — the
+# sigmoid saturated to 1.0 at sleep_debt = 6 h. Each regime now picks
+# a steepness scaled to its real-world unit.
+#
+#   activation = 1 / (1 + exp(-steepness * (current - threshold)))   for "above"
+#   activation = 1 / (1 + exp(+steepness * (current - threshold)))   for "below"
+#
+# Rule of thumb: steepness = ln(9) / transition_width  (so at threshold +
+# transition_width, activation = 0.9).
 REGIME_THRESHOLDS = {
-    "overreaching":      {"input_node": "acwr",       "threshold": 1.5, "direction": "above",  "label": "Overreaching"},
-    "iron_deficiency":   {"input_node": "ferritin",   "threshold": 30,  "direction": "below",  "label": "Iron Deficiency"},
-    "sleep_deprivation": {"input_node": "sleep_debt",  "threshold": 5.0, "direction": "above",  "label": "Sleep Deprivation"},
-    "inflammation":      {"input_node": "hscrp",      "threshold": 3.0, "direction": "above",  "label": "Inflammation"},
+    # acwr 1.5 → 1.8 is the meaningful transition (≈0.3 h); steepness
+    # ≈ ln(9)/0.3 ≈ 7.3.
+    "overreaching":      {"input_node": "acwr",       "threshold": 1.5, "direction": "above",
+                          "steepness": 7.3, "label": "Overreaching"},
+    # ferritin 30 → 20 ng/mL is the depletion gradient (≈10 ng/mL);
+    # steepness ≈ ln(9)/10 ≈ 0.22 — matches the old hardcoded 0.2.
+    "iron_deficiency":   {"input_node": "ferritin",   "threshold": 30,  "direction": "below",
+                          "steepness": 0.22, "label": "Iron Deficiency"},
+    # sleep_debt 5 → 10 h is the meaningful transition (≈5 h);
+    # steepness ≈ ln(9)/5 ≈ 0.44. The OLD value was 5.0 — that's why
+    # Caspian was pegged at 100%.
+    "sleep_deprivation": {"input_node": "sleep_debt",  "threshold": 5.0, "direction": "above",
+                          "steepness": 0.44, "label": "Sleep Deprivation"},
+    # hscrp 3 → 5 mg/L is the borderline-elevated → high transition
+    # (≈2 mg/L); steepness ≈ ln(9)/2 ≈ 1.1.
+    "inflammation":      {"input_node": "hscrp",      "threshold": 3.0, "direction": "above",
+                          "steepness": 1.1, "label": "Inflammation"},
 }
 
 
@@ -133,13 +159,14 @@ def check_regime_proximity(observed: dict[str, float]) -> list[RegimeStatus]:
     for key, cfg in REGIME_THRESHOLDS.items():
         current = observed.get(cfg["input_node"], 0.0)
         threshold = cfg["threshold"]
+        steepness = float(cfg.get("steepness", 1.0))
 
         if cfg["direction"] == "above":
             margin = threshold - current  # positive = safe
-            activation = 1.0 / (1.0 + math.exp(-5.0 * (current - threshold)))
+            activation = 1.0 / (1.0 + math.exp(-steepness * (current - threshold)))
         else:
             margin = current - threshold  # positive = safe
-            activation = 1.0 / (1.0 + math.exp(0.2 * (current - threshold)))
+            activation = 1.0 / (1.0 + math.exp(steepness * (current - threshold)))
 
         if margin < 0:
             warning = f"ACTIVE: {cfg['label']} triggered ({cfg['input_node']}={current:.1f}, threshold={threshold})"

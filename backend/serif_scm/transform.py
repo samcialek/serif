@@ -67,8 +67,16 @@ def compute_acwr(daily_loads: list[float], day_idx: int) -> float:
     return float(mean_acute / mean_chronic)
 
 
-def compute_sleep_debt(daily_sleep: list[float], day_idx: int, target: float = 8.0) -> float:
-    """Rolling 14-day cumulative sleep deficit (hours below target)."""
+def compute_sleep_debt(daily_sleep: list[float], day_idx: int, target: float = 7.5) -> float:
+    """Rolling 14-day cumulative sleep deficit (hours below target).
+
+    Default target is 7.5h — aligned with `loads.sleep_debt_14d` so the
+    regime classifier and the displayed load chip read the same metric.
+    Previously this defaulted to 8.0h while loads used 7.5h; the
+    divergence inflated Caspian's regime activation while the load chip
+    showed a small debt. CDC + AASM recommend 7+ hours for adults; 7.5
+    is the right baseline for a non-clinical "you're slipping" trigger.
+    """
     start = max(0, day_idx - 13)
     window = daily_sleep[start:day_idx + 1]
     deficits = [max(0, target - s) for s in window]
