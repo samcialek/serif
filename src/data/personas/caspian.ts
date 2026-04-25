@@ -14,7 +14,7 @@ export const caspianPersona: Persona = {
   avatar: `${import.meta.env.BASE_URL}CaspianR.png?v=2`,
   persona: 'Triathlete optimizing iron status & endurance performance',
   age: 38,
-  archetype: 'The Iron-Depleted Endurance Athlete',
+  archetype: 'Endurance Athlete with Iron-Limited Performance',
   narrative: 'Elite-level triathlete with exceptional VO2peak (52 ml/min/kg) but critically low iron status threatening performance. 9+ years of GPS workout data reveal training patterns driving iron depletion.',
   daysOfData: 4012, // 2015-02-13 to 2026-02-07 = 4012 days
   devices: ['bloodwork', 'gpx', 'medix-cpet', 'apple-watch', 'autosleep'],
