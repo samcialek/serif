@@ -233,6 +233,35 @@ def build_participant_state(
     p_adh = adherence_df[adherence_df["participant_id"] == pid]
     mean_adherence = float(p_adh["adherence_score"].mean())
 
+    # ── Weather context (for BART backdoor confounding) ──
+    # Caspian (pid=1, cohort_a) gets real Tel Aviv weather; everyone else
+    # falls back to the cohort-keyed synthetic. Weather columns end up
+    # in build_outcome_values' union so CONFOUNDERS_BY_OUTCOME entries
+    # (e.g., temp_c, humidity_pct, heat_index, aqi) resolve to real values
+    # at fit time. Honest caveat: with synthetic per-cohort weather for
+    # 1187 / 1188 participants, BART can only fit weather effects across
+    # 3 cohort profiles — within-cohort weather variance is zero.
+    # Real causal lift requires real weather for all participants OR a
+    # within-Caspian time-series fit; this wiring is the foundation for
+    # either path.
+    import datetime as _dt
+    from .loads import weather_for_day, real_weather_for_date
+    weather_state: dict[str, float] = {}
+    cohort_id = meta["cohort"]
+    today_doy = _dt.datetime.now().timetuple().tm_yday
+    real_w = None
+    if pid == 1 and cohort_id == "cohort_a":
+        real_w = real_weather_for_date(_dt.date(2026, 2, 7), cohort_id)
+    if real_w is None:
+        real_w = weather_for_day(cohort_id, today_doy)
+    weather_state.update({
+        "temp_c":       float(real_w["temp_c"]),
+        "humidity_pct": float(real_w["humidity_pct"]),
+        "heat_index":   float(real_w["heat_index_c"]),
+        "uv_index":     float(real_w["uv_index"]),
+        "aqi":          float(real_w["aqi"]),
+    })
+
     return {
         **meta,
         "day1_blood":           day1_blood,
@@ -243,6 +272,7 @@ def build_participant_state(
         "baseline_wearable":    baseline_wearable,
         "derived":              derived,
         "baseline_derived":     baseline_derived,
+        "weather_state":        weather_state,
         "mean_adherence":       mean_adherence,
     }
 

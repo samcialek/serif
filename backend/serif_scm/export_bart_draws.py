@@ -163,6 +163,11 @@ def build_outcome_values(state: dict) -> dict[str, float]:
     obs.update(state.get("behavioral_state", {}))
     obs.update(state.get("derived", {}))
     obs.update(state.get("wearable_state", {}))
+    # Weather columns (temp_c, humidity_pct, heat_index, uv_index, aqi)
+    # — populated by transform.build_participant_state. Lets BART pick
+    # up the CONFOUNDERS_BY_OUTCOME entries that reference weather as
+    # backdoor adjustments.
+    obs.update(state.get("weather_state", {}))
     for dag_name, state_name in NODE_ALIASES.items():
         if state_name in obs and dag_name not in obs:
             obs[dag_name] = obs[state_name]
