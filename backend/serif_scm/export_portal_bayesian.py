@@ -61,6 +61,8 @@ from .loads import (
     compute_regimes_history,
     weather_for_day,
     weather_history,
+    real_weather_for_date,
+    real_weather_history_for_date,
 )
 from .scheduler import (
     compute_release_schedule, releases_to_dicts,
@@ -782,15 +784,27 @@ def main():
             current_vals, behavioral_sds, loads_summary = {}, {}, {}
             loads_history = {}
 
-        # Weather (synthetic-but-structurally-real placeholder). Keyed
-        # on the canonical cohort ID so cohort_a = Delhi pattern,
-        # cohort_b = Abu Dhabi, cohort_c = temperate. Day-of-year is
-        # the current calendar day so the seasonal sinusoid tracks
-        # whenever the exporter runs.
+        # Weather. Caspian (pid=1 / cohort_a) gets REAL Tel Aviv data
+        # from backend/data/caspian_weather.csv when the CSV is present;
+        # other participants get the synthetic cohort-keyed pattern. The
+        # CSV ends at 2026-02-07 so we anchor "today" to its last row
+        # for Caspian, not the wall clock — keeps the demo deterministic
+        # and matches the rest of his data window.
         import datetime as _dt
         _today_doy = _dt.datetime.now().timetuple().tm_yday
-        weather_today = weather_for_day(cohort_id, _today_doy)
-        weather_hist = weather_history(cohort_id, _today_doy, n_days=14)
+        weather_today = None
+        weather_hist = None
+        if pid == 1 and cohort_id == "cohort_a":
+            caspian_today = _dt.date(2026, 2, 7)
+            real_today = real_weather_for_date(caspian_today, cohort_id)
+            if real_today is not None:
+                weather_today = real_today
+                weather_hist = real_weather_history_for_date(
+                    caspian_today, cohort_id, n_days=14,
+                )
+        if weather_today is None:
+            weather_today = weather_for_day(cohort_id, _today_doy)
+            weather_hist = weather_history(cohort_id, _today_doy, n_days=14)
 
         # Regime inputs: acwr + sleep_debt from lifestyle, ferritin + hscrp from blood.
         p_blood = blood_df[blood_df["participant_id"] == pid]

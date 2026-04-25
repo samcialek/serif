@@ -424,6 +424,102 @@ def weather_history(
     return cols
 
 
+# ── Real-data overrides (Caspian / pid=1) ─────────────────────────
+
+# Cached lookup of caspian_weather.csv keyed by ISO date string. Lazy
+# loaded; None when the file isn't present (so the synthetic path keeps
+# working in dev environments without the CSV).
+_CASPIAN_WEATHER_CACHE: dict[str, dict[str, float]] | None = None
+
+
+def _load_caspian_weather() -> dict[str, dict[str, float]] | None:
+    """Load backend/data/caspian_weather.csv into a date-keyed dict.
+    Returns None if the file is missing. Cached across calls."""
+    global _CASPIAN_WEATHER_CACHE
+    if _CASPIAN_WEATHER_CACHE is not None:
+        return _CASPIAN_WEATHER_CACHE
+    from pathlib import Path
+    path = Path(__file__).resolve().parent.parent / "data" / "caspian_weather.csv"
+    if not path.exists():
+        return None
+    df = pd.read_csv(path)
+    out: dict[str, dict[str, float]] = {}
+    for _, row in df.iterrows():
+        out[str(row["date"])] = {
+            "temp_c":       float(row["temp_c"]) if pd.notna(row["temp_c"]) else None,
+            "humidity_pct": float(row["humidity_pct"]) if pd.notna(row["humidity_pct"]) else None,
+            "heat_index_c": float(row["heat_index_c"]) if pd.notna(row["heat_index_c"]) else None,
+            "aqi":          float(row["aqi"]) if pd.notna(row["aqi"]) else None,
+            "sunshine_h":   float(row["sunshine_h"]) if pd.notna(row["sunshine_h"]) else None,
+            # uv_index isn't in the historical archive; left None and
+            # filled by synthetic in real_weather_for_date below.
+        }
+    _CASPIAN_WEATHER_CACHE = out
+    return out
+
+
+def real_weather_for_date(
+    date: "_dt.date | str",
+    cohort: str = "cohort_a",
+) -> dict[str, float] | None:
+    """Real Tel Aviv weather for `date` from caspian_weather.csv. Falls
+    back to synthetic for missing keys (UV always, AQI before
+    2022-07-29). Returns None if the CSV isn't loaded or the date is
+    outside its coverage — caller should fall through to weather_for_day.
+    """
+    import datetime as _dt
+    cache = _load_caspian_weather()
+    if cache is None:
+        return None
+    if isinstance(date, _dt.date):
+        date_str = date.isoformat()
+    else:
+        date_str = str(date)
+    real = cache.get(date_str)
+    if real is None:
+        return None
+    # Day-of-year for the synthetic fallbacks.
+    try:
+        d_obj = _dt.date.fromisoformat(date_str)
+    except ValueError:
+        return None
+    doy = d_obj.timetuple().tm_yday
+    synth = weather_for_day(cohort, doy)
+    return {
+        "temp_c":       round(float(real["temp_c"]), 1) if real["temp_c"] is not None else synth["temp_c"],
+        "humidity_pct": round(float(real["humidity_pct"]), 0) if real["humidity_pct"] is not None else synth["humidity_pct"],
+        "uv_index":     synth["uv_index"],   # historical UV unavailable; synthetic stand-in
+        "heat_index_c": round(float(real["heat_index_c"]), 1) if real["heat_index_c"] is not None else synth["heat_index_c"],
+        "aqi":          round(float(real["aqi"]), 0) if real["aqi"] is not None else synth["aqi"],
+    }
+
+
+def real_weather_history_for_date(
+    end_date: "_dt.date | str",
+    cohort: str = "cohort_a",
+    n_days: int = 14,
+) -> dict[str, list[float]] | None:
+    """Last n_days of real weather ending at end_date. Falls back to
+    synthetic per-day when the date isn't covered. Returns None when
+    the CSV isn't loaded — caller should use weather_history."""
+    import datetime as _dt
+    cache = _load_caspian_weather()
+    if cache is None:
+        return None
+    if isinstance(end_date, str):
+        end_date = _dt.date.fromisoformat(end_date)
+    cols: dict[str, list[float]] = {c: [] for c in WEATHER_COLUMNS}
+    for offset in range(n_days - 1, -1, -1):
+        d = end_date - _dt.timedelta(days=offset)
+        w = real_weather_for_date(d, cohort)
+        if w is None:
+            # Outside the CSV span — fall back to synthetic for that day.
+            w = weather_for_day(cohort, d.timetuple().tm_yday)
+        for c in WEATHER_COLUMNS:
+            cols[c].append(float(w[c]))
+    return cols
+
+
 def compute_loads_history(
     life_df_pid: pd.DataFrame,
     n_days: int = 14,
