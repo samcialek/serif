@@ -63,6 +63,7 @@ from .loads import (
     weather_history,
     real_weather_for_date,
     real_weather_history_for_date,
+    real_weather_location_for_date,
 )
 from .scheduler import (
     compute_release_schedule, releases_to_dicts,
@@ -70,6 +71,7 @@ from .scheduler import (
     RELEASE_COUNT_LOWER, RELEASE_COUNT_UPPER,
 )
 from . import exploration_math, intervention_horizons
+from . import caspian_real
 from .intervention_horizons import (
     WEARABLE_HORIZONS, BIOMARKER_HORIZONS,
     get_horizon, pathway_for, horizon_display,
@@ -262,6 +264,38 @@ def supporting_data_description(pathway: str, evidence_tier: str) -> str:
 # purely from the population data. Keep this list conservative: only include
 # pairs where the literature is both strong AND the effect direction matches
 # the fitted prior (no contradictions between lit and fit).
+def _coverage_share(user_n: int, pathway: str) -> float:
+    """Cadence-aware member row coverage, returned on [0, 1]."""
+    if user_n <= 0:
+        return 0.0
+    half_saturation = 5.0 if pathway == "biomarker" else 30.0
+    return max(0.0, min(1.0, user_n / (user_n + half_saturation)))
+
+
+def _personalization_summary(post, pathway: str, user_n: int) -> dict:
+    """Backend-owned evidence mix for frontend display.
+
+    `member_specific_pct` is a product-facing evidence share, not a literal
+    Bayesian likelihood weight. It combines usable member rows/draws with
+    posterior uncertainty narrowing so daily streams do not look unpersonalized
+    just because the posterior variance tightened modestly.
+    """
+    narrowing = max(0.0, min(1.0, float(post.contraction)))
+    coverage = _coverage_share(user_n, pathway)
+    has_member_signal = user_n > 0 or "user" in str(post.source).lower()
+    member_specific = max(coverage, narrowing) if has_member_signal else 0.0
+    member_specific = max(0.0, min(1.0, member_specific))
+    basis = "member_rows_and_posterior" if has_member_signal else "model_only"
+    return {
+        "member_specific_pct": round(member_specific * 100.0, 1),
+        "model_pct": round((1.0 - member_specific) * 100.0, 1),
+        "coverage_pct": round(coverage * 100.0, 1),
+        "narrowing_pct": round(narrowing * 100.0, 1),
+        "observations": int(user_n),
+        "basis": basis,
+    }
+
+
 LITERATURE_BACKED: set[tuple[str, str]] = {
     # ACWR -> recovery/inflammation: Gabbett 2016, Malone 2017, Hulin 2014
     ("acwr", "hrv_daily"),
@@ -405,6 +439,7 @@ def _row(
         "horizon_days": horizon,
         "horizon_display": horizon_display(horizon) if horizon > 0 else "",
         "supporting_data_description": supporting_data_description(pathway, evidence_tier),
+        "personalization": _personalization_summary(post, pathway, user_n),
         "nominal_step": pop.nominal_step,
         "dose_multiplier": dose_multiplier_out,
         "dose_multiplier_raw": adj.raw_multiplier,
@@ -562,6 +597,7 @@ def _export_one(
     regimes_history: dict[str, list[float]] | None = None,
     weather_today: dict[str, float] | None = None,
     weather_history_cols: dict[str, list[float]] | None = None,
+    weather_location_today: dict[str, object] | None = None,
 ) -> dict:
     """Build the full per-participant record.
 
@@ -612,10 +648,57 @@ def _export_one(
         protocols_dicts, regime_activations=regime_activations,
     )
 
+    # ── Caspian (pid=1) persona-real overrides ─────────────────────
+    # Synthetic data should never override real data. For participant_1
+    # (Caspian), the persona file caspian.ts is authoritative for fields
+    # it declares (age, biomarker latest draws, wearable 30d means, real
+    # ACWR / CTL). We patch the emitted JSON in place rather than re-
+    # running the whole pipeline — Path A in the override architecture.
+    # Daily time-series and posterior fits stay synthetic until Path B
+    # (CSV-input replacement + re-fit) is run.
+    final_outcome_baselines = dict(outcome_baselines or {})
+    final_age = age
+    final_loads = dict(loads_summary or {})
+    final_regime_activations = dict(regime_activations or {})
+    if pid == caspian_real.CASPIAN_PID:
+        final_age = caspian_real.CASPIAN_AGE
+        # Merge real baselines on top of synthetic (real wins).
+        for k, v in caspian_real.caspian_outcome_baselines().items():
+            final_outcome_baselines[k] = v
+        # Patch real load VALUES while keeping the synthetic baseline /
+        # SD / z scaffolding (those derive from history we don't yet
+        # have for Caspian).
+        for k, real_value in caspian_real.CASPIAN_LOADS_TODAY_VALUES.items():
+            cur = final_loads.get(k)
+            if isinstance(cur, dict):
+                final_loads[k] = {**cur, "value": float(real_value)}
+            else:
+                final_loads[k] = {"value": float(real_value)}
+        # Recompute regime activations from real biomarkers + ACWR so
+        # the regime chip matches the displayed labs. Otherwise Caspian
+        # shows "hsCRP 0.3 mg/L" (real) alongside "inflammation 0.5"
+        # (synthetic-driven). Source for each regime's input:
+        #   acwr        -> CASPIAN_LOADS_TODAY_VALUES
+        #   ferritin    -> CASPIAN_OUTCOME_BASELINES_BIOMARKER
+        #   hscrp       -> CASPIAN_OUTCOME_BASELINES_BIOMARKER
+        #   sleep_debt  -> stays synthetic (no real per-day series yet)
+        synth_sleep_debt = (
+            (final_loads.get("sleep_debt_14d") or {}).get("value", 0.0)
+            if isinstance(final_loads.get("sleep_debt_14d"), dict)
+            else 0.0
+        )
+        real_regime_inputs = {
+            "acwr":       float(caspian_real.CASPIAN_LOADS_TODAY_VALUES["acwr"]),
+            "ferritin":   float(caspian_real.CASPIAN_OUTCOME_BASELINES_BIOMARKER["ferritin"]),
+            "hscrp":      float(caspian_real.CASPIAN_OUTCOME_BASELINES_BIOMARKER["hscrp"]),
+            "sleep_debt": float(synth_sleep_debt),
+        }
+        final_regime_activations = compute_regime_activations(real_regime_inputs)
+
     return {
         "pid": pid,
         "cohort": cohort_id,
-        "age": age,
+        "age": final_age,
         "is_female": is_female,
         "effects_bayesian": rows,
         "tier_counts": tier_counts,
@@ -623,13 +706,14 @@ def _export_one(
         "protocols": protocols_dicts,
         "current_values": current_values,
         "behavioral_sds": behavioral_sds,
-        "outcome_baselines": outcome_baselines or {},
-        "regime_activations": regime_activations,
-        "loads_today": loads_summary or {},
+        "outcome_baselines": final_outcome_baselines,
+        "regime_activations": final_regime_activations,
+        "loads_today": final_loads,
         "loads_history": loads_history or {},
         "regimes_history": regimes_history or {},
         "weather_today": weather_today or {},
         "weather_history": weather_history_cols or {},
+        "weather_location_today": weather_location_today or {},
         "release_schedule": releases_to_dicts(releases),
         "exploration_recommendations": exploration_recommendations,
     }
@@ -794,11 +878,13 @@ def main():
         _today_doy = _dt.datetime.now().timetuple().tm_yday
         weather_today = None
         weather_hist = None
+        weather_location_today = None
         if pid == 1 and cohort_id == "cohort_a":
             caspian_today = _dt.date(2026, 2, 7)
             real_today = real_weather_for_date(caspian_today, cohort_id)
             if real_today is not None:
                 weather_today = real_today
+                weather_location_today = real_weather_location_for_date(caspian_today)
                 weather_hist = real_weather_history_for_date(
                     caspian_today, cohort_id, n_days=14,
                 )
@@ -859,6 +945,7 @@ def main():
             regimes_history=regimes_history,
             weather_today=weather_today,
             weather_history_cols=weather_hist,
+            weather_location_today=weather_location_today,
         )
         (out_dir / f"participant_{pid:04d}.json").write_text(
             json.dumps(record, indent=2, default=float)
