@@ -42,6 +42,7 @@ import {
   hasPersonalPosterior,
   isExploratoryPriorEdge,
 } from '@/utils/edgeProvenance'
+import { passesRichnessGate, isImplausibleEdge } from '@/utils/edgeRichness'
 
 /** Coarse horizon band per outcome — drives the grouping headers
  * and the "horizon" sort. Quotidian = wearable-day signals (HRV,
@@ -126,6 +127,23 @@ function passesFilters(
   if (controls.hideTrivial) {
     const d = cohensD(edge, participant)
     if (Math.abs(d) < 0.2) return false
+  }
+  // Richness gate — drop edges whose action depends on a rich data
+  // stream this member doesn't have (CGM, meal logs, cycle, bedroom
+  // temp). The backend currently fits these uniformly across all
+  // participants but they're only meaningful for members with the
+  // underlying stream.
+  if (!passesRichnessGate(edge, participant.pid)) return false
+  // Implausibility filter — synthetic-data overfit for members with
+  // very dense data (e.g. Sarah's 7 years of CGM + meals) sometimes
+  // produces personal_established edges with z-scores > 8. Drop these
+  // when filtering to personal-only since they're noise, not signal.
+  if (
+    controls.personalOnly &&
+    edge.evidence_tier === 'personal_established' &&
+    isImplausibleEdge(edge)
+  ) {
+    return false
   }
   return true
 }

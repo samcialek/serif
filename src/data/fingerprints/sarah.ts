@@ -1,10 +1,11 @@
 /**
  * Sarah M. — "The Metabolic Optimizer"
  *
- * 41-year-old pre-diabetic turnaround success. Fasting glucose 118 → 94
- * over 9 months via eating-window discipline. Her Fingerprint is the
- * inverse of most members': the metabolic system is responding *to* her
- * interventions in a way that makes her a clean signal study.
+ * 41-year-old metabolic optimizer with a multi-year record: dense glucose,
+ * cycle tracking, sleep, food logging, bedroom climate, weather, DEXA, and
+ * repeated blood work. Her Fingerprint is the inverse of most members': the
+ * metabolic system is responding *to* her interventions in a way that makes
+ * her a clean signal study.
  */
 
 import type { Fingerprint, FingerprintBundle } from './types'
@@ -14,6 +15,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_metabolic_responder',
     type: 'identity_label',
+    identity_label_id: 'high_responder_metabolic',
     label: 'High-responder metabolic system',
     claim:
       'Glucose, weight, and lipid markers all respond strongly and quickly to dietary interventions. Sarah\'s metabolic plasticity is on the high end of the cohort — what works lands hard, what slips lands hard too.',
@@ -34,6 +36,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_eating_window_responder',
     type: 'identity_label',
+    identity_label_id: 'eating_window_responder',
     label: 'Eating-window responder',
     claim:
       'Tightening the eating window from ~13 hrs to ~8 hrs cut her glucose CV from 24% to 14% — the cleanest single-intervention story in her data set.',
@@ -53,6 +56,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_glucose_sensitive_to_alcohol',
     type: 'identity_label',
+    identity_label_id: 'glucose_sensitive_alcohol',
     label: 'Glucose-sensitive to alcohol',
     claim:
       'Each alcoholic drink shows up as ~+8 mg/dL on next-morning glucose — a tight, repeatable per-unit cost in her data.',
@@ -68,6 +72,27 @@ const FINGERPRINTS: Fingerprint[] = [
     next_question:
       'Does the per-unit cost depend on what was eaten with it, or is it intake-dose linear?',
     supports: ['fp_alcohol_cost'],
+  },
+  {
+    id: 'id_cycle_aware_metabolic_responder',
+    type: 'identity_label',
+    identity_label_id: 'cycle_aware_metabolic_responder',
+    label: 'Cycle-aware metabolic responder',
+    claim:
+      'Luteal-phase symptoms repeatedly widen glucose variability and soften sleep efficiency. For Sarah, cycle context is not a separate ontology; it is a recurring moderator on the same causal graph.',
+    evidence: { kind: 'note', body: 'Anchored on daily cycle app entries, CGM variability, Oura sleep efficiency, and HRV.' },
+    comparison: 'self_history',
+    strength: 'strong',
+    confidence: 'high',
+    stability: 'recurring',
+    actionability: 'indirect',
+    finding: 'reliable_pattern',
+    implication:
+      'The right protocol should be more forgiving during high-symptom luteal windows: protect sleep, avoid late meals, and lean on post-meal walking rather than adding training stress.',
+    next_question:
+      'Does fiber or carbohydrate timing reduce the luteal glucose widening, or does the effect persist after meal composition is controlled?',
+    supports: ['fp_luteal_glucose_band', 'fp_heat_sensitive_sleeper'],
+    links: { outcomes: ['glucose', 'sleep_efficiency', 'hrv_daily'] },
   },
 
   // ─── CONTRADICTIONS / TRAJECTORY ──
@@ -199,29 +224,55 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'fp_heat_sensitive_sleeper',
     type: 'sensitivity',
-    label: 'Heat-sensitive sleeper — bedroom cap 19 °C',
+    label: 'Heat-sensitive sleeper — provisional 19 °C threshold',
     claim:
-      'Sleep efficiency drops sharply above 19 °C bedroom temperature. Her threshold is ~2 °C tighter than the cohort median — heat is a structural sleep risk for her.',
+      'A pattern emerges in the daily data of sleep efficiency softening above ~19 °C, but bedroom-temp sampling is sparse (≈ one reading per night) and the Bayesian fit hasn\'t separated this from seasonal confounders yet. Treat the threshold as a working hypothesis, not a confirmed cliff.',
     evidence: {
       kind: 'cliff',
       knee: 19,
       knee_unit: '°C',
       slope_before: 0,
-      slope_after: -8,
+      slope_after: -3,
       outcome_label: 'Sleep efficiency',
       outcome_unit: '%',
     },
     comparison: 'cohort',
+    strength: 'moderate',
+    confidence: 'low',
+    stability: 'emerging',
+    actionability: 'indirect',
+    finding: 'open_question',
+    implication:
+      'Bedroom climate is plausibly a sleep lever, but the data isn\'t yet dense enough to set a hard cap. Worth piloting an active cooling protocol on warm weeks and watching whether sleep efficiency tightens.',
+    next_question:
+      'Does adding more temperature samples per night (or a continuous probe) confirm the 19 °C knee, or does it move?',
+    links: { outcomes: ['sleep_efficiency', 'deep_sleep'] },
+  },
+  {
+    id: 'fp_luteal_glucose_band',
+    type: 'sensitivity',
+    label: 'Luteal window widens glucose band',
+    claim:
+      'During higher-symptom luteal days, glucose variability and next-morning glucose run higher even after adjusting for late meals, sleep debt, and weather. The phase is a moderator, not a lever.',
+    evidence: {
+      kind: 'compare_pair',
+      self: 17,
+      cohort: 14,
+      label: 'Glucose CV on luteal days',
+      unit: '%',
+      beneficial: 'lower',
+    },
+    comparison: 'self_history',
     strength: 'strong',
     confidence: 'high',
     stability: 'recurring',
-    actionability: 'direct',
-    finding: 'likely_driver',
+    actionability: 'indirect',
+    finding: 'reliable_pattern',
     implication:
-      'Bedroom climate control is a load-bearing protocol — summer / heatwave weeks need active intervention, not just hope.',
+      'Cycle phase should change interpretation and protocol strictness. It should not be treated like a behavior she failed to optimize.',
     next_question:
-      'Does the threshold shift seasonally (acclimation), or stay fixed at 19 °C year-round?',
-    links: { outcomes: ['sleep_efficiency', 'deep_sleep'] },
+      'Which levers stay high-confidence inside luteal windows: fiber, walk timing, bedroom temperature, or meal cutoff?',
+    links: { outcomes: ['glucose', 'sleep_efficiency', 'hrv_daily'] },
   },
   {
     id: 'fp_strong_sleep_architecture',
@@ -254,12 +305,12 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'fp_data_dense_glucose',
     type: 'data_gap',
-    label: 'Daily glucose + quarterly labs = high-fidelity metabolic picture',
+    label: 'Dense glucose + cycle + labs = high-fidelity metabolic picture',
     claim:
-      'CGM-style daily glucose with 4 quarterly lab confirmations is dense enough to track per-meal effects, not just averages. Most metabolic edges in her data are personally tightened, not cohort-derived.',
+      'Dense glucose, cycle, food, sleep, bedroom climate, weather, and repeated lab confirmations are enough to track per-meal effects, recurring moderators, and slow biomarker movement. Most metabolic edges in her data are personally tightened, not cohort-derived.',
     evidence: {
       kind: 'note',
-      body: '90 days of daily glucose + 4 fasting draws — CGM-tier coverage for the metabolic axis.',
+      body: 'Multi-year glucose, food, cycle, sleep, climate, and weather data plus 18 fasting draws - enough cadence to separate daily triggers from slow biomarker movement.',
     },
     comparison: 'cohort',
     strength: 'strong',

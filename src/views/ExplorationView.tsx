@@ -26,6 +26,7 @@ import { useSearchParams } from 'react-router-dom'
 import { AlertCircle, Compass, FastForward, Loader2, Users } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
 import { Card, DataModeToggle, PainterlyPageHeader } from '@/components/common'
+import { hasStreamForAction } from '@/utils/edgeRichness'
 import { ExplorationOutcomeCard } from '@/components/portal/ExplorationOutcomeCard'
 import { ActiveExperimentsBar } from '@/components/portal/ActiveExperimentsBar'
 import { StorylinePanel } from '@/components/portal'
@@ -78,6 +79,12 @@ function buildOrdering(
       const key = `${e.action}::${e.outcome}`
       if (!(key in launched)) return false
     }
+    // Richness gate — drop experiments that target rich-data-only
+    // actions (CGM-derived meal timing, cycle-phase, bedroom-temp
+    // sensor) for members without those streams. Suggesting "log every
+    // meal for 14 days" to a member with no meal-tracking history
+    // would be noise, not a real experiment.
+    if (!hasStreamForAction(participant.pid, e.action)) return false
     return true
   })
 
