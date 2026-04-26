@@ -193,6 +193,8 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 21,
       label: 'Bedroom temperature ceiling',
       unit: '°C',
+      // Tighter threshold = more constraint, not better physiology.
+      beneficial: 'neutral',
     },
     comparison: 'cohort',
     strength: 'strong',
@@ -218,6 +220,7 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 1.0,
       label: 'hsCRP',
       unit: 'mg/L',
+      beneficial: 'lower',
     },
     comparison: 'cohort',
     strength: 'strong',

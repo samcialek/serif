@@ -227,7 +227,15 @@ export function FingerprintView() {
       )}
 
       {identityLabels.length > 0 && (
-        <IdentityHero labels={identityLabels} />
+        <IdentityHero
+          labels={identityLabels}
+          onSupportClick={(supportId) => {
+            // Briefly halo the destination card so the click feels
+            // acknowledged — same affordance as deep-link arrival.
+            setHighlightId(supportId)
+            window.setTimeout(() => setHighlightId(null), 3000)
+          }}
+        />
       )}
 
       <motion.div
@@ -250,7 +258,13 @@ export function FingerprintView() {
 
 // ─── Identity hero ────────────────────────────────────────────────
 
-function IdentityHero({ labels }: { labels: Fingerprint[] }) {
+function IdentityHero({
+  labels,
+  onSupportClick,
+}: {
+  labels: Fingerprint[]
+  onSupportClick?: (supportId: string) => void
+}) {
   const scrollTo = (id: string) => {
     if (typeof document === 'undefined') return
     const el = document.getElementById(`fingerprint-supports-${id}`)
@@ -275,7 +289,17 @@ function IdentityHero({ labels }: { labels: Fingerprint[] }) {
           <button
             key={label.id}
             type="button"
-            onClick={() => label.supports && label.supports.length > 0 && scrollTo(label.id)}
+            onClick={() => {
+              // Card anchors are keyed by SUPPORTING fingerprint id,
+              // not by the identity-label id. Scroll to the first
+              // supporting card rather than the label itself
+              // (which has no rendered anchor).
+              const first = label.supports?.[0]
+              if (first) {
+                scrollTo(first)
+                onSupportClick?.(first)
+              }
+            }}
             className="inline-flex items-center px-3 py-1.5 rounded-full transition-all"
             style={{
               background: '#fff',
@@ -532,11 +556,14 @@ function FingerprintCard({
         </p>
       </div>
 
-      {/* Cross-tab links */}
+      {/* Cross-tab links — exclude fingerprint since we're already on
+          this tab; nothing useful in linking the user back to the page
+          they're reading. */}
       {card.links && (card.links.outcomes?.length || card.links.edges?.length) && (
         <div className="mt-3 pt-2.5" style={{ borderTop: `1px solid ${LINE}` }}>
           <CrossTabLinks
             outcome={card.links.outcomes?.[0]}
+            exclude={['fingerprint']}
             compact={false}
           />
         </div>
@@ -616,12 +643,25 @@ function CliffViz({
 }: {
   e: Extract<FingerprintEvidence, { kind: 'cliff' }>
 }) {
-  // Simple visualization: knee marker, slope-after annotation.
+  // Visualization respects slope sign: negative slopes drop after the
+  // knee, positive slopes rise. Stroke color reflects direction
+  // (terracotta = falling outcome, sage = rising outcome). The knee
+  // marker, dashed reference line, and outcome label stay neutral.
   const w = 200
   const h = 56
   const kneeX = w * 0.5
-  const beforeY = h * 0.4
-  const afterY = h * 0.4 + Math.abs(e.slope_after) * 0.6
+  // Anchor the "before" line in the vertical middle so a positive
+  // slope has room to climb and a negative slope has room to fall.
+  const beforeY = h * 0.5
+  // Scale the slope visually but cap it so extreme slopes don't run
+  // off the SVG. SVG y is inverted (smaller y = higher), so a
+  // negative slope adds to y, a positive slope subtracts.
+  const visualMagnitude = Math.min(h * 0.45, Math.abs(e.slope_after) * 0.6)
+  const afterY =
+    e.slope_after < 0
+      ? beforeY + visualMagnitude // outcome falls past knee → line slopes down
+      : beforeY - visualMagnitude // outcome rises past knee → line slopes up
+  const afterStroke = e.slope_after < 0 ? ACCENT_TERRACOTTA : ACCENT_SAGE
   return (
     <div className="rounded-lg p-2.5" style={{ background: '#faf6ec', border: `1px solid ${LINE}` }}>
       <div className="flex items-baseline justify-between mb-1">
@@ -647,15 +687,15 @@ function CliffViz({
           y1={beforeY}
           x2={kneeX}
           y2={beforeY}
-          stroke={ACCENT_SAGE}
+          stroke={TEXT_FAINT}
           strokeWidth={1.5}
         />
         <line
           x1={kneeX}
           y1={beforeY}
           x2={w}
-          y2={Math.min(h - 2, afterY)}
-          stroke={ACCENT_TERRACOTTA}
+          y2={Math.max(2, Math.min(h - 2, afterY))}
+          stroke={afterStroke}
           strokeWidth={1.5}
         />
         <line
@@ -689,7 +729,17 @@ function ComparePair({
   const max = Math.max(Math.abs(e.self), Math.abs(e.cohort), 1)
   const selfPct = (Math.abs(e.self) / max) * 100
   const cohortPct = (Math.abs(e.cohort) / max) * 100
-  const selfTone = e.self > e.cohort ? ACCENT_SAGE : ACCENT_TERRACOTTA
+  // Bar color now requires explicit direction metadata. Without it
+  // (e.g. raw counts, neutral metrics, asymmetric panels), bars stay
+  // neutral stone instead of asserting a meaning the data doesn't
+  // carry. "Higher = green" is wrong for hsCRP, RHR, sleep debt,
+  // glucose CV, and many others.
+  const selfTone = (() => {
+    if (!e.beneficial || e.beneficial === 'neutral') return TEXT_FAINT
+    const isBetter =
+      e.beneficial === 'higher' ? e.self > e.cohort : e.self < e.cohort
+    return isBetter ? ACCENT_SAGE : ACCENT_TERRACOTTA
+  })()
   return (
     <div className="rounded-lg p-2.5" style={{ background: '#faf6ec', border: `1px solid ${LINE}` }}>
       <div className="flex items-baseline justify-between mb-2">

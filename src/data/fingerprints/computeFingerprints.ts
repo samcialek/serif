@@ -100,6 +100,7 @@ function detectRegimeSensitivities(p: ParticipantPortal): Fingerprint[] {
               cohort: meta.cohort_typical,
               label: meta.load_label,
               unit: meta.load_unit,
+              beneficial: meta.beneficial,
             }
           : { kind: 'note', body: 'Regime activation without a single underlying load value.' },
       comparison: 'self_history',
@@ -236,14 +237,20 @@ function detectWeatherSensitivity(p: ParticipantPortal): Fingerprint[] {
   const lHist = p.loads_history ?? {}
   const tempSeries = wHist.temp_c
   const sleepDebt = lHist.sleep_debt_14d
+  // 14 days is the absolute minimum to claim a weather→sleep
+  // relationship; threshold raised to 0.65 since 14 paired obs is
+  // a noisy correlation regime and a 0.5 cutoff was firing on
+  // chance patterns. The card calls this an "open question" not a
+  // "likely driver" because of the sample size, but we still want
+  // to set a high bar to surface it at all.
   if (
     Array.isArray(tempSeries) &&
     Array.isArray(sleepDebt) &&
     tempSeries.length === sleepDebt.length &&
-    tempSeries.length >= 10
+    tempSeries.length >= 14
   ) {
     const r = pearsonR(tempSeries, sleepDebt)
-    if (Math.abs(r) > 0.5) {
+    if (Math.abs(r) > 0.65) {
       const positive = r > 0
       out.push({
         id: 'auto_weather_temp_sleep',
@@ -395,6 +402,7 @@ function detectDataQuality(p: ParticipantPortal): Fingerprint[] {
         cohort: 35,
         label: 'Personalized edges',
         unit: '%',
+        beneficial: 'higher',
       },
       comparison: 'cohort',
       strength: 'strong',
@@ -432,6 +440,10 @@ interface RegimeMeta {
   load_unit: string
   decimals: number
   cohort_typical: number
+  /** Direction of the underlying load — controls bar tone. ACWR has
+   *  no monotonic "better" direction (you want it near 1.0); sleep
+   *  debt is unambiguously lower-better. */
+  beneficial: 'higher' | 'lower' | 'neutral'
   linked_outcomes: string[]
   implication: string
   next_question: string
@@ -445,6 +457,7 @@ const REGIME_META: Record<string, RegimeMeta> = {
     load_unit: '',
     decimals: 2,
     cohort_typical: 1.0,
+    beneficial: 'neutral', // 1.0 is the target; deviation either way is a story
     linked_outcomes: ['hrv_daily', 'resting_hr', 'sleep_efficiency'],
     implication:
       'Recent weeks have spiked relative to the trailing chronic load — recovery markers should be watched closely until ACWR returns toward 1.0.',
@@ -458,6 +471,7 @@ const REGIME_META: Record<string, RegimeMeta> = {
     load_unit: 'h',
     decimals: 1,
     cohort_typical: 2.0,
+    beneficial: 'lower',
     linked_outcomes: ['hrv_daily', 'cortisol', 'glucose'],
     implication:
       'Sustained shortfall versus personal target — the autonomic and metabolic signals will carry the cost first.',

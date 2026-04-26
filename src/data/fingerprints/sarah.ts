@@ -181,6 +181,8 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 14.5,
       label: 'Caffeine cutoff (clock hour)',
       unit: 'h',
+      // Clock-hour ordering is a metabolic proxy, not a virtue.
+      beneficial: 'neutral',
     },
     comparison: 'cohort',
     strength: 'moderate',
@@ -233,6 +235,7 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 45,
       label: 'Deep sleep',
       unit: 'min',
+      beneficial: 'higher',
     },
     comparison: 'cohort',
     strength: 'moderate',

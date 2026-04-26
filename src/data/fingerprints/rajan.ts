@@ -197,6 +197,7 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 48,
       label: 'HRV: weekdays vs weekends',
       unit: 'ms',
+      beneficial: 'higher',
     },
     comparison: 'self_history',
     strength: 'strong',
@@ -224,6 +225,9 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 16.5,
       label: 'Caffeine cutoff (clock hour)',
       unit: 'h',
+      // Lower cutoff = caffeine clears slower for him = more constraint,
+      // not less; the clock-hour ordering is a proxy, not a virtue.
+      beneficial: 'neutral',
     },
     comparison: 'cohort',
     strength: 'moderate',

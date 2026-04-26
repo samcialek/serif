@@ -69,6 +69,13 @@ export type FingerprintEvidence =
       label: string
       unit?: string
       n?: number
+      /** Direction of the metric — controls bar color. 'higher' means
+       *  bigger-is-better (HRV, deep sleep, ferritin); 'lower' means
+       *  smaller-is-better (hsCRP, RHR, sleep debt, glucose CV);
+       *  'neutral' means there's no good/bad direction. When omitted,
+       *  bars render in the neutral stone tone — the renderer never
+       *  guesses. */
+      beneficial?: 'higher' | 'lower' | 'neutral'
     }
   | {
       kind: 'lab_pair'

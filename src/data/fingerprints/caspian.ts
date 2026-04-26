@@ -12,6 +12,69 @@
  */
 
 import type { Fingerprint, FingerprintBundle } from './types'
+import { caspianLabs } from '@/data/personas/caspian'
+
+// ─── Source-of-truth discipline ────────────────────────────────────
+//
+// The numbers in the curated bundle below are derived from
+// caspianLabs (the persona's lab-draw source of truth). To keep them
+// from silently drifting if labs are edited, a small validator runs
+// in dev mode and warns to the console when a Fingerprint's claimed
+// value disagrees with the underlying lab record. Production builds
+// skip the check (no console noise for users).
+//
+// The canonical references — kept narrow on purpose. Add new entries
+// here when a Fingerprint's claim grows to depend on a new lab field.
+
+interface CanonicalRef {
+  lab_field: 'ferritin' | 'iron' | 'ironSaturationPct' | 'hsCrp' | 'hdl' | 'apob' | 'triglycerides'
+  draw_date: string // ISO YYYY-MM-DD; matches caspianLabs[i].date
+  expected: number
+  fingerprint_id: string
+  used_for: string
+}
+
+const CANONICAL_REFS: CanonicalRef[] = [
+  { lab_field: 'ferritin', draw_date: '2024-11-13', expected: 24, fingerprint_id: 'fp_iron_pair', used_for: 'before-state' },
+  { lab_field: 'ferritin', draw_date: '2025-11-22', expected: 46, fingerprint_id: 'fp_iron_pair', used_for: 'after-state' },
+  { lab_field: 'ironSaturationPct', draw_date: '2024-11-13', expected: 14.4, fingerprint_id: 'fp_iron_pair', used_for: 'before-state' },
+  { lab_field: 'ironSaturationPct', draw_date: '2025-11-22', expected: 9.3, fingerprint_id: 'fp_iron_pair', used_for: 'after-state' },
+  { lab_field: 'iron', draw_date: '2024-11-13', expected: 63, fingerprint_id: 'fp_iron_pair', used_for: 'claim text' },
+  { lab_field: 'iron', draw_date: '2025-11-22', expected: 37, fingerprint_id: 'fp_iron_pair', used_for: 'claim text' },
+  { lab_field: 'hsCrp', draw_date: '2025-11-22', expected: 0.3, fingerprint_id: 'fp_low_inflammation', used_for: 'most-recent value' },
+  { lab_field: 'hdl', draw_date: '2025-11-22', expected: 43, fingerprint_id: 'fp_lipid_asymmetry', used_for: 'most-recent value' },
+  { lab_field: 'apob', draw_date: '2025-11-22', expected: 61, fingerprint_id: 'fp_lipid_asymmetry', used_for: 'most-recent value' },
+  { lab_field: 'triglycerides', draw_date: '2025-11-22', expected: 62, fingerprint_id: 'fp_lipid_asymmetry', used_for: 'most-recent value' },
+]
+
+function validateCanonicalRefs(): void {
+  for (const ref of CANONICAL_REFS) {
+    const draw = caspianLabs.find((d) => d.date === ref.draw_date)
+    if (!draw) {
+      console.warn(
+        `[Fingerprint:Caspian] No lab draw on ${ref.draw_date} (referenced by ${ref.fingerprint_id} for ${ref.used_for}).`,
+      )
+      continue
+    }
+    const actual = (draw as unknown as Record<string, unknown>)[ref.lab_field]
+    if (typeof actual !== 'number') {
+      console.warn(
+        `[Fingerprint:Caspian] Lab draw ${ref.draw_date} missing field ${ref.lab_field} (referenced by ${ref.fingerprint_id} for ${ref.used_for}).`,
+      )
+      continue
+    }
+    if (Math.abs(actual - ref.expected) > 0.05) {
+      console.warn(
+        `[Fingerprint:Caspian] DRIFT: ${ref.fingerprint_id} expects ${ref.lab_field}=${ref.expected} on ${ref.draw_date}, but caspianLabs has ${actual}. Update the Fingerprint or revert the lab.`,
+      )
+    }
+  }
+}
+
+// Run once at module load in dev — silent in production.
+if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+  validateCanonicalRefs()
+}
 
 const CASPIAN_PID = 1
 
@@ -245,6 +308,7 @@ const FINGERPRINTS: Fingerprint[] = [
       label: 'hsCRP',
       unit: 'mg/L',
       n: 4,
+      beneficial: 'lower',
     },
     comparison: 'cohort',
     strength: 'strong',
@@ -271,6 +335,7 @@ const FINGERPRINTS: Fingerprint[] = [
       label: 'HDL',
       unit: 'mg/dL',
       n: 1,
+      beneficial: 'higher',
     },
     comparison: 'cohort',
     strength: 'moderate',
@@ -296,6 +361,7 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: 73,
       label: 'Deep sleep',
       unit: 'min',
+      beneficial: 'higher',
     },
     comparison: 'cohort',
     strength: 'moderate',
@@ -373,6 +439,7 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: -8,
       label: 'Training-duration delta on cold days',
       unit: '%',
+      beneficial: 'higher',
     },
     comparison: 'cohort',
     strength: 'strong',
@@ -403,6 +470,7 @@ const FINGERPRINTS: Fingerprint[] = [
       cohort: -0.5,
       label: 'Sleep-debt delta vs personal baseline',
       unit: 'h',
+      beneficial: 'lower',
     },
     comparison: 'self_history',
     strength: 'moderate',
