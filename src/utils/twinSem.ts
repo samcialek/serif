@@ -21,6 +21,8 @@
 import type { InsightBayesian, ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import { beneficialDirection } from '@/utils/rounding'
 import type { DataMode } from '@/hooks/useDataMode'
+import { personalizationForEdge } from '@/utils/edgeEvidence'
+import { isExploratoryPriorEdge } from '@/utils/edgeProvenance'
 
 /** Which magnitude to use for an edge under the current data-mode.
  *
@@ -258,6 +260,10 @@ export interface ScoredSchedule {
   schedule: CandidateSchedule
   total: number
   outcomeScore: number
+  expectedUtility: number
+  uncertaintyPenalty: number
+  feasibilityPenalty: number
+  evidenceQuality: number
   regimePenalty: number
   regimeLabels: string[]
   components: OutcomeContribution[]
@@ -279,7 +285,7 @@ function findEffect(
     (e) =>
       e.action === action &&
       e.outcome === outcome &&
-      e.prior_provenance !== 'weak_default',
+      !isExploratoryPriorEdge(e),
   )
   if (matches.length === 0) return null
   const tierOrder = ['personal_established', 'personal_emerging', 'cohort_level']
@@ -315,6 +321,9 @@ export function scoreSchedule(
   const current = participant.current_values || {}
   const baselines = participant.outcome_baselines || {}
   const components: OutcomeContribution[] = []
+  let uncertaintyPenalty = 0
+  let evidenceNumerator = 0
+  let evidenceDenominator = 0
 
   const projectionMap: Record<string, OutcomeProjection> = {}
 
@@ -355,6 +364,17 @@ export function scoreSchedule(
         dir === 'neutral' ? 0 : outcomeChange * dirSign
       const tierW = TIER_WEIGHT[edge.evidence_tier ?? 'cohort_level'] ?? 0.4
       const weighted = userBenefit * tierW * obj.weight
+      const personalization = personalizationForEdge(edge)
+      const uncertainty =
+        Math.abs(deltaAction / edge.nominal_step) *
+        (edge.posterior?.sd ?? 0) *
+        tierW *
+        obj.weight *
+        (1 - 0.5 * personalization)
+      uncertaintyPenalty += 0.15 * uncertainty
+      const qualityWeight = Math.max(0.01, Math.abs(userBenefit) * obj.weight)
+      evidenceNumerator += personalization * qualityWeight
+      evidenceDenominator += qualityWeight
 
       const comp: OutcomeContribution = {
         outcome: obj.outcome,
@@ -395,6 +415,9 @@ export function scoreSchedule(
   }
 
   const outcomeScore = components.reduce((s, c) => s + c.weighted_contribution, 0)
+  const feasibilityPenalty = 0
+  const evidenceQuality =
+    evidenceDenominator > 0 ? evidenceNumerator / evidenceDenominator : 0
 
   // Regime penalty.
   const regimes = participant.regime_activations || {}
@@ -415,8 +438,12 @@ export function scoreSchedule(
 
   return {
     schedule,
-    total: outcomeScore - regimePenalty,
+    total: outcomeScore - regimePenalty - uncertaintyPenalty - feasibilityPenalty,
     outcomeScore,
+    expectedUtility: outcomeScore,
+    uncertaintyPenalty,
+    feasibilityPenalty,
+    evidenceQuality,
     regimePenalty,
     regimeLabels,
     components,

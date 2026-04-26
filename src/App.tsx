@@ -17,6 +17,7 @@ import {
   TwinView,
   BaselineView,
   ExplorationView,
+  FingerprintView,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -37,6 +38,7 @@ function App() {
           <Route path="/insights-legacy" element={<PortalView />} />
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
+          <Route path="/fingerprint" element={<FingerprintView />} />
 
           {/* Twin — painterly is the canonical version. */}
           <Route path="/twin" element={<TwinView />} />

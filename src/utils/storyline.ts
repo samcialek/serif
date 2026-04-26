@@ -22,6 +22,7 @@
 
 import type { InsightBayesian, ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import { cohensD, isBeneficial } from '@/utils/insightStandardization'
+import { isExploratoryPriorEdge } from '@/utils/edgeProvenance'
 
 const REGIME_LABEL: Record<RegimeKey, string> = {
   overreaching_state: 'overreaching',
@@ -204,7 +205,7 @@ export function buildEternalStory(p: ParticipantPortal): Story {
   // user sees "levers that matter," not "outcomes that respond."
   const perAction = new Map<string, number[]>()
   for (const e of p.effects_bayesian ?? []) {
-    if (e.prior_provenance === 'weak_default') continue
+    if (isExploratoryPriorEdge(e)) continue
     if (e.gate.tier === 'not_exposed') continue
     const d = Math.abs(cohensD(e, p))
     if (!Number.isFinite(d) || d < 0.1) continue
@@ -223,7 +224,7 @@ export function buildEternalStory(p: ParticipantPortal): Story {
   // Pick the top outcome each of the top actions moves, for S1 color.
   const topEdgePerAction = new Map<string, InsightBayesian | null>()
   for (const e of p.effects_bayesian ?? []) {
-    if (e.prior_provenance === 'weak_default') continue
+    if (isExploratoryPriorEdge(e)) continue
     if (e.gate.tier === 'not_exposed') continue
     const prior = topEdgePerAction.get(e.action)
     if (

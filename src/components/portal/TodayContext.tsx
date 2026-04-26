@@ -213,6 +213,10 @@ export function TodayContext({ participant, activeRegimes, date }: Props) {
 
   const weather = participant.weather_today
   const hasWeather = weather != null && Object.keys(weather).length > 0
+  const weatherLocation = participant.weather_location_today
+  const weatherLocationLabel = weatherLocation?.city
+    ? `${weatherLocation.city}${weatherLocation.country ? `, ${weatherLocation.country}` : ''}`
+    : null
 
   return (
     <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-b from-indigo-50/60 to-white overflow-hidden shadow-sm">
@@ -285,6 +289,11 @@ export function TodayContext({ participant, activeRegimes, date }: Props) {
           <div className="p-3">
             <div className="text-[11px] uppercase tracking-wider font-bold text-slate-700 mb-2">
               Weather
+              {weatherLocationLabel && (
+                <span className="ml-2 normal-case tracking-normal font-medium text-slate-400">
+                  {weatherLocationLabel}
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {WEATHER_CHIPS.map((spec) => {

@@ -9,7 +9,7 @@ export interface TimeSeriesMetric {
   id: string
   name: string
   unit: string
-  category: 'sleep' | 'activity' | 'hrv' | 'heart' | 'body'
+  category: 'sleep' | 'activity' | 'hrv' | 'heart' | 'body' | 'lifestyle'
   data: { date: string; value: number }[]
   referenceRange?: { low: number; high: number }
   source: string
@@ -48,7 +48,7 @@ interface MetricConfig {
   id: string
   name: string
   unit: string
-  category: 'sleep' | 'activity' | 'hrv' | 'heart' | 'body'
+  category: 'sleep' | 'activity' | 'hrv' | 'heart' | 'body' | 'lifestyle'
   baseMin: number
   baseMax: number
   source: string
@@ -238,6 +238,66 @@ const METRIC_CONFIGS: MetricConfig[] = [
     source: 'Apple Health',
     smoothing: 0.9,
     decimals: 1,
+  },
+  // ── Lifestyle log (MyFitnessPal + manual) ──
+  // Self-logged daily totals. Caffeine + alcohol come from a barcode-scan
+  // food log; protein + calories from the same source. Reasonable
+  // baselines for an early-40s endurance athlete: ~2 cups coffee/day
+  // weekday-skewed, ~3-5 alcohol units/wk skewed Fri/Sat, 130-180g
+  // protein/day, 2400-2800 kcal/day.
+  {
+    id: 'caffeine_mg',
+    name: 'Caffeine',
+    unit: 'mg',
+    category: 'lifestyle',
+    baseMin: 80,
+    baseMax: 280,
+    source: 'MyFitnessPal',
+    referenceRange: { low: 0, high: 400 },
+    dayMultipliers: [0.7, 1.1, 1.05, 1.1, 1.05, 1.0, 0.85],
+    smoothing: 0.25,
+    decimals: 0,
+  },
+  {
+    id: 'alcohol_units',
+    name: 'Alcohol',
+    unit: 'units',
+    category: 'lifestyle',
+    baseMin: 0,
+    baseMax: 2.5,
+    source: 'MyFitnessPal',
+    referenceRange: { low: 0, high: 2 },
+    // Empty most weekdays; concentrated on weekend evenings.
+    dayMultipliers: [0.9, 0.2, 0.3, 0.3, 0.5, 1.6, 2.0],
+    zeroProb: 0.45,
+    smoothing: 0.05,
+    decimals: 1,
+  },
+  {
+    id: 'dietary_protein',
+    name: 'Protein',
+    unit: 'g',
+    category: 'lifestyle',
+    baseMin: 110,
+    baseMax: 195,
+    source: 'MyFitnessPal',
+    referenceRange: { low: 130, high: 180 },
+    dayMultipliers: [0.95, 1.05, 1.0, 1.05, 1.0, 0.98, 0.95],
+    smoothing: 0.45,
+    decimals: 0,
+  },
+  {
+    id: 'dietary_energy',
+    name: 'Calories',
+    unit: 'kcal',
+    category: 'lifestyle',
+    baseMin: 2150,
+    baseMax: 3050,
+    source: 'MyFitnessPal',
+    referenceRange: { low: 2300, high: 2800 },
+    dayMultipliers: [1.05, 0.98, 0.97, 1.0, 1.0, 1.05, 1.1],
+    smoothing: 0.4,
+    decimals: 0,
   },
 ]
 

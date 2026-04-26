@@ -78,12 +78,18 @@ export const Header = forwardRef<HTMLElement, HeaderProps>(
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-serif-pink rounded-full" />
           </button>
 
-          <MemberAvatar
-            persona={persona}
-            displayName={displayName}
-            size="md"
-            shape="circle"
-          />
+          {/* Avatar shows the active member's context — only meaningful
+              on patient-scoped routes. On coach-scoped pages (Members,
+              Clients, Admin, Settings) you're not VIEWING a member, you
+              are picking one, so showing Caspian here is misleading. */}
+          {patientScoped && (
+            <MemberAvatar
+              persona={persona}
+              displayName={displayName}
+              size="md"
+              shape="circle"
+            />
+          )}
         </div>
       </header>
     )

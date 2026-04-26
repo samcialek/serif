@@ -30,6 +30,7 @@ export interface ManipulableNode {
 
 export const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'sleep_duration', label: 'Sleep Duration', unit: 'hrs', step: 0.25, defaultValue: 7 },
+  { id: 'bedroom_temp_c', label: 'Bedroom Temperature', unit: 'deg C', step: 0.5, defaultValue: 21.5, fixedRange: { min: 16, max: 27 } },
   { id: 'zone2_minutes', label: 'Zone 2', unit: 'min/day', step: 5, defaultValue: 30, fixedRange: { min: 0, max: 120 } },
   { id: 'zone4_5_minutes', label: 'Zone 4-5', unit: 'min/day', step: 1, defaultValue: 5, fixedRange: { min: 0, max: 30 } },
   { id: 'training_volume', label: 'Training Volume', unit: 'hrs/day', step: 0.25, defaultValue: 1 },
@@ -37,6 +38,9 @@ export const MANIPULABLE_NODES: ManipulableNode[] = [
   { id: 'active_energy', label: 'Active Energy', unit: 'kcal/day', step: 50, defaultValue: 600 },
   { id: 'dietary_protein', label: 'Dietary Protein', unit: 'g/day', step: 5, defaultValue: 100 },
   { id: 'dietary_energy', label: 'Dietary Energy', unit: 'kcal/day', step: 100, defaultValue: 2500 },
+  { id: 'supp_melatonin', label: 'Melatonin', unit: 'on/off', step: 1, defaultValue: 0, fixedRange: { min: 0, max: 1 } },
+  { id: 'supp_l_theanine', label: 'L-theanine', unit: 'on/off', step: 1, defaultValue: 0, fixedRange: { min: 0, max: 1 } },
+  { id: 'supp_zinc', label: 'Zinc', unit: 'on/off', step: 1, defaultValue: 0, fixedRange: { min: 0, max: 1 } },
   { id: 'caffeine_mg', label: 'Caffeine', unit: 'mg/day', step: 25, defaultValue: 200, fixedRange: { min: 0, max: 600 } },
   { id: 'caffeine_timing', label: 'Caffeine Cutoff', unit: 'h pre-bed', step: 0.5, defaultValue: 8, fixedRange: { min: 0, max: 14 } },
   { id: 'alcohol_units', label: 'Alcohol', unit: 'units/day', step: 0.5, defaultValue: 1, fixedRange: { min: 0, max: 6 } },
@@ -205,8 +209,9 @@ export function formatNodeValue(
  *       which can drive SOL negative or SE above 100.
  *    3. participant.current_values
  *    4. loads_today
- *    5. participant.outcome_baselines (per-participant override)
- *    6. stateOverrides
+ *    5. weather_today
+ *    6. participant.outcome_baselines (per-participant override)
+ *    7. stateOverrides
  */
 export function buildObservedValues(
   participant: ParticipantPortal,
@@ -223,6 +228,16 @@ export function buildObservedValues(
       if (load && Number.isFinite(load.value)) out[rawKey] = load.value
     }
     if (loads.sleep_debt_14d) out.sleep_debt = loads.sleep_debt_14d.value
+  }
+
+  const weather = participant.weather_today
+  if (weather) {
+    for (const [key, value] of Object.entries(weather)) {
+      if (typeof value === 'number' && Number.isFinite(value)) out[key] = value
+    }
+    if (typeof weather.heat_index_c === 'number' && Number.isFinite(weather.heat_index_c)) {
+      out.heat_index = weather.heat_index_c
+    }
   }
 
   const baselines = participant.outcome_baselines

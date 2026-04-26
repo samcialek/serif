@@ -12,6 +12,7 @@
  */
 
 import type { GateTier, InsightBayesian } from '@/data/portal/types'
+import { isExploratoryPriorEdge } from '@/utils/edgeProvenance'
 
 // Abramowitz & Stegun 26.2.17 — accurate to ~7.5e-8 on |z|<7.
 function normCdf(z: number): number {
@@ -39,7 +40,7 @@ export const INSIGHT_TIER_THRESHOLDS = {
   suggested: 0.8,
 } as const
 
-/** Stricter cutoffs for `prior_provenance === 'weak_default'` insights.
+/** Stricter cutoffs for exploratory-prior insights.
  *  Weak-default rows have no DAG path → user OLS is an unadjusted
  *  confounded slope, not a causal effect. Backend doc (2026-04-22)
  *  recommends pick *one* lever — prior-widening or threshold-tightening,
@@ -52,7 +53,7 @@ export const INSIGHT_TIER_THRESHOLDS_WEAK = {
 export function insightTierFor(insight: InsightBayesian): GateTier {
   const p = signProbability(insight.posterior.mean, insight.posterior.sd)
   const t =
-    insight.prior_provenance === 'weak_default'
+    isExploratoryPriorEdge(insight)
       ? INSIGHT_TIER_THRESHOLDS_WEAK
       : INSIGHT_TIER_THRESHOLDS
   if (p >= t.actionable) return 'recommended'

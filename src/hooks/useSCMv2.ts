@@ -32,6 +32,11 @@ import {
   V2_ACTION_SPAN,
   V2_OUTCOME_SPAN,
 } from '@/data/scm/syntheticEdgesV2'
+import {
+  ENVIRONMENTAL_EDGES,
+  ENV_ACTION_SPAN,
+  ENV_OUTCOME_SPAN,
+} from '@/data/scm/environmentalEdges'
 
 // PHASE_1_EDGES isn't directly exported; we get it indirectly via
 // buildSyntheticEquations(). To layer in V2 edges we pass the union as
@@ -40,6 +45,21 @@ const PHASE_1_THEN_2 = (
   base: SyntheticEdgeSpec[],
   extra: SyntheticEdgeSpec[],
 ) => [...base, ...extra]
+
+const PHASE_2_PLUS_ENV_EDGES: SyntheticEdgeSpec[] = [
+  ...PHASE_2_EDGES,
+  ...ENVIRONMENTAL_EDGES,
+]
+
+const V2_PLUS_ENV_ACTION_SPAN: Record<string, [number, number]> = {
+  ...V2_ACTION_SPAN,
+  ...ENV_ACTION_SPAN,
+}
+
+const V2_PLUS_ENV_OUTCOME_SPAN: Record<string, [number, number]> = {
+  ...V2_OUTCOME_SPAN,
+  ...ENV_OUTCOME_SPAN,
+}
 
 export function useSCMv2() {
   const edgeResults = edgeSummaryRaw as EdgeResult[]
@@ -58,9 +78,9 @@ export function useSCMv2() {
     const synthV2 = buildSyntheticEquations(
       allKnownKeys,
       allKnownKeys,
-      PHASE_1_THEN_2([], PHASE_2_EDGES),
-      V2_ACTION_SPAN,
-      V2_OUTCOME_SPAN,
+      PHASE_1_THEN_2([], PHASE_2_PLUS_ENV_EDGES),
+      V2_PLUS_ENV_ACTION_SPAN,
+      V2_PLUS_ENV_OUTCOME_SPAN,
     )
     return [...fitted, ...synthV1.equations, ...synthV2.equations]
   }, [edgeResults])
@@ -79,9 +99,9 @@ export function useSCMv2() {
     const synthV2 = buildSyntheticEquations(
       new Set(),
       allKnownKeys,
-      PHASE_1_THEN_2([], PHASE_2_EDGES),
-      V2_ACTION_SPAN,
-      V2_OUTCOME_SPAN,
+      PHASE_1_THEN_2([], PHASE_2_PLUS_ENV_EDGES),
+      V2_PLUS_ENV_ACTION_SPAN,
+      V2_PLUS_ENV_OUTCOME_SPAN,
     )
     return [
       ...STRUCTURAL_EDGES,

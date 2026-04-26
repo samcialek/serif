@@ -97,7 +97,6 @@ export function DecayCurveLever({ spec, amount, cutoff, onChange }: ConsumableLe
 
   const Glyph = spec.glyph === 'wine' ? Wine : Coffee
   const filterId = `decay-haze-${spec.id}`
-  const gradId = `decay-grad-${spec.id}`
 
   const tickHours = spec.id === 'caffeine' ? [12, 8, 4, 0] : [8, 4, 0]
 
@@ -128,13 +127,11 @@ export function DecayCurveLever({ spec, amount, cutoff, onChange }: ConsumableLe
           <filter id={filterId} x="-10%" y="-10%" width="120%" height="120%">
             <feGaussianBlur stdDeviation="4" />
           </filter>
-          <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={spec.accent} stopOpacity="0.42" />
-            <stop offset="100%" stopColor={spec.accent} stopOpacity="0.05" />
-          </linearGradient>
         </defs>
 
-        {/* Hazy curve fill */}
+        {/* Soft halo — flat fill + blur; body below is flat fill.
+            Previously used a top-to-bottom linear gradient that made the
+            curve look washed-out at high doses; flattened here. */}
         <path
           d={curveD}
           fill={`${spec.accent}33`}
@@ -145,7 +142,8 @@ export function DecayCurveLever({ spec, amount, cutoff, onChange }: ConsumableLe
         />
         <path
           d={curveD}
-          fill={`url(#${gradId})`}
+          fill={spec.accent}
+          fillOpacity={0.28}
           style={{
             transition: dragging ? 'none' : 'd 260ms cubic-bezier(0.4,0,0.2,1)',
           }}

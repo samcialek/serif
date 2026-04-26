@@ -27,7 +27,12 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { PageLayout } from '@/components/layout'
-import { DataModeToggle, MemberAvatar } from '@/components/common'
+import {
+  DataModeToggle,
+  MemberAvatar,
+  PainterlyPageHeader,
+  ProvenanceBadge,
+} from '@/components/common'
 import { Card } from '@/components/common'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -168,11 +173,14 @@ function LoadsSection({ loads }: { loads: Partial<Record<LoadKey, LoadRowData>> 
   return (
     <Card>
       <div className="p-4">
-        <SectionHeader
-          icon={Layers}
-          title="Active loads"
-          blurb="Today's value vs personal 28-day baseline."
-        />
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <SectionHeader
+            icon={Layers}
+            title="Active loads"
+            blurb="Today's value vs personal 28-day baseline."
+          />
+          <ProvenanceBadge kind="fitted" label="engine-derived" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {rows.map((r) => (
             <div key={r.key} className="rounded-md border border-slate-200 bg-white p-2.5">
@@ -345,19 +353,43 @@ function OutcomesSection({
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {rows.map((cell) => (
-              <div key={cell.key} className="rounded-md border border-slate-200 bg-white p-2">
-                <div className="text-[10px] text-slate-500 uppercase tracking-wide truncate" title={cell.noun}>
-                  {cell.noun}
-                </div>
-                <div className="flex items-baseline gap-1 tabular-nums mt-0.5">
-                  <div className="text-base font-semibold text-slate-800">
-                    {formatOutcomeCanonical(cell.value, cell.key)}
+            {rows.map((cell) => {
+              // Wearable outcomes (HRV, RHR, sleep architecture) come from
+              // 14-day means; biomarkers come from lab draws. The split
+              // mirrors the consumer/clinical sort.
+              const provKind = CONSUMER_OUTCOMES.has(cell.key)
+                ? cell.key.startsWith('sleep_') ||
+                  cell.key === 'hrv_daily' ||
+                  cell.key === 'resting_hr' ||
+                  cell.key === 'vo2_peak'
+                  ? 'wearable'
+                  : 'lab'
+                : 'lab'
+              return (
+                <div
+                  key={cell.key}
+                  className="rounded-md border border-stone-200 bg-white p-2"
+                >
+                  <div className="flex items-start justify-between gap-1">
+                    <div
+                      className="text-[10px] text-slate-500 uppercase tracking-wide truncate"
+                      title={cell.noun}
+                    >
+                      {cell.noun}
+                    </div>
+                    <ProvenanceBadge kind={provKind} dotOnly />
                   </div>
-                  {cell.unit && <div className="text-[10px] text-slate-400">{cell.unit}</div>}
+                  <div className="flex items-baseline gap-1 tabular-nums mt-0.5">
+                    <div className="text-base font-semibold text-slate-800">
+                      {formatOutcomeCanonical(cell.value, cell.key)}
+                    </div>
+                    {cell.unit && (
+                      <div className="text-[10px] text-slate-400">{cell.unit}</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -413,10 +445,11 @@ function ActionsSection({ rows }: { rows: ActionRowData[] }) {
 
 function EmptyState() {
   return (
-    <PageLayout
-      title="Baseline"
-      subtitle="Today's state — loads, regimes, and outcomes your Twin reasons from."
-    >
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle="Today's state — loads, regimes, and outcomes your Twin reasons from."
+        hideHorizon
+      />
       <Card>
         <div className="p-8 text-center text-sm text-slate-500">
           Select a member to see their baseline.
@@ -475,10 +508,11 @@ export function BaselineView() {
   if (pid == null) return <EmptyState />
   if (isLoading || !participant) {
     return (
-      <PageLayout
-        title="Baseline"
-        subtitle="Today's state — loads, regimes, and outcomes your Twin reasons from."
-      >
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader
+          subtitle="Today's state — loads, regimes, and outcomes your Twin reasons from."
+          hideHorizon
+        />
         <Card>
           <div className="p-8 flex items-center justify-center text-sm text-slate-500">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -493,30 +527,18 @@ export function BaselineView() {
   const activations = participant.regime_activations ?? {}
 
   return (
-    <PageLayout
-      title="Baseline"
-      subtitle="Today's state. This is what Twin reasons from when you pull levers."
-      maxWidth="full"
-      padding="none"
-      className="pt-6 pb-6 pr-6 pl-3"
-      actions={<DataModeToggle />}
-    >
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle="Today's state — what Twin reasons from when you pull levers."
+        hideHorizon
+        actions={<DataModeToggle />}
+      />
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         className="space-y-3"
       >
-        <div className="flex items-center gap-3">
-          <MemberAvatar persona={persona} displayName={displayName} size="md" />
-          <div>
-            <div className="text-sm font-semibold text-slate-800">{displayName}</div>
-            <div className="text-xs text-slate-500">
-              {cohort ? `Cohort ${cohort} · ` : ''}Member baseline
-            </div>
-          </div>
-        </div>
-
         <LoadsSection loads={loadRows} />
         <RegimesSection activations={activations} />
         <OutcomesSection baselines={baselines} />
@@ -524,7 +546,7 @@ export function BaselineView() {
 
         <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
           <Heart className="w-3.5 h-3.5" />
-          Baseline is read-only. To simulate a different state, use the "State today" panel on Twin.
+          Baseline is read-only. To simulate a different state, use Twin.
         </div>
       </motion.div>
     </PageLayout>

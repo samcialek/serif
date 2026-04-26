@@ -26,11 +26,11 @@ import type { ParticipantPortal } from '@/data/portal/types'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
+import { ProtocolEvidenceMix } from '@/components/portal/ProtocolEvidenceMix'
 import { ProtocolMagnitude } from '@/components/portal/ProtocolMagnitude'
 import { RegimeGlyphs } from '@/components/portal/RegimeGlyphs'
 import type { CandidateSchedule } from '@/utils/twinSem'
 import {
-  sourceLabel,
   tagColor,
   userConfoundersForItem,
 } from '@/utils/dailyProtocol'
@@ -44,6 +44,9 @@ const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
   regime_driven: 'bg-amber-500',
   baseline: 'bg-slate-300',
 }
+
+const ROW_GRID =
+  'lg:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)_5.75rem_7.75rem_minmax(10rem,16rem)_1rem]'
 
 function doseDiffers(today: ProtocolItem, yesterday: ProtocolItem): boolean {
   if (today.dose !== yesterday.dose) return true
@@ -148,6 +151,21 @@ export function VisualSchedule({
       </div>
       <div className="relative">
         <div className="absolute left-[22px] top-2 bottom-2 w-px bg-slate-200" />
+        <div
+          className={cn(
+            'hidden lg:grid items-center gap-2 pl-12 pr-1 pb-1 text-[9px] uppercase tracking-wider text-slate-400',
+            ROW_GRID,
+          )}
+          aria-hidden
+        >
+          <span>Time</span>
+          <span />
+          <span>Action</span>
+          <span>State</span>
+          <span>Evidence</span>
+          <span>Context</span>
+          <span />
+        </div>
         <ul className="space-y-2">
           {matched.map((m, i) => (
             <VisualProtocolRow
@@ -220,7 +238,8 @@ function VisualProtocolRow({
       <button
         onClick={onToggleExpanded}
         className={cn(
-          'w-full flex items-center gap-2 flex-wrap text-left py-1 rounded group',
+          'w-full grid grid-cols-[3.25rem_1.25rem_minmax(0,1fr)_1rem] items-center gap-2 text-left py-1.5 rounded group',
+          ROW_GRID,
           'hover:bg-slate-50 -mx-1 px-1',
         )}
         aria-expanded={expanded}
@@ -229,25 +248,36 @@ function VisualProtocolRow({
           {real.displayTime}
         </span>
         <span className="text-base leading-none flex-shrink-0">{real.icon}</span>
-        <span className="text-sm font-semibold text-slate-800">{real.title}</span>
-        <span className="text-xs text-slate-500">· {real.dose}</span>
-        <RegimeGlyphs regimes={real.context.active_regimes} />
-        {hasContext && !expanded && (
-          <span className="ml-auto flex items-center gap-2">
-            <ProtocolContextChip context={real.context} variant={chipVariant} />
-            {topLoad && series.length >= 2 && (
-              <CausalSparkline
-                series={series}
-                loadKey={topLoad.key}
-                label={topLoad.label}
-                severityOverride={topLoad.severity}
-              />
-            )}
+        <span className="min-w-0 flex items-baseline gap-x-1 gap-y-0.5 flex-wrap">
+          <span className="text-sm font-semibold text-slate-800 truncate">
+            {real.title}
           </span>
-        )}
+          <span className="text-xs text-slate-500 truncate">{real.dose}</span>
+        </span>
+        <span className="hidden lg:flex min-h-[22px] items-center">
+          <RegimeGlyphs regimes={real.context.active_regimes} />
+        </span>
+        <span className="hidden lg:flex min-h-[22px] items-center">
+          <ProtocolEvidenceMix item={real} effects={participant.effects_bayesian} />
+        </span>
+        <span className="hidden lg:flex min-h-[22px] min-w-0 items-center gap-2">
+          {hasContext && (
+            <>
+              <ProtocolContextChip context={real.context} variant={chipVariant} />
+              {topLoad && series.length >= 2 && (
+                <CausalSparkline
+                  series={series}
+                  loadKey={topLoad.key}
+                  label={topLoad.label}
+                  severityOverride={topLoad.severity}
+                />
+              )}
+            </>
+          )}
+        </span>
         <span
           className={cn(
-            'ml-auto flex-shrink-0 text-slate-400 group-hover:text-slate-600 transition-transform',
+            'justify-self-end flex-shrink-0 text-slate-400 group-hover:text-slate-600 transition-transform',
             expanded && 'rotate-180',
           )}
           aria-hidden
@@ -259,7 +289,7 @@ function VisualProtocolRow({
       {expanded && (
         <div className="mt-1 space-y-1">
           {/* Magnitude visualization */}
-          <div className="ml-[22px]">
+          <div className="ml-[5.5rem]">
             <ProtocolMagnitude
               item={real}
               participant={participant}
@@ -269,7 +299,7 @@ function VisualProtocolRow({
           </div>
 
           {yesterdayItem && doseDiffers(real, yesterdayItem) && (
-            <div className="ml-[22px] mb-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-[10px] leading-snug tabular-nums">
+            <div className="ml-[5.5rem] mb-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-[10px] leading-snug tabular-nums">
               <span className="text-[10px] uppercase tracking-wider font-bold text-amber-700">
                 Yesterday
               </span>
@@ -277,21 +307,7 @@ function VisualProtocolRow({
             </div>
           )}
 
-          {hasContext && (
-            <div className="ml-[22px] mb-1 flex items-center gap-2 flex-wrap">
-              <ProtocolContextChip context={real.context} variant={chipVariant} />
-              {topLoad && series.length >= 2 && (
-                <CausalSparkline
-                  series={series}
-                  loadKey={topLoad.key}
-                  label={topLoad.label}
-                  severityOverride={topLoad.severity}
-                />
-              )}
-            </div>
-          )}
-
-          <div className="ml-[22px] flex items-center gap-1.5 flex-wrap">
+          <div className="ml-[5.5rem] flex items-center gap-1.5 flex-wrap">
             {real.tags.map((t) => (
               <span
                 key={t}
@@ -329,13 +345,10 @@ function VisualProtocolRow({
                 onClose={() => setAuditOpen(false)}
               />
             )}
-            <span className="text-[10px] text-slate-400 ml-auto">
-              {sourceLabel(real.source)}
-            </span>
           </div>
 
           {hasSuggestions && suggestOpen && (
-            <div className="ml-[22px] mt-1.5 p-2 bg-slate-50 border border-dashed border-slate-300 rounded">
+            <div className="ml-[5.5rem] mt-1.5 p-2 bg-slate-50 border border-dashed border-slate-300 rounded">
               <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">
                 Non-engine suggestions
               </p>

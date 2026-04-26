@@ -21,6 +21,11 @@ const ACTION_INCREMENT: Record<string, number> = {
   wake_time: 0.25,
   workout_time: 0.25,
   sleep_duration: 0.25,     // hours (15 min)
+  sleep_quality: 2,         // points
+  caffeine_mg: 25,          // mg/day
+  caffeine_timing: 0.5,     // hours
+  alcohol_units: 0.5,       // drinks/day
+  alcohol_timing: 0.5,      // hours
   training_volume: 0.25,    // hours
   running_volume: 0.25,     // km/day (legacy, used by Protocols sem)
   zone2_volume: 0.25,       // km/day (legacy, used by Protocols sem)
@@ -28,9 +33,19 @@ const ACTION_INCREMENT: Record<string, number> = {
   zone4_5_minutes: 1,       // min/day (Twin)
   training_load: 10,        // load units/day
   steps: 500,
+  bedroom_temp_c: 0.5,      // deg C
+  resistance_training_minutes: 30, // min/week
   dietary_protein: 5,       // g/day
   dietary_energy: 100,      // kcal/day
   active_energy: 100,       // kcal/day
+  supp_omega3: 1,
+  supp_magnesium: 1,
+  supp_vitamin_d: 1,
+  supp_b_complex: 1,
+  supp_creatine: 1,
+  supp_melatonin: 1,
+  supp_l_theanine: 1,
+  supp_zinc: 1,
 }
 
 // Per-outcome clinical rounding step for display of effect sizes and
@@ -299,21 +314,43 @@ export function formatActionValue(value: number, action: string): string {
     case 'sleep_duration':
     case 'training_volume':
       return formatHours(rounded)
+    case 'sleep_quality':
+      return `${rounded.toFixed(0)} pts`
+    case 'caffeine_mg':
+      return `${rounded.toFixed(0)} mg`
+    case 'caffeine_timing':
+    case 'alcohol_timing':
+      return `${rounded.toFixed(1)} h`
+    case 'alcohol_units':
+      return `${rounded.toFixed(1)} drinks`
     case 'running_volume':
     case 'zone2_volume':
       return `${rounded.toFixed(2)} km/day`
     case 'zone2_minutes':
     case 'zone4_5_minutes':
       return `${Math.round(rounded)} min/day`
+    case 'resistance_training_minutes':
+      return `${Math.round(rounded)} min/week`
     case 'training_load':
       return `${rounded.toFixed(0)} load units/day`
     case 'steps':
       return `${Math.round(rounded).toLocaleString()}/day`
+    case 'bedroom_temp_c':
+      return `${rounded.toFixed(1)} deg C`
     case 'dietary_protein':
       return `${rounded.toFixed(0)} g/day`
     case 'dietary_energy':
     case 'active_energy':
       return `${rounded.toFixed(0)} kcal/day`
+    case 'supp_omega3':
+    case 'supp_magnesium':
+    case 'supp_vitamin_d':
+    case 'supp_b_complex':
+    case 'supp_creatine':
+    case 'supp_melatonin':
+    case 'supp_l_theanine':
+    case 'supp_zinc':
+      return rounded >= 0.5 ? 'on' : 'off'
     default: {
       const prec = decimalsFor(actionIncrement(action))
       return rounded.toFixed(prec)
@@ -327,6 +364,11 @@ function actionPhrase(action: string): string {
     wake_time: 'wake time',
     workout_time: 'workout time',
     sleep_duration: 'sleep',
+    sleep_quality: 'sleep quality',
+    caffeine_mg: 'caffeine',
+    caffeine_timing: 'caffeine cutoff',
+    alcohol_units: 'alcohol',
+    alcohol_timing: 'alcohol cutoff',
     training_volume: 'training',
     running_volume: 'running',
     zone2_volume: 'Zone 2 volume',
@@ -334,9 +376,19 @@ function actionPhrase(action: string): string {
     zone4_5_minutes: 'Zone 4-5',
     training_load: 'training load',
     steps: 'steps',
+    bedroom_temp_c: 'bedroom temperature',
+    resistance_training_minutes: 'resistance training',
     dietary_protein: 'protein',
     dietary_energy: 'dietary energy',
     active_energy: 'active energy',
+    supp_omega3: 'omega-3',
+    supp_magnesium: 'magnesium',
+    supp_vitamin_d: 'vitamin D',
+    supp_b_complex: 'B-complex',
+    supp_creatine: 'creatine',
+    supp_melatonin: 'melatonin',
+    supp_l_theanine: 'L-theanine',
+    supp_zinc: 'zinc',
   }
   return labels[action] ?? action.replace(/_/g, ' ')
 }
@@ -427,6 +479,16 @@ export function formatRecommendedAction(
     return `${verb} to ${Math.round(target).toLocaleString()} steps/day`
   }
 
+  if (action === 'bedroom_temp_c') {
+    if (noCurrent) {
+      return raise
+        ? `Warm bedroom by ~${rounded.toFixed(1)} deg C`
+        : `Cool bedroom by ~${rounded.toFixed(1)} deg C`
+    }
+    const target = roundForAction(applyDelta(currentValue as number), action)
+    return `${raise ? 'Warm' : 'Cool'} bedroom to ${target.toFixed(1)} deg C`
+  }
+
   if (action === 'dietary_protein') {
     if (noCurrent) {
       return raise
@@ -445,6 +507,10 @@ export function formatRecommendedAction(
     }
     const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
     return `${verb} ${actionPhrase(action)} to ${target.toFixed(0)} kcal/day`
+  }
+
+  if (action.startsWith('supp_')) {
+    return raise ? `Add ${actionPhrase(action)}` : `Pause ${actionPhrase(action)}`
   }
 
   return `${verb} ${actionPhrase(action)} by ~${formatActionValue(rounded, action)}`

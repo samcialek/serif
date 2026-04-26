@@ -4,7 +4,14 @@ import { Search, ChevronLeft, ChevronRight, RefreshCw, Eye, ArrowUpDown } from '
 import { cn } from '@/utils/classNames'
 import { usePortalStore } from '@/stores/portalStore'
 import { participantLoader } from '@/data/portal/participantLoader'
-import { getShortDisplayName, isNamedPid } from '@/data/participantRegistry'
+import {
+  getShortDisplayName,
+  isNamedPid,
+  getNamedPersonaId,
+} from '@/data/participantRegistry'
+import { getPersonaById } from '@/data/personas'
+import { MemberAvatar } from '@/components/common'
+import type { Persona } from '@/types'
 import {
   computeMemberStats,
   formatTimeAgo,
@@ -39,6 +46,9 @@ interface Row {
   stats: MemberDisplayStats
   displayName: string
   isNamed: boolean
+  /** Hydrated for the five named pids; null otherwise. Used to render
+   *  the actual member portrait instead of an initial-circle. */
+  persona: Persona | null
 }
 
 export function MemberRoster() {
@@ -72,12 +82,17 @@ export function MemberRoster() {
   }, [])
 
   const rows: Row[] = useMemo(() => {
-    return summaries.map((s) => ({
-      summary: s,
-      stats: computeMemberStats(s),
-      displayName: getShortDisplayName(s.pid, s.cohort),
-      isNamed: isNamedPid(s.pid),
-    }))
+    return summaries.map((s) => {
+      const personaId = getNamedPersonaId(s.pid)
+      const persona = personaId ? getPersonaById(personaId) ?? null : null
+      return {
+        summary: s,
+        stats: computeMemberStats(s),
+        displayName: getShortDisplayName(s.pid, s.cohort),
+        isNamed: isNamedPid(s.pid),
+        persona,
+      }
+    })
   }, [summaries])
 
   const filtered: Row[] = useMemo(() => {
@@ -92,25 +107,27 @@ export function MemberRoster() {
       }
       return true
     })
-    const sorted = out.slice()
-    switch (sortKey) {
-      case 'pid':
-        sorted.sort((a, b) => a.summary.pid - b.summary.pid)
-        break
-      case 'last_sync':
-        sorted.sort((a, b) => a.stats.lastSyncHours - b.stats.lastSyncHours)
-        break
-      case 'last_open':
-        sorted.sort((a, b) => a.stats.lastOpenHours - b.stats.lastOpenHours)
-        break
-      case 'insights':
-        sorted.sort((a, b) => b.stats.insightCount - a.stats.insightCount)
-        break
-      case 'urgency':
-      default:
-        sorted.sort((a, b) => b.stats.regimeUrgency - a.stats.regimeUrgency)
-        break
+    // Comparator builders — every sort tiebreaks on isNamed first so the
+    // five named personas (Caspian, Rajan, Sarah, Marcus, Emma) always
+    // float to the top of any list, regardless of the column the coach
+    // chose. Inside the named bucket and inside the pseudonym bucket the
+    // requested sort still applies.
+    const namedFirst = (a: Row, b: Row) =>
+      a.isNamed === b.isNamed ? 0 : a.isNamed ? -1 : 1
+    const cmp: Record<SortKey, (a: Row, b: Row) => number> = {
+      pid: (a, b) => a.summary.pid - b.summary.pid,
+      last_sync: (a, b) => a.stats.lastSyncHours - b.stats.lastSyncHours,
+      last_open: (a, b) => a.stats.lastOpenHours - b.stats.lastOpenHours,
+      insights: (a, b) => b.stats.insightCount - a.stats.insightCount,
+      urgency: (a, b) => b.stats.regimeUrgency - a.stats.regimeUrgency,
     }
+    const inner = cmp[sortKey] ?? cmp.urgency
+    const sorted = out.slice()
+    sorted.sort((a, b) => {
+      const named = namedFirst(a, b)
+      if (named !== 0) return named
+      return inner(a, b)
+    })
     return sorted
   }, [rows, query, cohort, status, sortKey])
 
@@ -295,7 +312,7 @@ export function MemberRoster() {
 }
 
 function MemberRow({ row, onClick }: { row: Row; onClick: () => void }) {
-  const { summary, stats, displayName, isNamed } = row
+  const { summary, stats, displayName, isNamed, persona } = row
   const color = STATUS_COLOR[stats.status]
   const cohortLabel =
     summary.cohort === 'cohort_a' ? 'A' : summary.cohort === 'cohort_b' ? 'B' : summary.cohort === 'cohort_c' ? 'C' : '—'
@@ -310,16 +327,26 @@ function MemberRow({ row, onClick }: { row: Row; onClick: () => void }) {
     >
       {/* Member name + cohort */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <div
-          className={cn(
-            'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold',
-            isNamed
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-slate-100 text-slate-600',
-          )}
-        >
-          {displayName.charAt(0)}
-        </div>
+        {persona && persona.avatar ? (
+          <MemberAvatar
+            persona={persona}
+            displayName={displayName}
+            size="sm"
+            shape="circle"
+            className="flex-shrink-0"
+          />
+        ) : (
+          <div
+            className={cn(
+              'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold',
+              isNamed
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-slate-100 text-slate-600',
+            )}
+          >
+            {displayName.charAt(0)}
+          </div>
+        )}
         <div className="min-w-0">
           <div className="text-sm font-medium text-slate-800 truncate">{displayName}</div>
           <div className="text-[10px] text-slate-400">

@@ -96,6 +96,9 @@ const SHAPE_OVERRIDE: Record<string, Record<string, DoseShape>> = {
     cortisol: 'inverted_u',
   },
 
+  // Sleep environment: thermal neutrality has an optimal window.
+  bedroom_temp_c: { '*': 'inverted_u' },
+
   // Load actions — rolling aggregates surfaced in the Context drivers
   // section. Shapes mark them as "state" knobs rather than pursuit knobs,
   // so the dose-shift label reads as a direction to avoid.

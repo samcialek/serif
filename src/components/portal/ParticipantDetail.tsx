@@ -27,6 +27,10 @@ import {
 import { insightTierCounts, insightTierFor } from '@/utils/insightTier'
 import type { GateTier, InsightBayesian, Pathway } from '@/data/portal/types'
 import { isLoadAction } from '@/data/portal/types'
+import {
+  isExploratoryPriorEdge,
+  provenanceSortRank,
+} from '@/utils/edgeProvenance'
 
 // cohort_a/b/c are internal identifiers; surface them as plain English
 // so member profiles don't leak snake_case into the UI.
@@ -183,19 +187,14 @@ export function ParticipantDetail() {
     })
     const afterProvenance = showExploratory
       ? afterMin
-      : afterMin.filter((i) => i.prior_provenance !== 'weak_default')
+      : afterMin.filter((i) => !isExploratoryPriorEdge(i))
     const filtered =
       tierFilter.size === 0
         ? afterProvenance
         : afterProvenance.filter((i) => tierFilter.has(insightTierFor(i)))
     // Sort: tier first, then provenance (causal/literature ahead of
     // weak-default exploratory), then action order.
-    const provRank = (i: typeof filtered[number]) =>
-      i.prior_provenance === 'synthetic+literature'
-        ? 0
-        : i.prior_provenance === 'weak_default'
-        ? 2
-        : 1
+    const provRank = (i: typeof filtered[number]) => provenanceSortRank(i)
     return [...filtered].sort((a, b) => {
       const t = TIER_RANK[insightTierFor(a)] - TIER_RANK[insightTierFor(b)]
       if (t !== 0) return t

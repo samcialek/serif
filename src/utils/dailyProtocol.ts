@@ -34,6 +34,7 @@ import type {
 } from '@/data/portal/types'
 import type { CandidateSchedule } from '@/utils/twinSem'
 import { SESSION_PRESETS } from '@/utils/twinSem'
+import { observationCoverageForEdge, personalizationForEdge } from '@/utils/edgeEvidence'
 
 export type ProtocolSlot =
   | 'dawn'
@@ -99,6 +100,25 @@ export interface ProtocolItemContext {
    * baseline dose. Filled in when the OptimalSchedule layer has both a
    * real and a neutral-state pick to compare. */
   dose_rationale?: string
+}
+
+export interface ProtocolEvidenceSummary {
+  personalPct: number
+  modelPct: number
+  coveragePct: number
+  narrowingPct: number
+  edgeCount: number
+  personalEdgeCount: number
+  userN: number
+  dominantEdge: {
+    action: string
+    outcome: string
+    effect: number
+    mean: number
+    sd: number
+    ci90: [number, number]
+    source: string
+  } | null
 }
 
 export interface ProtocolItem {
@@ -297,7 +317,9 @@ function confounderValue(
     return day === 0 || day === 6 ? 'weekend' : 'weekday'
   }
   if (key === 'season') return seasonForDate(date)
-  if (key === 'location') return participant.cohort
+  if (key === 'location') {
+    return participant.weather_location_today?.city ?? participant.cohort
+  }
   if (key === 'travel_load') {
     // travel_load isn't in the engine's load summary (LOAD_COLUMNS doesn't
     // include it) — it's a BART confounder only. Show without a value.
@@ -790,4 +812,79 @@ export function userConfoundersForItem(
     for (const c of e.user_obs?.confounders_adjusted ?? []) out.add(c)
   }
   return Array.from(out).sort()
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(1, value))
+}
+
+export function evidenceSummaryForItem(
+  item: ProtocolItem,
+  effects: InsightBayesian[],
+): ProtocolEvidenceSummary | null {
+  const actions = new Set(item.context.related_actions)
+  const outcomes = new Set(item.context.related_outcomes)
+  const matches = effects.filter((edge) => {
+    if (!actions.has(edge.action)) return false
+    if (!outcomes.has(edge.outcome)) return false
+    return edge.gate?.tier !== 'not_exposed'
+  })
+
+  if (matches.length === 0) return null
+
+  let weightSum = 0
+  let personalWeighted = 0
+  let coverageWeighted = 0
+  let narrowingWeighted = 0
+  let userN = 0
+  let personalEdgeCount = 0
+  let dominant: InsightBayesian | null = null
+  let dominantWeight = -1
+
+  for (const edge of matches) {
+    const effect = edge.scaled_effect ?? edge.posterior?.mean ?? 0
+    const weight = Math.max(0.01, Math.abs(effect))
+    const personalization = personalizationForEdge(edge)
+    const coverage = observationCoverageForEdge(edge)
+    const narrowing = edge.personalization?.narrowing_pct != null
+      ? edge.personalization.narrowing_pct / 100
+      : edge.posterior?.contraction ?? 0
+    weightSum += weight
+    personalWeighted += personalization * weight
+    coverageWeighted += coverage * weight
+    narrowingWeighted += narrowing * weight
+    userN += edge.personalization?.observations ?? edge.user_obs?.n ?? 0
+    if (personalization > 0) personalEdgeCount += 1
+    if (weight > dominantWeight) {
+      dominant = edge
+      dominantWeight = weight
+    }
+  }
+
+  const personalPct = weightSum > 0 ? personalWeighted / weightSum : 0
+  const mean = dominant?.posterior?.mean ?? 0
+  const sd = dominant?.posterior?.sd ?? 0
+  const ciDelta = 1.645 * sd
+
+  return {
+    personalPct: clamp01(personalPct),
+    modelPct: clamp01(1 - personalPct),
+    coveragePct: clamp01(weightSum > 0 ? coverageWeighted / weightSum : 0),
+    narrowingPct: clamp01(weightSum > 0 ? narrowingWeighted / weightSum : 0),
+    edgeCount: matches.length,
+    personalEdgeCount,
+    userN,
+    dominantEdge: dominant
+      ? {
+          action: dominant.action,
+          outcome: dominant.outcome,
+          effect: dominant.scaled_effect,
+          mean,
+          sd,
+          ci90: [mean - ciDelta, mean + ciDelta],
+          source: dominant.posterior?.source ?? 'prior',
+        }
+      : null,
+  }
 }

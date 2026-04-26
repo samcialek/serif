@@ -35,8 +35,13 @@ import { OBJECTIVE_ORON } from '@/utils/twinSem'
 import { cohensD } from '@/utils/insightStandardization'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import { buildEnvironmentalSyntheticEdges } from '@/data/scm/environmentalEdges'
+import { buildPhase2SyntheticEdges } from '@/data/scm/syntheticEdgesV2'
 import { useScopeStore } from '@/stores/scopeStore'
 import { PainterlyPageHeader } from '@/components/common'
+import {
+  hasPersonalPosterior,
+  isExploratoryPriorEdge,
+} from '@/utils/edgeProvenance'
 
 /** Coarse horizon band per outcome — drives the grouping headers
  * and the "horizon" sort. Quotidian = wearable-day signals (HRV,
@@ -115,7 +120,7 @@ function passesFilters(
   allowedBands: Set<HorizonBand>,
 ): boolean {
   if (!allowedBands.has(bandFor(edge.outcome))) return false
-  if (!controls.includeWeakDefault && edge.prior_provenance === 'weak_default') return false
+  if (!controls.includeWeakDefault && isExploratoryPriorEdge(edge)) return false
   if (!controls.includeNotExposed && edge.gate.tier === 'not_exposed') return false
   if (controls.personalOnly && edge.evidence_tier === 'cohort_level') return false
   if (controls.hideTrivial) {
@@ -249,14 +254,22 @@ export function InsightsV2View() {
   )
 
   // All edges = participant's fitted/prior edges + literature-backed
-  // environmental edges (heat / humidity / UV / AQI / travel /
-  // daylight). Environmental edges aren't participant-specific so they
-  // get appended once across the cohort.
+  // prior rows. Prior rows are de-duped behind participant rows
+  // so personal/cohort fits always win when the same action->outcome exists.
   const envEdges = useMemo(() => buildEnvironmentalSyntheticEdges(), [])
+  const phase2Edges = useMemo(() => buildPhase2SyntheticEdges(), [])
   const allEdges = useMemo<InsightBayesian[]>(() => {
     if (!participant) return []
-    return [...participant.effects_bayesian, ...envEdges]
-  }, [participant, envEdges])
+    const out = [...participant.effects_bayesian]
+    const seen = new Set(out.map((edge) => `${edge.action}->${edge.outcome}`))
+    for (const edge of [...phase2Edges, ...envEdges]) {
+      const key = `${edge.action}->${edge.outcome}`
+      if (seen.has(key)) continue
+      out.push(edge)
+      seen.add(key)
+    }
+    return out
+  }, [participant, phase2Edges, envEdges])
 
   const ordering = useMemo(() => {
     if (!participant) return { sections: [], total: 0 }
@@ -297,7 +310,7 @@ export function InsightsV2View() {
     let environmental = 0
     for (const edge of allEdges) {
       total += 1
-      if (edge.prior_provenance === 'weak_default') weakDefault += 1
+      if (isExploratoryPriorEdge(edge)) weakDefault += 1
       if (edge.gate.tier === 'not_exposed') notExposed += 1
       // Treat env-driver actions as "environmental" — heat_index_c,
       // humidity_pct, uv_index, aqi, travel_load, daylight_hours, temp_c.
@@ -316,7 +329,7 @@ export function InsightsV2View() {
       visible += 1
       const d = cohensD(edge, participant)
       if (Math.abs(d) >= 0.2) significant += 1
-      if (edge.evidence_tier !== 'cohort_level') personal += 1
+      if (hasPersonalPosterior(edge)) personal += 1
     }
     return { total, visible, significant, personal, weakDefault, notExposed, environmental }
   }, [participant, allEdges, controls])

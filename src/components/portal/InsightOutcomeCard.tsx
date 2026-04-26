@@ -25,8 +25,72 @@ import { CONFOUNDERS_BY_OUTCOME } from '@/utils/dailyProtocol'
 import { InsightActionRow } from './InsightActionRow'
 import { InsightActionDetail } from './InsightActionDetail'
 import { CrossTabLinks } from '@/components/common'
+import { Fingerprint as FingerprintIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { hasFingerprintsForOutcome } from '@/data/fingerprints/reverseIndex'
+import { isExploratoryPriorEdge } from '@/utils/edgeProvenance'
 
-const TOP_N_DEFAULT = 5
+const TOP_N_PER_GROUP_DEFAULT = 4
+
+type DriverGroup = 'actionable' | 'load_state' | 'context'
+
+const DRIVER_GROUP_ORDER: DriverGroup[] = ['actionable', 'load_state', 'context']
+
+const DRIVER_GROUP_META: Record<
+  DriverGroup,
+  { label: string; blurb: string; tone: string }
+> = {
+  actionable: {
+    label: 'Actionable levers',
+    blurb: 'behaviors the member can deliberately change',
+    tone: 'border-emerald-200 bg-emerald-50/60 text-emerald-900',
+  },
+  load_state: {
+    label: 'Load states & mediators',
+    blurb: 'rolling physiology that modifies response',
+    tone: 'border-amber-200 bg-amber-50/60 text-amber-900',
+  },
+  context: {
+    label: 'Context & environment',
+    blurb: 'weather, travel, daylight, and passive context',
+    tone: 'border-sky-200 bg-sky-50/60 text-sky-900',
+  },
+}
+
+const CONTEXT_DRIVER_ACTIONS = new Set([
+  'aqi',
+  'daylight_hours',
+  'heat_index_c',
+  'humidity_pct',
+  'season',
+  'temp_c',
+  'travel_load',
+  'uv_index',
+])
+
+const LOAD_STATE_ACTIONS = new Set([
+  'acwr',
+  'atl',
+  'ctl',
+  'ferritin',
+  'hscrp',
+  'inflammation_state',
+  'iron_deficiency_state',
+  'sleep_debt',
+  'sleep_debt_14d',
+  'sleep_deprivation_state',
+  'sri_7d',
+  'training_consistency',
+  'training_monotony',
+  'tsb',
+  'overreaching_state',
+])
+
+function driverGroupFor(edge: InsightBayesian): DriverGroup {
+  if (CONTEXT_DRIVER_ACTIONS.has(edge.action)) return 'context'
+  if (LOAD_STATE_ACTIONS.has(edge.action)) return 'load_state'
+  return 'actionable'
+}
 
 const OUTCOME_LABELS: Record<string, string> = {
   hrv_daily: 'Overnight HRV',
@@ -105,7 +169,7 @@ const CONFOUNDER_META: Record<
 
 /** Resolve today's observed value for a confounder from the participant
  * record. Most come from weather_today / loads_today; season +
- * is_weekend derive from today's date; location = cohort id. */
+ * is_weekend derive from today's date; location uses the weather row. */
 function resolveConfounderValue(
   key: string,
   participant: ParticipantPortal,
@@ -122,7 +186,7 @@ function resolveConfounderValue(
     if (m >= 8 && m <= 10) return 'autumn'
     return 'winter'
   }
-  if (key === 'location') return participant.cohort
+  if (key === 'location') return participant.weather_location_today?.city ?? participant.cohort
   const w = participant.weather_today
   if (w) {
     if (key === 'heat_index' && w.heat_index_c != null)
@@ -198,17 +262,36 @@ export function InsightOutcomeCard({
   // (DataModeToggle changes the row visual but ranking stays stable so
   // the user sees the same edge set in both modes.)
   const ranked = useMemo(() => {
-    const scored = edges.map((edge) => ({
+    const scored = edges.map((edge, index) => ({
       edge,
       absD: Math.abs(cohensD(edge, participant)),
-      key: `${edge.action}-${edge.outcome}`,
+      key: `${edge.action}-${edge.outcome}-${edge.prior_provenance ?? 'prior'}-${index}`,
     }))
     scored.sort((a, b) => b.absD - a.absD)
     return scored
   }, [edges, participant])
 
-  const visible = expandAll ? ranked : ranked.slice(0, TOP_N_DEFAULT)
-  const hidden = ranked.length - visible.length
+  const groupedSections = useMemo(
+    () =>
+      DRIVER_GROUP_ORDER.map((group) => ({
+        group,
+        rows: ranked.filter(({ edge }) => driverGroupFor(edge) === group),
+      })).filter((section) => section.rows.length > 0),
+    [ranked],
+  )
+
+  const visibleCount = groupedSections.reduce(
+    (sum, section) =>
+      sum +
+      (expandAll
+        ? section.rows.length
+        : Math.min(section.rows.length, TOP_N_PER_GROUP_DEFAULT)),
+    0,
+  )
+  const hidden = ranked.length - visibleCount
+  const hasGroupOverflow = groupedSections.some(
+    (section) => section.rows.length > TOP_N_PER_GROUP_DEFAULT,
+  )
 
   const baseline = participant.outcome_baselines?.[outcome]
   const unit = OUTCOME_UNIT[outcome] ?? ''
@@ -251,33 +334,104 @@ export function InsightOutcomeCard({
                   </div>
                 </div>
               )}
+              {hasFingerprintsForOutcome(participant, outcome) && (
+                <Link
+                  to={`/fingerprint?outcome=${encodeURIComponent(outcome)}`}
+                  title="See what is distinctive about this member's relationship to this outcome"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors"
+                  style={{
+                    background: '#fefbf3',
+                    border: '1px solid #f0e9d8',
+                    color: '#5C7B6B',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    ;(e.currentTarget as HTMLAnchorElement).style.background = '#f5efe2'
+                  }}
+                  onMouseLeave={(e) => {
+                    ;(e.currentTarget as HTMLAnchorElement).style.background = '#fefbf3'
+                  }}
+                >
+                  <FingerprintIcon className="w-3 h-3" />
+                  Why?
+                </Link>
+              )}
               <CrossTabLinks outcome={outcome} exclude={['insights']} />
             </div>
           </div>
 
           {/* Body — ranked rows */}
-          <ul className="p-1">
-            {visible.map(({ edge, key }) => (
-              <li key={key}>
-                <InsightActionRow
-                  edge={edge}
-                  participant={participant}
-                  expanded={openEdgeId === key}
-                  onToggle={() =>
-                    setOpenEdgeId((prev) => (prev === key ? null : key))
-                  }
-                />
-                {openEdgeId === key && (
-                  <InsightActionDetail edge={edge} participant={participant} />
-                )}
-              </li>
-            ))}
-            {visible.length === 0 && (
-              <li className="px-3 py-3 text-[11px] italic text-slate-400">
+          <div className="p-1 space-y-2">
+            {groupedSections.map(({ group, rows }) => {
+              const meta = DRIVER_GROUP_META[group]
+              const shown = expandAll
+                ? rows
+                : rows.slice(0, TOP_N_PER_GROUP_DEFAULT)
+              const groupHidden = rows.length - shown.length
+              const needsPersonalData = rows.filter(
+                ({ edge }) =>
+                  isExploratoryPriorEdge(edge) ||
+                  edge.gate?.tier === 'not_exposed',
+              ).length
+
+              return (
+                <section
+                  key={group}
+                  className="rounded-lg border border-slate-100 overflow-hidden"
+                >
+                  <div
+                    className={cn(
+                      'px-2.5 py-1.5 border-b flex items-baseline gap-2 flex-wrap',
+                      meta.tone,
+                    )}
+                  >
+                    <span className="text-[10px] uppercase tracking-wider font-bold">
+                      {meta.label}
+                    </span>
+                    <span className="text-[10px] opacity-75">
+                      {meta.blurb}
+                    </span>
+                    <span className="ml-auto text-[10px] tabular-nums opacity-75">
+                      {rows.length} edge{rows.length === 1 ? '' : 's'}
+                      {needsPersonalData > 0 && (
+                        <span> · {needsPersonalData} need data</span>
+                      )}
+                    </span>
+                  </div>
+                  <ul>
+                    {shown.map(({ edge, key }) => (
+                      <li key={key}>
+                        <InsightActionRow
+                          edge={edge}
+                          participant={participant}
+                          expanded={openEdgeId === key}
+                          onToggle={() =>
+                            setOpenEdgeId((prev) => (prev === key ? null : key))
+                          }
+                        />
+                        {openEdgeId === key && (
+                          <InsightActionDetail
+                            edge={edge}
+                            participant={participant}
+                          />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {groupHidden > 0 && !expandAll && (
+                    <div className="px-3 py-1.5 text-[10px] text-slate-400 border-t border-slate-100 bg-slate-50/50">
+                      {groupHidden} more hidden in this group
+                    </div>
+                  )}
+                </section>
+              )
+            })}
+            {groupedSections.length === 0 && (
+              <div className="px-3 py-3 text-[11px] italic text-slate-400">
                 No exposed edges for this outcome yet.
-              </li>
+              </div>
             )}
-          </ul>
+          </div>
 
           {/* Environmental context — non-actionable confounders the estimate
               is conditional on. Rendered beneath the actionable rows so
@@ -296,12 +450,12 @@ export function InsightOutcomeCard({
               Show {hidden} more edge{hidden === 1 ? '' : 's'}
             </button>
           )}
-          {expandAll && ranked.length > TOP_N_DEFAULT && (
+          {expandAll && hasGroupOverflow && (
             <button
               onClick={() => setExpandAll(false)}
               className="w-full px-4 py-2 text-[11px] text-slate-500 hover:text-slate-700 border-t border-slate-100 text-left"
             >
-              Show top {TOP_N_DEFAULT} only
+              Show top {TOP_N_PER_GROUP_DEFAULT} per group only
             </button>
           )}
         </div>
@@ -348,8 +502,8 @@ function EnvironmentalSection({
       </div>
       <p className="mt-2 text-[10px] text-slate-400 leading-snug italic">
         These factors shape {OUTCOME_LABELS[outcome] ?? outcome.replace(/_/g, ' ')} too,
-        but aren't things the member can change. The engine's estimates are
-        adjusted for them via the BART backdoor.
+        but aren't things the member can change. Serif tracks them as
+        backdoor context when the adjustment set is available.
       </p>
     </div>
   )

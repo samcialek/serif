@@ -19,3 +19,5 @@ export { InsightsV2View } from './InsightsV2View'
 export { TwinV2View as TwinView } from './v2/TwinV2View'
 export { BaselineView } from './BaselineView'
 export { ExplorationView } from './ExplorationView'
+// Fingerprint — distinctive pattern profile per member.
+export { FingerprintView } from './FingerprintView'

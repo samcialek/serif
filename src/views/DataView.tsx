@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
@@ -14,13 +14,36 @@ import {
   Database,
   Gauge,
   CloudSun,
+  Coffee,
 } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
-import { Card, DataModeToggle, MetricCard, MemberAvatar } from '@/components/common'
+import {
+  Card,
+  DataModeToggle,
+  EdgeEvidenceChip,
+  MetricCard,
+  MemberAvatar,
+  PainterlyPageHeader,
+  ProvenanceBadge,
+  provenanceFromSource,
+} from '@/components/common'
 import { DataCadenceChart } from '@/components/charts'
 import { MetricSparkline } from '@/components/clients/MetricSparkline'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
 import { useParticipant } from '@/hooks/useParticipant'
+import type { InsightBayesian } from '@/data/portal/types'
+import { useScopeStore } from '@/stores/scopeStore'
+import { explorationBandFor, type ExplorationHorizonBand } from '@/utils/exploration'
+import {
+  evidenceCounts,
+  median,
+  prettyEdgeId,
+  priorHeavyEdges,
+  scopeBlurb,
+  scopeLabel,
+  scopedEdgesForRegime,
+  weightedPersonalizationPct,
+} from '@/utils/edgeEvidence'
 import {
   caspianTimeSeries,
   caspianLabs,
@@ -31,6 +54,13 @@ import {
   type TimeSeriesMetric,
   type LabMetricDef,
 } from '@/data/caspianRawData'
+import {
+  EDGE_LIFECYCLE_STAGE_META,
+  buildEdgeLifecycleSummary,
+  formatEdgeLabel,
+  type EdgeLifecycleBlocker,
+  type EdgeLifecycleStage,
+} from '@/utils/edgeLifecycle'
 // LabResult type available from @/types if needed
 
 // ============================================================================
@@ -44,6 +74,7 @@ type CategoryId =
   | 'heart'
   | 'labs'
   | 'body'
+  | 'lifestyle'
   | 'loads'
   | 'environment'
 
@@ -62,6 +93,7 @@ const CATEGORIES: CategoryDef[] = [
   { id: 'heart', label: 'Heart & HRV', icon: Heart, color: '#e99bbe', metricCount: '4 metrics' },
   { id: 'labs', label: 'Lab Biomarkers', icon: FlaskConical, color: '#9182c4', metricCount: `${LAB_METRICS.length} markers` },
   { id: 'body', label: 'Body Composition', icon: Scale, color: '#5ba8d4', metricCount: '2 metrics' },
+  { id: 'lifestyle', label: 'Lifestyle log', icon: Coffee, color: '#C76B4D', metricCount: '4 metrics · 90d' },
   { id: 'loads', label: 'Rolling loads', icon: Gauge, color: '#6366f1', metricCount: '8 metrics · 14d' },
   { id: 'environment', label: 'Environment', icon: CloudSun, color: '#f59e0b', metricCount: '5 metrics · 14d' },
 ]
@@ -71,6 +103,7 @@ const CATEGORY_TO_TS: Record<string, TimeSeriesMetric['category']> = {
   activity: 'activity',
   heart: 'heart',
   body: 'body',
+  lifestyle: 'lifestyle',
 }
 
 // Map heart category to both 'heart' and 'hrv' time series categories
@@ -103,6 +136,7 @@ function CategorySidebar({
     heart: '',
     labs: caspianLabs[0]?.date ?? '',
     body: '',
+    lifestyle: '',
     loads: '',
     environment: '',
   }
@@ -213,15 +247,15 @@ function WearableMetricRow({ metric, color }: { metric: TimeSeriesMetric; color:
       </div>
 
       {/* Source + reference range */}
-      <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400">
-        <span>{metric.source}</span>
+      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+        <ProvenanceBadge
+          kind={provenanceFromSource(metric.source)}
+          label={metric.source}
+        />
         {metric.referenceRange && (
-          <>
-            <span>|</span>
-            <span>
-              Ref: {metric.referenceRange.low}–{metric.referenceRange.high} {metric.unit}
-            </span>
-          </>
+          <span className="text-slate-400">
+            Ref: {metric.referenceRange.low}–{metric.referenceRange.high} {metric.unit}
+          </span>
         )}
       </div>
     </Card>
@@ -510,7 +544,7 @@ function DataCoverageCadenceCard() {
           <div>
             <h3 className="text-lg font-semibold">Data Coverage & Cadence</h3>
             <p className="text-sm text-slate-300">
-              Temporal coverage of Caspian's connected data sources — 4,000+ days across 7 streams
+              Temporal coverage of Caspian's connected data sources — 4,000+ days across 8 streams
             </p>
           </div>
         </div>
@@ -532,6 +566,412 @@ function DataCoverageCadenceCard() {
             </svg>
             Episodic event
           </span>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+interface EvidenceMixBucket {
+  key: string
+  label: string
+  edges: InsightBayesian[]
+}
+
+function EvidenceMixRow({ bucket }: { bucket: EvidenceMixBucket }) {
+  const personalized = weightedPersonalizationPct(bucket.edges)
+  const personalizedPct = Math.round(personalized * 100)
+  const modelPct = 100 - personalizedPct
+  const userN = bucket.edges.reduce((sum, edge) => sum + (edge.user_obs?.n ?? 0), 0)
+  const medianSd = median(bucket.edges.map((edge) => edge.posterior?.sd ?? 0))
+  const hover = [
+    `${personalizedPct}% personalized / ${modelPct}% model`,
+    `${bucket.edges.length} causal edges`,
+    `total user n=${userN}`,
+    `median posterior SD=${medianSd.toFixed(3)}`,
+  ].join('\n')
+
+  return (
+    <div title={hover}>
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <div>
+          <div className="text-sm font-semibold text-slate-800">{bucket.label}</div>
+          <div className="text-[10px] text-slate-400 tabular-nums">
+            {bucket.edges.length} edges · median SD {medianSd.toFixed(3)}
+          </div>
+        </div>
+        <div className="text-xs tabular-nums text-slate-500">
+          {personalizedPct}% / {modelPct}%
+        </div>
+      </div>
+      <div className="h-2 rounded-full bg-slate-100 overflow-hidden flex">
+        <div
+          className="h-full bg-emerald-500"
+          style={{ width: `${personalizedPct}%` }}
+        />
+        <div className="h-full flex-1 bg-slate-300" />
+      </div>
+    </div>
+  )
+}
+
+function CausalEvidenceMixCard() {
+  const { participant, isLoading } = useParticipant()
+  const regime = useScopeStore((s) => s.regime)
+
+  if (isLoading) {
+    return (
+      <Card padding="md" className="mb-6 text-sm text-slate-500">
+        Loading causal evidence mix...
+      </Card>
+    )
+  }
+  if (!participant) return null
+
+  const edges = participant.effects_bayesian
+  const activeEdges = scopedEdgesForRegime(edges, regime)
+  const byBand = (band: ExplorationHorizonBand) =>
+    edges.filter((edge) => explorationBandFor(edge.outcome) === band)
+  const activeBuckets: EvidenceMixBucket[] =
+    regime === 'all'
+      ? [
+          { key: 'all', label: 'All causal edges', edges: activeEdges },
+          { key: 'quotidian', label: 'Quotidian horizon', edges: byBand('quotidian') },
+          {
+            key: 'longevity',
+            label: 'Longevity horizon',
+            edges: [...byBand('monthly'), ...byBand('longterm')],
+          },
+        ]
+      : regime === 'quotidian'
+        ? [{ key: 'quotidian', label: 'Quotidian horizon', edges: activeEdges }]
+        : [
+            { key: 'longevity', label: 'Longevity horizon', edges: activeEdges },
+            { key: 'monthly', label: 'Monthly biomarkers', edges: byBand('monthly') },
+            { key: 'longterm', label: 'Long-term biomarkers', edges: byBand('longterm') },
+          ]
+  const buckets = activeBuckets.filter((bucket) => bucket.edges.length > 0)
+
+  const activePersonalPct = Math.round(weightedPersonalizationPct(activeEdges) * 100)
+  const counts = evidenceCounts(activeEdges)
+  const priorHeavy = priorHeavyEdges(activeEdges, 6)
+
+  return (
+    <Card padding="none" className="overflow-hidden rounded-xl mb-6">
+      <div className="px-6 py-4 border-b border-slate-200 bg-white">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-lg font-semibold text-slate-800">
+                Causal evidence mix
+              </h3>
+            </div>
+            <p className="text-sm text-slate-500 mt-1 max-w-3xl">
+              Where Protocols' evidence bars come from: member-specific row
+              coverage and posterior narrowing, compared with model-side support.
+              Currently scoped to <span className="font-medium text-slate-700">{scopeLabel(regime)}</span>{' '}
+              ({scopeBlurb(regime)}).
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-2xl font-semibold text-emerald-700 tabular-nums">
+              {activePersonalPct}%
+            </div>
+            <div
+              className="text-[10px] uppercase tracking-wider text-slate-400"
+              title="Magnitude-weighted member-specific evidence share across the edges in this scope. It combines row coverage and posterior narrowing."
+            >
+              weighted personalization
+            </div>
+            <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">
+              {activeEdges.length}/{edges.length} edges
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.15fr]">
+        <div className="px-6 py-5 border-b xl:border-b-0 xl:border-r border-slate-100">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+            {[
+              ['Personalized', counts.personal, 'text-emerald-700 bg-emerald-50'],
+              ['Personalizing', counts.personalizing, 'text-indigo-700 bg-indigo-50'],
+              ['Model-heavy', counts.priorHeavy, 'text-amber-700 bg-amber-50'],
+              ['Blocked', counts.blocked, 'text-rose-700 bg-rose-50'],
+            ].map(([label, value, tone]) => (
+              <div key={label} className={`rounded-lg px-3 py-2 ${tone}`}>
+                <div className="text-lg font-semibold tabular-nums">{value}</div>
+                <div className="text-[10px] uppercase tracking-wider opacity-70">
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 mb-4 text-[10px] uppercase tracking-wider text-slate-400">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-2 rounded-sm bg-emerald-500" />
+              Personalized
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-5 h-2 rounded-sm bg-slate-300" />
+              Model
+            </span>
+          </div>
+          <div className="space-y-4">
+            {buckets.map((bucket) => (
+              <EvidenceMixRow key={bucket.key} bucket={bucket} />
+            ))}
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-3">
+            Model-heavy edges to unlock · {scopeLabel(regime)}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {priorHeavy.length === 0 && (
+              <div className="py-4 text-sm text-slate-500">
+                No model-heavy edges in this scope.
+              </div>
+            )}
+            {priorHeavy.map((edge) => {
+              const sd = edge.posterior?.sd ?? 0
+              return (
+                <div
+                  key={`${edge.action}->${edge.outcome}`}
+                  className="py-2.5 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-slate-800 truncate">
+                        {prettyEdgeId(edge.action)} → {prettyEdgeId(edge.outcome)}
+                      </div>
+                      <div className="text-[10px] text-slate-400 tabular-nums">
+                        n={edge.user_obs?.n ?? 0} · SD {sd.toFixed(3)} ·{' '}
+                        {edge.horizon_days != null ? `${edge.horizon_days}d` : 'no horizon'}
+                      </div>
+                    </div>
+                    <EdgeEvidenceChip edge={edge} variant="compact" />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+const LIFECYCLE_VISIBLE_STAGES: EdgeLifecycleStage[] = [
+  'recommended_edge',
+  'personal_edge',
+  'personalizing',
+  'estimating',
+  'needs_exposure_variation',
+  'needs_outcome_cadence',
+  'confounder_blocked',
+  'positivity_limited',
+  'population_prior',
+]
+
+const STAGE_TONE_CLASS: Record<EdgeLifecycleStage, string> = {
+  population_prior: 'bg-slate-100 text-slate-700 border-slate-200',
+  needs_exposure_variation: 'bg-amber-50 text-amber-800 border-amber-200',
+  needs_outcome_cadence: 'bg-amber-50 text-amber-800 border-amber-200',
+  confounder_blocked: 'bg-rose-50 text-rose-800 border-rose-200',
+  positivity_limited: 'bg-rose-50 text-rose-800 border-rose-200',
+  estimating: 'bg-blue-50 text-blue-800 border-blue-200',
+  personalizing: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+  personal_edge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  recommended_edge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  needs_refresh: 'bg-slate-100 text-slate-700 border-slate-200',
+}
+
+const BLOCKER_LABEL: Record<EdgeLifecycleBlocker, string> = {
+  exposure_variation: 'Exposure variation',
+  outcome_cadence: 'Outcome cadence',
+  confounder_coverage: 'Confounder coverage',
+  positivity: 'Positivity',
+  posterior_contraction: 'Estimate still wide',
+  direction_stability: 'Direction stability',
+}
+
+function EdgeLedAcquisitionCard() {
+  const { participant, isLoading } = useParticipant()
+  const regime = useScopeStore((s) => s.regime)
+  const summary = useMemo(
+    () => {
+      if (!participant) return null
+      return buildEdgeLifecycleSummary({
+        ...participant,
+        effects_bayesian: scopedEdgesForRegime(participant.effects_bayesian, regime),
+      })
+    },
+    [participant, regime],
+  )
+
+  if (isLoading) {
+    return (
+      <Card padding="md" className="mb-6 text-sm text-slate-500">
+        Loading edge lifecycle...
+      </Card>
+    )
+  }
+  if (!participant || !summary) return null
+
+  const total = Math.max(1, summary.assessments.length)
+  const personalPct = Math.round((summary.personalEdgeCount / total) * 100)
+  const blockedPct = Math.round((summary.blockedEdgeCount / total) * 100)
+  const topRecommendations = summary.recommendations.slice(0, 3)
+
+  return (
+    <Card padding="none" className="overflow-hidden rounded-xl mb-6">
+      <div className="px-6 py-4 border-b border-slate-200 bg-white">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Gauge className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-lg font-semibold text-slate-800">
+                Edge-led acquisition
+              </h3>
+            </div>
+            <p className="text-sm text-slate-500 mt-1 max-w-3xl">
+              Each edge is staged by exposure variation, outcome cadence,
+              confounder coverage, positivity, uncertainty reduction, and direction
+              stability. Currently scoped to{' '}
+              <span className="font-medium text-slate-700">{scopeLabel(regime)}</span>.
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-2xl font-semibold text-slate-800 tabular-nums">
+              {summary.assessments.length}
+            </div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-400">
+              edges tracked
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
+        <div className="px-6 py-4">
+          <div className="text-2xl font-semibold text-emerald-700 tabular-nums">
+            {personalPct}%
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            personalizing or better
+          </div>
+        </div>
+        <div className="px-6 py-4">
+          <div className="text-2xl font-semibold text-amber-700 tabular-nums">
+            {blockedPct}%
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            blocked by data design
+          </div>
+        </div>
+        <div className="px-6 py-4">
+          <div className="text-2xl font-semibold text-slate-700 tabular-nums">
+            {summary.priorOnlyCount}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            still model-only
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_1.4fr]">
+        <div className="px-6 py-5 border-b xl:border-b-0 xl:border-r border-slate-100">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-3">
+            Lifecycle mix
+          </div>
+          <div className="space-y-2.5">
+            {LIFECYCLE_VISIBLE_STAGES.map((stage) => {
+              const count = summary.stageCounts[stage]
+              if (count === 0) return null
+              const meta = EDGE_LIFECYCLE_STAGE_META[stage]
+              const pct = Math.max(4, (count / total) * 100)
+              return (
+                <div key={stage}>
+                  <div className="flex items-center justify-between gap-3 text-xs mb-1">
+                    <span className="text-slate-600">{meta.label}</span>
+                    <span className="tabular-nums text-slate-400">{count}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-slate-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-3">
+            Next collection moves
+          </div>
+          <div className="divide-y divide-slate-100">
+            {topRecommendations.map((rec) => (
+              <div key={rec.blocker} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-slate-800">
+                        {rec.title}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-[10px] text-slate-500">
+                        {rec.sourceHint}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1 leading-snug">
+                      {rec.rationale}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {rec.examples.slice(0, 3).map((item) => (
+                        <span
+                          key={item.key}
+                          className={`px-2 py-1 rounded-md border text-[10px] ${STAGE_TONE_CLASS[item.stage]}`}
+                          title={item.nextStep}
+                        >
+                          {formatEdgeLabel(item.edge)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-lg font-semibold text-slate-800 tabular-nums">
+                      {rec.edgeCount}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-400">
+                      edges
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {(Object.keys(BLOCKER_LABEL) as EdgeLifecycleBlocker[]).map((blocker) => {
+              const count = summary.blockerCounts[blocker]
+              if (count === 0) return null
+              return (
+                <span
+                  key={blocker}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-slate-200 bg-white text-[10px] text-slate-500"
+                >
+                  <span className="font-medium text-slate-700">
+                    {BLOCKER_LABEL[blocker]}
+                  </span>
+                  <span className="tabular-nums">{count}</span>
+                </span>
+              )
+            })}
+          </div>
         </div>
       </div>
     </Card>
@@ -684,7 +1124,10 @@ function DerivedSeriesRow({
       </div>
 
       <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400">
-        <span>{source}</span>
+        <ProvenanceBadge
+          kind={provenanceFromSource(source)}
+          label={source}
+        />
       </div>
     </Card>
   )
@@ -734,6 +1177,10 @@ function EnvironmentSection({ color }: { color: string }) {
   }
   const today = participant?.weather_today
   const history = participant?.weather_history
+  const location = participant?.weather_location_today
+  const locationLabel = location?.city
+    ? `${location.city}${location.country ? `, ${location.country}` : ''}`
+    : 'Local weather'
   if (!history || Object.keys(history).length === 0) {
     return (
       <Card padding="md" className="text-center text-slate-500 text-sm">
@@ -752,12 +1199,12 @@ function EnvironmentSection({ color }: { color: string }) {
             spec={spec}
             values={values as number[]}
             color={color}
-            source="Local weather · 14 days"
+            source={`${locationLabel} · 14 days`}
           />
         )
       })}
       <div className="mt-4 px-1 text-[10px] text-slate-400 leading-snug">
-        Recorded at the member's cohort location; feeds the Protocols
+        Recorded for {locationLabel}; feeds the Protocols
         context panel and the BART backdoor adjustment
         (CONFOUNDERS_BY_OUTCOME) so edge estimates condition on heat
         index, humidity, UV, and AQI where the literature supports it.
@@ -803,9 +1250,11 @@ function LabBiomarkersSection() {
       })}
 
       {/* Last draw info */}
-      <div className="mt-4 px-1 text-[10px] text-slate-400">
-        Last lab draw: {caspianLabs[0]?.date ?? 'N/A'} | {caspianPersona.labDraws} total draws | Source:
-        Quest Labs
+      <div className="mt-4 px-1 flex items-center gap-2 text-[10px] text-slate-400">
+        <ProvenanceBadge kind="lab" label="Quest Labs" />
+        <span>
+          Last draw: {caspianLabs[0]?.date ?? 'N/A'} · {caspianPersona.labDraws} total
+        </span>
       </div>
     </div>
   )
@@ -820,18 +1269,19 @@ function CaspianDataView() {
   const activeDef = CATEGORIES.find((c) => c.id === activeCategory)!
 
   return (
-    <PageLayout
-      title="Caspian's Raw Data"
-      titleAccessory={
-        <MemberAvatar persona={caspianPersona} displayName={caspianPersona.name} size="xl" />
-      }
-      actions={<DataModeToggle />}
-    >
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle="Raw streams — wearable, lab, lifestyle, environmental, and engine-derived loads."
+        hideHorizon
+        actions={<DataModeToggle />}
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <DataCoverageCadenceCard />
+        <CausalEvidenceMixCard />
+        <EdgeLedAcquisitionCard />
         <div className="flex gap-6">
           {/* Sidebar */}
           <aside className="flex-shrink-0" style={{ width: '240px' }}>
@@ -877,6 +1327,9 @@ function CaspianDataView() {
               {activeCategory === 'body' && (
                 <WearableCategorySection categoryId="body" color="#5ba8d4" />
               )}
+              {activeCategory === 'lifestyle' && (
+                <WearableCategorySection categoryId="lifestyle" color="#C76B4D" />
+              )}
               {activeCategory === 'loads' && <LoadsSection color="#6366f1" />}
               {activeCategory === 'environment' && (
                 <EnvironmentSection color="#f59e0b" />
@@ -889,18 +1342,15 @@ function CaspianDataView() {
   )
 }
 
-function SyntheticDataPlaceholder({ displayName }: { displayName: string }) {
-  const { persona } = useActiveParticipant()
+function CohortDataPlaceholder() {
   const { participant, isLoading } = useParticipant()
   return (
-    <PageLayout
-      title={`${displayName}'s Data`}
-      titleAccessory={
-        <MemberAvatar persona={persona} displayName={displayName} size="xl" />
-      }
-      subtitle="Synthetic 100-day timeseries · wearable + lifestyle signals"
-      actions={<DataModeToggle />}
-    >
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle="100-day timeseries · wearable + lifestyle signals"
+        hideHorizon
+        actions={<DataModeToggle />}
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -913,8 +1363,8 @@ function SyntheticDataPlaceholder({ displayName }: { displayName: string }) {
             Raw data viewer coming soon
           </h3>
           <p className="text-sm text-slate-500 max-w-lg mx-auto mb-6">
-            This participant's synthetic 100-day timeseries was used to produce the Bayesian
-            insights and plans on the Protocols tab. A browsable raw-data view for the full
+            This participant's 100-day timeseries was used to produce the Bayesian insights
+            and plans on the Protocols tab. A browsable raw-data view for the full
             {' '}1,188-participant cohort is in progress.
           </p>
           {isLoading ? (
@@ -942,9 +1392,9 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 }
 
 export function DataView() {
-  const { namedPersonaId, displayName } = useActiveParticipant()
+  const { namedPersonaId } = useActiveParticipant()
   if (namedPersonaId === 'caspian') return <CaspianDataView />
-  return <SyntheticDataPlaceholder displayName={displayName} />
+  return <CohortDataPlaceholder />
 }
 
 export default DataView

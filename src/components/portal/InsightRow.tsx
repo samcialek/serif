@@ -17,6 +17,7 @@ import {
   PersonStanding,
   Plane,
   Scale,
+  Thermometer,
   Timer,
   TrendingUp,
   Utensils,
@@ -32,12 +33,20 @@ import type { EvidenceTier, InsightBayesian, Pathway } from '@/data/portal/types
 import { formatOutcomeValue } from '@/utils/rounding'
 import { shapeFor } from '@/data/scm/doseShapes'
 import { insightTierFor } from '@/utils/insightTier'
+import { isExploratoryPriorEdge, isLiteratureEdge } from '@/utils/edgeProvenance'
 
 export const ACTION_LABELS: Record<string, string> = {
   active_energy: 'Active energy',
   bedtime: 'Bedtime',
+  bedroom_temp_c: 'Bedroom temperature',
+  caffeine_mg: 'Caffeine',
+  caffeine_timing: 'Caffeine cutoff',
+  alcohol_units: 'Alcohol',
+  alcohol_timing: 'Alcohol cutoff',
   running_volume: 'Running volume',
   sleep_duration: 'Sleep duration',
+  sleep_quality: 'Sleep quality',
+  resistance_training_minutes: 'Resistance training',
   training_load: 'Training load',
   training_volume: 'Training volume',
   zone2_volume: 'Zone 2 volume',
@@ -49,6 +58,14 @@ export const ACTION_LABELS: Record<string, string> = {
   acwr: 'Acute:chronic load',
   sleep_debt: 'Sleep debt',
   travel_load: 'Travel load',
+  supp_omega3: 'Omega-3',
+  supp_magnesium: 'Magnesium',
+  supp_vitamin_d: 'Vitamin D',
+  supp_b_complex: 'B-complex',
+  supp_creatine: 'Creatine',
+  supp_melatonin: 'Melatonin',
+  supp_l_theanine: 'L-theanine',
+  supp_zinc: 'Zinc',
 }
 
 // Per-action glyph so rows are scannable at a glance without reading the
@@ -60,17 +77,32 @@ export const ACTION_ICON_COLOR = '#89CCF0'
 export const ACTION_ICONS: Record<string, LucideIcon> = {
   active_energy: Flame,
   bedtime: Moon,
+  bedroom_temp_c: Thermometer,
+  caffeine_mg: Watch,
+  caffeine_timing: Clock,
+  alcohol_units: FlaskConical,
+  alcohol_timing: Clock,
   sleep_duration: Bed,
+  sleep_quality: Bed,
   sleep_debt: BatteryLow,
   running_volume: Footprints,
   steps: PersonStanding,
   training_load: TrendingUp,
   training_volume: Timer,
+  resistance_training_minutes: Timer,
   zone2_volume: HeartPulse,
   dietary_protein: Drumstick,
   dietary_energy: Utensils,
   acwr: Scale,
   travel_load: Plane,
+  supp_omega3: FlaskConical,
+  supp_magnesium: FlaskConical,
+  supp_vitamin_d: FlaskConical,
+  supp_b_complex: FlaskConical,
+  supp_creatine: FlaskConical,
+  supp_melatonin: FlaskConical,
+  supp_l_theanine: FlaskConical,
+  supp_zinc: FlaskConical,
 }
 
 // Feasible 4–6 week behaviour-change shift per action. Used by the
@@ -82,9 +114,19 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
 export const FEASIBLE_SHIFT: Record<string, { amount: number; label: string }> = {
   active_energy: { amount: 300, label: '+300 kcal/day' },
   bedtime: { amount: 1, label: '1 hour earlier' },
+  bedroom_temp_c: { amount: 1, label: '1 C bedroom shift' },
+  caffeine_mg: { amount: 100, label: '100 mg caffeine shift' },
+  caffeine_timing: { amount: 2, label: '2 h cutoff shift' },
+  alcohol_units: { amount: 1, label: '1 drink shift' },
+  alcohol_timing: { amount: 2, label: '2 h timing shift' },
   dietary_energy: { amount: 500, label: '500 kcal/day diet shift' },
   dietary_protein: { amount: 40, label: '+40 g/day protein' },
+  resistance_training_minutes: { amount: 60, label: '+60 min/week resistance' },
+  supp_melatonin: { amount: 1, label: 'add melatonin' },
+  supp_l_theanine: { amount: 1, label: 'add L-theanine' },
+  supp_zinc: { amount: 1, label: 'add zinc' },
   running_volume: { amount: 40, label: '+40 km/week' },
+  sleep_quality: { amount: 10, label: '+10 sleep-quality points' },
   sleep_duration: { amount: 1, label: '1 hour more/night' },
   steps: { amount: 4000, label: '+4,000 steps/day' },
   training_load: { amount: 150, label: '+150 TRIMP/week' },
@@ -281,8 +323,8 @@ export function InsightRow({
   } = insight
   const pathway: Pathway = insight.pathway ?? 'wearable'
   const evidenceTier: EvidenceTier = insight.evidence_tier ?? 'cohort_level'
-  const literatureBacked = insight.literature_backed === true
-  const isWeakDefault = insight.prior_provenance === 'weak_default'
+  const literatureBacked = isLiteratureEdge(insight)
+  const isWeakDefault = isExploratoryPriorEdge(insight)
   const meta = OUTCOME_META[outcome]
   const beneficial: BeneficialDir = meta?.beneficial ?? 'neutral'
 

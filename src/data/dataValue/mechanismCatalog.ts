@@ -125,6 +125,61 @@ export const DOSE_FAMILIES: Record<string, DoseFamilyDef> = {
     columns: ['ferritin_smoothed', 'ferritin_raw'],
     unit: 'ng/mL', compleCategory: 'M',
   },
+  // ─── Subjective + new-device dose families ───
+  // These were missing from the original audit, which is why the
+  // Devices tab showed "0 new edges" for mood/stress, BP, body-temp,
+  // CGM-derived, dedicated HRV, and respiratory-rate trackers despite
+  // each adding genuinely new dose columns.
+  subjective_stress: {
+    id: 'subjective_stress', label: 'Perceived Stress / Mood',
+    columns: ['stress_score', 'mood_score', 'energy_score', 'motivation_score'],
+    unit: 'rating', compleCategory: 'C',
+  },
+  perceived_exertion: {
+    id: 'perceived_exertion', label: 'Perceived Exertion (RPE)',
+    columns: ['perceived_exertion_rpe'],
+    unit: 'RPE 1-10', compleCategory: 'C',
+  },
+  cgm_variability: {
+    id: 'cgm_variability', label: 'CGM Glucose Variability',
+    columns: ['cgm_glucose_variability_cv', 'cgm_time_in_range_pct', 'cgm_time_above_140', 'cgm_dawn_effect'],
+    unit: 'CV%', compleCategory: 'C',
+  },
+  dietary_carbs: {
+    id: 'dietary_carbs', label: 'Dietary Carbs',
+    columns: ['dietary_carbs_g'],
+    unit: 'g', compleCategory: 'C',
+  },
+  dietary_fiber: {
+    id: 'dietary_fiber', label: 'Dietary Fiber',
+    columns: ['dietary_fiber_g'],
+    unit: 'g', compleCategory: 'C',
+  },
+  dietary_fat: {
+    id: 'dietary_fat', label: 'Dietary Fat',
+    columns: ['dietary_fat_g'],
+    unit: 'g', compleCategory: 'C',
+  },
+  dietary_sodium: {
+    id: 'dietary_sodium', label: 'Dietary Sodium',
+    columns: ['dietary_sodium_mg'],
+    unit: 'mg', compleCategory: 'C',
+  },
+  body_temperature: {
+    id: 'body_temperature', label: 'Nocturnal Body Temperature',
+    columns: ['skin_temp_deviation', 'core_temp_est', 'nocturnal_temp_min'],
+    unit: '°C dev', compleCategory: 'C',
+  },
+  respiratory_rate: {
+    id: 'respiratory_rate', label: 'Respiratory Rate (sleep)',
+    columns: ['respiratory_rate_sleep', 'respiratory_rate_variability'],
+    unit: 'br/min', compleCategory: 'C',
+  },
+  hrv_advanced: {
+    id: 'hrv_advanced', label: 'HRV Advanced (RMSSD / pNN50 / LF-HF)',
+    columns: ['hrv_rmssd_morning', 'hrv_pnn50', 'hrv_lf_hf_ratio'],
+    unit: 'ms / ratio', compleCategory: 'C',
+  },
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -377,6 +432,20 @@ export const RESPONSE_FAMILIES: Record<string, ResponseFamilyDef> = {
     columns: ['free_t_ratio'],
     unit: 'ratio', compleCategory: 'M', biologicalTimescale: 'slow',
   },
+  // ─── New-device response families ───
+  // These outcomes aren't measurable without the corresponding device.
+  // Adding them here lets mechanisms target them so the audit surfaces
+  // genuine "new edges" instead of just existing-edge boosts.
+  systolic_bp: {
+    id: 'systolic_bp', label: 'Systolic Blood Pressure',
+    columns: ['systolic_bp'],
+    unit: 'mmHg', compleCategory: 'M', biologicalTimescale: 'fast',
+  },
+  core_temperature: {
+    id: 'core_temperature', label: 'Nocturnal Core Temperature',
+    columns: ['core_temp_est', 'nocturnal_temp_min'],
+    unit: '°C', compleCategory: 'M', biologicalTimescale: 'fast',
+  },
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -496,6 +565,49 @@ export const MECHANISM_CATALOG: MechanismDef[] = [
   // TRAVEL → ADDITIONAL
   { id: 'travel_nlr', name: 'Travel Load -> NLR', doseFamily: 'travel_load', responseFamily: 'nlr', category: 'recovery', mechanism: 'Travel stress and circadian disruption shift immune balance toward neutrophilia' },
   { id: 'travel_deep_sleep', name: 'Travel Load -> Deep Sleep', doseFamily: 'travel_load', responseFamily: 'deep_sleep', category: 'sleep', mechanism: 'Jet lag disrupts slow-wave sleep architecture via circadian misalignment' },
+
+  // ─── NEW DEVICE-DEPENDENT MECHANISMS ────────────────────────────
+  // Each of these requires a column that doesn't exist in Caspian's
+  // current data set; adding the named device unlocks the edge.
+
+  // Subjective stress / mood / RPE (mood-stress tracker)
+  { id: 'stress_cortisol', name: 'Perceived Stress -> Cortisol', doseFamily: 'subjective_stress', responseFamily: 'cortisol', category: 'metabolic', mechanism: 'Psychological stress activates HPA axis independently of training load' },
+  { id: 'stress_testosterone', name: 'Perceived Stress -> Testosterone', doseFamily: 'subjective_stress', responseFamily: 'testosterone', category: 'metabolic', mechanism: 'Sustained psychological stress suppresses HPG axis via cortisol-mediated GnRH inhibition' },
+  { id: 'stress_hrv', name: 'Perceived Stress -> Daily HRV', doseFamily: 'subjective_stress', responseFamily: 'hrv_daily', category: 'recovery', mechanism: 'Subjective stress withdraws vagal tone and lowers RMSSD' },
+  { id: 'stress_sleep_eff', name: 'Perceived Stress -> Sleep Efficiency', doseFamily: 'subjective_stress', responseFamily: 'sleep_efficiency', category: 'sleep', mechanism: 'Pre-bed cognitive arousal and rumination raise sleep-onset latency and fragment sleep' },
+  { id: 'rpe_hrv_next', name: 'Session RPE -> Next-Day HRV', doseFamily: 'perceived_exertion', responseFamily: 'hrv_daily', category: 'recovery', mechanism: 'High perceived exertion is an independent predictor of next-day vagal suppression beyond TRIMP' },
+  { id: 'rpe_cortisol', name: 'Session RPE -> Cortisol', doseFamily: 'perceived_exertion', responseFamily: 'cortisol', category: 'metabolic', mechanism: 'RPE captures the central-fatigue dimension of training load that elevates HPA output' },
+
+  // CGM-derived (continuous glucose monitor)
+  { id: 'cgm_var_hscrp', name: 'Glucose Variability -> Inflammation', doseFamily: 'cgm_variability', responseFamily: 'hscrp', category: 'metabolic', mechanism: 'Glycemic variability drives oxidative stress and endothelial inflammation independent of mean glucose' },
+  { id: 'cgm_var_hrv', name: 'Glucose Variability -> Daily HRV', doseFamily: 'cgm_variability', responseFamily: 'hrv_daily', category: 'recovery', mechanism: 'Glucose excursions activate sympathetic tone and reduce overnight HRV' },
+  { id: 'cgm_var_vo2', name: 'Time-in-Range -> VO2peak', doseFamily: 'cgm_variability', responseFamily: 'vo2peak', category: 'metabolic', mechanism: 'Better glycemic control supports mitochondrial substrate flexibility and aerobic capacity' },
+
+  // Nutrition (carbs / fat / fiber / sodium)
+  { id: 'carbs_glucose', name: 'Dietary Carbs -> Glucose', doseFamily: 'dietary_carbs', responseFamily: 'glucose', category: 'metabolic', mechanism: 'Carbohydrate load drives postprandial and fasting glucose via insulin resistance feedback' },
+  { id: 'carbs_triglycerides', name: 'Dietary Carbs -> Triglycerides', doseFamily: 'dietary_carbs', responseFamily: 'triglycerides', category: 'metabolic', mechanism: 'Excess carbohydrate is converted to triglycerides via de novo lipogenesis' },
+  { id: 'fiber_hscrp', name: 'Dietary Fiber -> Inflammation', doseFamily: 'dietary_fiber', responseFamily: 'hscrp', category: 'metabolic', mechanism: 'Fermentable fiber supports gut microbiome diversity and lowers systemic inflammation' },
+  { id: 'fiber_ldl', name: 'Dietary Fiber -> LDL', doseFamily: 'dietary_fiber', responseFamily: 'ldl', category: 'cardio', mechanism: 'Soluble fiber binds bile acids and lowers LDL via hepatic cholesterol uptake' },
+  { id: 'fat_ldl', name: 'Dietary Fat -> LDL', doseFamily: 'dietary_fat', responseFamily: 'ldl', category: 'cardio', mechanism: 'Saturated and trans fats raise LDL via hepatic apoB output' },
+  { id: 'sodium_bp', name: 'Dietary Sodium -> Blood Pressure', doseFamily: 'dietary_sodium', responseFamily: 'systolic_bp', category: 'cardio', mechanism: 'Sodium load expands plasma volume and raises systolic blood pressure in salt-sensitive individuals' },
+
+  // Blood pressure inputs (other drivers — surface as new edges since BP is a new outcome)
+  { id: 'acwr_bp', name: 'ACWR -> Blood Pressure', doseFamily: 'acwr', responseFamily: 'systolic_bp', category: 'cardio', mechanism: 'Acute training spike elevates sympathetic tone and resting blood pressure' },
+  { id: 'sleep_debt_bp', name: 'Sleep Debt -> Blood Pressure', doseFamily: 'sleep_debt', responseFamily: 'systolic_bp', category: 'cardio', mechanism: 'Sleep restriction raises 24-hour BP via baroreceptor desensitization and sympathetic dominance' },
+  { id: 'travel_bp', name: 'Travel Load -> Blood Pressure', doseFamily: 'travel_load', responseFamily: 'systolic_bp', category: 'cardio', mechanism: 'Jet lag elevates BP for 3-5 days via circadian misalignment of vasomotor tone' },
+
+  // Body temperature outcomes (continuous skin/core temp tracker)
+  { id: 'training_core_temp', name: 'Training Load -> Core Temperature', doseFamily: 'training_load', responseFamily: 'core_temperature', category: 'recovery', mechanism: 'Training load raises nocturnal core temperature for 24-48h post-session' },
+  { id: 'core_temp_deep_sleep', name: 'Core Temperature -> Deep Sleep', doseFamily: 'body_temperature', responseFamily: 'deep_sleep', category: 'sleep', mechanism: 'Slow-wave sleep requires the nocturnal core-temp drop; elevated nighttime temp suppresses SWS' },
+  { id: 'core_temp_sleep_eff', name: 'Core Temperature -> Sleep Efficiency', doseFamily: 'body_temperature', responseFamily: 'sleep_efficiency', category: 'sleep', mechanism: 'Thermoregulation failures fragment sleep through micro-arousals' },
+
+  // Respiratory rate (overtraining / illness early warning)
+  { id: 'rr_sleep_hrv', name: 'Nocturnal RR -> Daily HRV', doseFamily: 'respiratory_rate', responseFamily: 'hrv_daily', category: 'recovery', mechanism: 'Elevated overnight respiratory rate is an early autonomic-stress marker that precedes HRV suppression' },
+  { id: 'rr_sleep_eff', name: 'Nocturnal RR -> Sleep Efficiency', doseFamily: 'respiratory_rate', responseFamily: 'sleep_efficiency', category: 'sleep', mechanism: 'Elevated RR during sleep flags sympathetic dominance, illness onset, or overreaching' },
+
+  // Dedicated HRV (RMSSD / pNN50 / LF-HF) → fitness adaptation
+  { id: 'hrv_advanced_vo2', name: 'HRV LF/HF Balance -> VO2peak', doseFamily: 'hrv_advanced', responseFamily: 'vo2peak', category: 'cardio', mechanism: 'Sympathovagal balance is a sensitive marker of training adaptation; pNN50/RMSSD predict VO2 trajectory' },
+  { id: 'hrv_advanced_resting_hr', name: 'HRV pNN50 -> Resting HR Trend', doseFamily: 'hrv_advanced', responseFamily: 'resting_hr_trend', category: 'recovery', mechanism: 'High-frequency HRV power maps to vagal tone and predicts resting HR drift' },
 ]
 
 // ═══════════════════════════════════════════════════════════════════

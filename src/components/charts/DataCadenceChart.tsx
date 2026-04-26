@@ -107,6 +107,20 @@ const ORON_STREAMS: DataStream[] = [
     episodicDates: generateNutritionDates(),
     dataPointCount: 33,
   },
+  {
+    id: 'weather',
+    label: 'Local Weather / AQI',
+    sublabel: 'Temp, Humidity, Heat Index, UV, AQI',
+    color: '#F97316',
+    type: 'density',
+    startDate: '2026-01-25',
+    endDate: '2026-02-07',
+    dataPointCount: 70,
+    monthlyDensity: [
+      { month: '2026-01', count: 7 },
+      { month: '2026-02', count: 7 },
+    ],
+  },
 ]
 
 // ────────────────────────────────────────────────────────────

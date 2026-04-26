@@ -35,9 +35,13 @@ interface Props {
 
 const ACTION_NATIVE_UNIT: Record<string, string> = {
   bedtime: 'h',
+  bedroom_temp_c: 'deg C',
   sleep_duration: 'h',
+  sleep_quality: 'pts',
+  caffeine_timing: 'h',
   running_volume: 'km',
   steps: 'steps',
+  resistance_training_minutes: 'min/wk',
   training_load: 'TRIMP',
   active_energy: 'kcal',
   zone2_volume: 'km',
@@ -45,6 +49,11 @@ const ACTION_NATIVE_UNIT: Record<string, string> = {
   dietary_protein: 'g',
   dietary_energy: 'kcal',
   caffeine_mg: 'mg',
+  alcohol_units: 'drinks',
+  alcohol_timing: 'h',
+  supp_melatonin: 'on/off',
+  supp_l_theanine: 'on/off',
+  supp_zinc: 'on/off',
 }
 
 const OUTCOME_NATIVE_UNIT: Record<string, string> = {
@@ -135,7 +144,7 @@ export function InsightActionDetail({ edge, participant }: Props) {
             n={null}
             active={personalActive}
             tone="indigo"
-            note={`${Math.round(contraction * 100)}% contracted`}
+            note={`${Math.round(contraction * 100)}% narrower than prior`}
           />
         </div>
       </div>

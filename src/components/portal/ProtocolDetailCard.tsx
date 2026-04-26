@@ -19,6 +19,7 @@ import { ProtocolContextChip } from './ProtocolContextChip'
 import { CausalSparkline } from './CausalSparkline'
 import { ProtocolAuditTrail } from './ProtocolAuditTrail'
 import { RegimeGlyphs } from './RegimeGlyphs'
+import { ProtocolEvidenceMix } from './ProtocolEvidenceMix'
 
 const SOURCE_DOT: Record<ProtocolItem['source'], string> = {
   twin_sem: 'bg-emerald-500',
@@ -116,19 +117,22 @@ export function ProtocolDetailCard({ matched, yesterdayItem, participant }: Prop
       )}
 
       {/* Context chip + sparkline */}
-      {hasContext && (
-        <div className="mb-2 flex items-center gap-2 flex-wrap">
-          <ProtocolContextChip context={real.context} variant="detailed" />
-          {topLoad && series.length >= 2 && (
-            <CausalSparkline
-              series={series}
-              loadKey={topLoad.key}
-              label={topLoad.label}
-              severityOverride={topLoad.severity}
-            />
-          )}
-        </div>
-      )}
+      <div className="mb-2 flex items-center gap-2 flex-wrap">
+        {hasContext && <ProtocolContextChip context={real.context} variant="detailed" />}
+        {topLoad && series.length >= 2 && (
+          <CausalSparkline
+            series={series}
+            loadKey={topLoad.key}
+            label={topLoad.label}
+            severityOverride={topLoad.severity}
+          />
+        )}
+        <ProtocolEvidenceMix
+          item={real}
+          effects={participant.effects_bayesian}
+          variant="detailed"
+        />
+      </div>
 
       {/* Tags + buttons */}
       <div className="flex items-center gap-1.5 flex-wrap">

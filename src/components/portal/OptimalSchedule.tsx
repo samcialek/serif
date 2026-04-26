@@ -54,6 +54,7 @@ import { ProtocolContextChip } from '@/components/portal/ProtocolContextChip'
 import type { ChipVariant } from '@/components/portal/ProtocolContextChip'
 import { ProtocolAuditTrail } from '@/components/portal/ProtocolAuditTrail'
 import type { AuditPlacement } from '@/components/portal/ProtocolAuditTrail'
+import { ProtocolEvidenceMix } from '@/components/portal/ProtocolEvidenceMix'
 import { CausalSparkline } from '@/components/portal/CausalSparkline'
 
 const OUTCOME_DISPLAY: Record<string, string> = {
@@ -241,7 +242,15 @@ export function OptimalSchedule({
             <p className="text-[10px] uppercase tracking-wider text-slate-400">
               Twin-SEM score
             </p>
-            <p className="text-lg font-bold tabular-nums text-emerald-700">
+            <p
+              className="text-lg font-bold tabular-nums text-emerald-700"
+              title={[
+                `Expected utility ${best.expectedUtility.toFixed(2)}`,
+                `Uncertainty penalty ${best.uncertaintyPenalty.toFixed(2)}`,
+                `Regime penalty ${best.regimePenalty.toFixed(2)}`,
+                `Evidence quality ${(best.evidenceQuality * 100).toFixed(0)}%`,
+              ].join('\n')}
+            >
               {best.total >= 0 ? '+' : ''}
               {best.total.toFixed(2)}
             </p>
@@ -495,6 +504,7 @@ function ProtocolRow({
             onClose={() => setAuditOpen(false)}
           />
         )}
+        <ProtocolEvidenceMix item={real} effects={participant.effects_bayesian} />
         <span className="text-[10px] text-slate-400 ml-auto">
           {sourceLabel(real.source)}
         </span>

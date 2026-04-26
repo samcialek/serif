@@ -32,6 +32,9 @@ const ACTION_LABEL: Record<string, string> = {
   supp_vitamin_d: 'Vitamin D',
   supp_b_complex: 'B-complex',
   supp_creatine: 'Creatine',
+  supp_melatonin: 'Melatonin',
+  supp_l_theanine: 'L-theanine',
+  supp_zinc: 'Zinc',
 }
 
 const ACTION_UNIT: Record<string, string> = {

@@ -43,6 +43,7 @@ function formatNum(n: number, precision = 2): string {
 
 const ACTION_UNITS: Record<string, string> = {
   bedtime: 'h',
+  bedroom_temp_c: ' deg C',
   sleep_duration: 'h',
   caffeine_timing: 'h earlier',
   caffeine_mg: ' mg',
@@ -58,6 +59,9 @@ const ACTION_UNITS: Record<string, string> = {
   active_energy: ' kcal',
   dietary_protein: ' g',
   dietary_energy: ' kcal',
+  supp_melatonin: '',
+  supp_l_theanine: '',
+  supp_zinc: '',
   acwr: '',
   sleep_debt: ' h',
 }

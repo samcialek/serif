@@ -58,8 +58,18 @@ export interface GateInfo {
   tier: GateTier
 }
 
+export interface PersonalizationEvidence {
+  member_specific_pct: number
+  model_pct: number
+  coverage_pct: number
+  narrowing_pct: number
+  observations: number
+  basis: 'member_rows_and_posterior' | 'model_only' | string
+}
+
 /** Where the prior on this (action, outcome) pair came from in the
- *  backend pipeline. `synthetic` = fitted from a real DAG path.
+ *  backend pipeline. `synthetic` is the legacy wire key for a fitted
+ *  model-derived DAG path.
  *  `weak_default` = Layer 0 fallback (N(0, 0.25·pop_SD²)) for pairs the
  *  DAG doesn't yet model — surface only with a "From your data" caveat
  *  because there's no causal adjustment set behind the user OLS.
@@ -75,8 +85,7 @@ export interface InsightBayesian {
    * not just the cohort fit. Rendered as a small "Lit" badge in the UI. */
   literature_backed?: boolean
   /** Backend Layer 0 / Layer 1 / Layer 1+lit provenance. Optional for
-   * defensive parsing of pre-2026-04-22 fixtures (those rows are all
-   * effectively `synthetic` since Layer 0 didn't exist yet). */
+   * defensive parsing of pre-2026-04-22 fixtures. */
   prior_provenance?: PriorProvenance
   horizon_days?: number
   horizon_display?: string
@@ -92,6 +101,7 @@ export interface InsightBayesian {
   unbounded_scaled_effect?: number
   scaled_effect: number
   posterior: Posterior
+  personalization?: PersonalizationEvidence
   cohort_prior: CohortPrior | null
   user_obs: UserObs | null
   gate: GateInfo
@@ -113,6 +123,14 @@ export interface Protocol {
   horizon_days: number
   description: string
   rationale: string
+  clipped_at_ceiling?: boolean
+  unclipped_value?: number | null
+  optimizer_score?: number
+  expected_utility?: number
+  uncertainty_penalty?: number
+  feasibility_penalty?: number
+  evidence_quality?: number
+  objective_key?: string
 }
 
 export type RegimeKey =
@@ -131,14 +149,24 @@ export type LoadKey =
   | 'training_monotony'
   | 'training_consistency'
 
-/** Weather columns emitted alongside loads. Synthetic placeholder today;
- * shape is production-ready for a real weather API swap. */
+/** Weather columns emitted alongside loads. */
 export type WeatherKey =
   | 'temp_c'
   | 'humidity_pct'
   | 'uv_index'
   | 'heat_index_c'
   | 'aqi'
+
+export interface WeatherLocation {
+  location_id?: string | null
+  city?: string | null
+  country?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  timezone?: string | null
+  confidence?: number | null
+  source?: string | null
+}
 
 export interface LoadValue {
   /** Most recent value for this load. */
@@ -243,9 +271,9 @@ export interface ParticipantPortal {
   /** Last 14 days of each regime activation, oldest-first. Last entry
    * matches regime_activations. Drives the yesterday-vs-today pick diff. */
   regimes_history?: Partial<Record<RegimeKey, number[]>>
-  /** Today's weather at the participant's cohort location. Synthetic
-   * placeholder — see backend/serif_scm/loads.py weather_for_day. */
+  /** Today's weather at the participant's current modeled location. */
   weather_today?: Partial<Record<WeatherKey, number>>
+  weather_location_today?: WeatherLocation
   /** Last 14 days of each weather column, oldest-first. */
   weather_history?: Partial<Record<WeatherKey, number[]>>
   release_schedule?: ReleaseEntry[]

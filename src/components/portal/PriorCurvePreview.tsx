@@ -72,10 +72,9 @@ export function PriorCurvePreview({
     }
     const x0 = rawX0 ?? (xMin + xMax) / 2
 
-    // Use a synthetic edge-like shape so prior-d sign + magnitude bend
-    // the curve appropriately. We cheat: build a shape object whose
-    // slope roughly encodes the prior d.
-    const syntheticEdge = {
+    // Use an edge-like shape so prior-d sign + magnitude bend the curve
+    // appropriately. The shape object roughly encodes the prior d.
+    const priorEdge = {
       action,
       outcome,
       posterior: { mean: priorD, sd: priorDSD, contraction: 0 },
@@ -89,7 +88,7 @@ export function PriorCurvePreview({
     }
     // inferShape consumes a structural shape hint from the edge.
     // Build a minimal object that satisfies the duck-type.
-    const shape = inferShape(syntheticEdge as unknown as Parameters<typeof inferShape>[0])
+    const shape = inferShape(priorEdge as unknown as Parameters<typeof inferShape>[0])
     const fAbs = (x: number): number => evaluateShape(shape, x)
     const f = (x: number): number => fAbs(x) - fAbs(x0)
 

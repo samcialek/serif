@@ -5,7 +5,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/classNames'
 import { ValueScoreGauge } from './ValueScoreGauge'
-import { EdgeUnlockList } from './EdgeUnlockList'
 import { ConfounderResolutionBadge } from './ConfounderResolutionBadge'
 import type { CandidateDataSource, MarginalValueScore } from '@/data/dataValue/types'
 import type { InformationTheoreticScore } from '@/data/dataValue/informationTheoreticScoring'
@@ -13,6 +12,8 @@ import type { InformationTheoreticScore } from '@/data/dataValue/informationTheo
 interface CandidateSourceCardProps {
   candidate: CandidateDataSource
   score: MarginalValueScore
+  /** Reserved for the future IT-score expanded view; not rendered in the
+   *  compact card. */
   itScore?: InformationTheoreticScore
   className?: string
 }
@@ -63,110 +64,56 @@ export function CandidateSourceCard({ candidate, score, itScore, className }: Ca
         <ValueScoreGauge score={score.composite} tier={score.tier} size={64} />
       </div>
 
-      {/* Description */}
-      <p className="text-xs text-slate-600 leading-relaxed">{candidate.description}</p>
-
-      {/* Score breakdown */}
+      {/* Score breakdown — three big numbers, no point footnote. */}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-slate-50 rounded-lg py-2 px-1">
-          <p className="text-lg font-bold text-slate-800">{score.newEdgesUnlocked}</p>
-          <p className="text-[10px] text-slate-500">New Edges</p>
-          <p className="text-[10px] text-slate-400">{score.newEdgePoints} pts</p>
+        <div className="bg-emerald-50 border border-emerald-100 rounded-lg py-2 px-1">
+          <p className="text-xl font-bold text-emerald-700 tabular-nums">{score.newEdgesUnlocked}</p>
+          <p className="text-[10px] text-emerald-700 font-medium">new edges</p>
         </div>
-        <div className="bg-slate-50 rounded-lg py-2 px-1">
-          <p className="text-lg font-bold text-slate-800">{score.confoundersResolved}</p>
-          <p className="text-[10px] text-slate-500">Confounders</p>
-          <p className="text-[10px] text-slate-400">{score.confounderPoints} pts</p>
+        <div className="bg-violet-50 border border-violet-100 rounded-lg py-2 px-1">
+          <p className="text-xl font-bold text-violet-700 tabular-nums">{score.confoundersResolved}</p>
+          <p className="text-[10px] text-violet-700 font-medium">confounders</p>
         </div>
-        <div className="bg-slate-50 rounded-lg py-2 px-1">
-          <p className="text-lg font-bold text-slate-800">{score.signalBoostEdges}</p>
-          <p className="text-[10px] text-slate-500">Signal Boost</p>
-          <p className="text-[10px] text-slate-400">{score.signalBoostPoints} pts</p>
+        <div className="bg-blue-50 border border-blue-100 rounded-lg py-2 px-1">
+          <p className="text-xl font-bold text-blue-700 tabular-nums">{score.signalBoostEdges}</p>
+          <p className="text-[10px] text-blue-700 font-medium">signal boost</p>
         </div>
       </div>
 
-      {/* IT score breakdown (when available) */}
-      {itScore && (
-        <div className="grid grid-cols-4 gap-1.5 text-center">
-          {[
-            { label: 'EIG', value: itScore.expectedInformationGain.normalized, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-            { label: 'Var Red', value: itScore.varianceReduction.normalized, color: 'text-violet-700', bg: 'bg-violet-50' },
-            { label: 'Precision', value: itScore.precisionRatio.normalized, color: 'text-blue-700', bg: 'bg-blue-50' },
-            { label: 'Testability', value: itScore.testabilityKL.normalized, color: 'text-amber-700', bg: 'bg-amber-50' },
-          ].map(d => (
-            <div key={d.label} className={cn('rounded-lg py-1.5 px-1', d.bg)}>
-              <p className={cn('text-sm font-bold', d.color)}>{d.value.toFixed(1)}</p>
-              <p className="text-[9px] text-slate-500">{d.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Key edge narratives */}
+      {/* Key edges — one line per item: tag + headline + super-short
+          single-sentence narrative. */}
       {candidate.keyEdgeNarratives.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-            Key edges affected
-          </p>
-          <div className="space-y-2.5">
-            {candidate.keyEdgeNarratives.map((item) => (
-              <div key={item.edgeTitle} className="relative pl-3 border-l-2 border-indigo-200">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className={cn(
-                    'text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded',
-                    item.type === 'boost' && 'bg-blue-50 text-blue-600',
-                    item.type === 'unlock' && 'bg-emerald-50 text-emerald-600',
-                    item.type === 'confounder' && 'bg-violet-50 text-violet-600',
-                  )}>
-                    {item.type === 'boost' ? 'signal boost' : item.type === 'unlock' ? 'new edge' : 'confounder'}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-700">{item.edgeTitle}</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">{item.narrative}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ul className="space-y-1">
+          {candidate.keyEdgeNarratives.map((item) => (
+            <li key={item.edgeTitle} className="flex items-baseline gap-2 text-[11px]">
+              <span className={cn(
+                'flex-shrink-0 text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded tabular-nums',
+                item.type === 'boost' && 'bg-blue-50 text-blue-700',
+                item.type === 'unlock' && 'bg-emerald-50 text-emerald-700',
+                item.type === 'confounder' && 'bg-violet-50 text-violet-700',
+              )}>
+                {item.type === 'boost' ? 'boost' : item.type === 'unlock' ? 'new' : 'conf'}
+              </span>
+              <span className="font-medium text-slate-700">{item.edgeTitle}</span>
+              <span className="text-slate-500 leading-snug">— {item.narrative}</span>
+            </li>
+          ))}
+        </ul>
       )}
 
-      {/* Confounder badges */}
+      {/* Confounder badges (compact row) */}
       {score.resolvedLatentNodes.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {score.resolvedLatentNodes.map((node) => (
             <ConfounderResolutionBadge key={node} nodeName={node} />
           ))}
         </div>
       )}
 
-      {/* Unlocked mechanisms */}
-      <EdgeUnlockList mechanisms={score.unlockedMechanisms} />
-
-      {/* Signal boost edges */}
-      {score.boostedEdgeTitles.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-            Signal boosted ({score.boostedEdgeTitles.length})
-          </p>
-          <div className="space-y-0.5">
-            {score.boostedEdgeTitles.slice(0, 3).map((title) => (
-              <p key={title} className="text-xs text-slate-600 pl-2 border-l-2 border-slate-200">
-                {title}
-              </p>
-            ))}
-            {score.boostedEdgeTitles.length > 3 && (
-              <p className="text-xs text-slate-400 pl-2">
-                +{score.boostedEdgeTitles.length - 3} more
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Example products */}
-      <div className="pt-2 border-t border-slate-100">
-        <p className="text-[10px] text-slate-400 mb-1">Example products</p>
-        <p className="text-xs text-slate-500">{candidate.exampleProducts.join(', ')}</p>
-      </div>
+      {/* Example products — single line under everything else */}
+      <p className="pt-1 text-[10px] text-slate-400 truncate">
+        e.g. {candidate.exampleProducts.join(', ')}
+      </p>
     </Card>
   )
 }

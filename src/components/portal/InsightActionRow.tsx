@@ -16,6 +16,7 @@
 
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/utils/classNames'
+import { EdgeEvidenceChip } from '@/components/common'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import {
   cohensD,
@@ -30,8 +31,15 @@ import { MiniDoseResponse } from './MiniDoseResponse'
 const ACTION_LABEL: Record<string, string> = {
   bedtime: 'Bedtime',
   sleep_duration: 'Sleep duration',
+  sleep_quality: 'Sleep quality',
+  bedroom_temp_c: 'Bedroom temperature',
+  caffeine_mg: 'Caffeine',
+  caffeine_timing: 'Caffeine cutoff',
+  alcohol_units: 'Alcohol',
+  alcohol_timing: 'Alcohol cutoff',
   running_volume: 'Running volume',
   steps: 'Daily steps',
+  resistance_training_minutes: 'Resistance training',
   training_load: 'Training load',
   active_energy: 'Active energy',
   zone2_volume: 'Zone-2 volume',
@@ -41,19 +49,57 @@ const ACTION_LABEL: Record<string, string> = {
   acwr: 'ACWR',
   sleep_debt: 'Sleep debt',
   travel_load: 'Travel load',
+  heat_index_c: 'Heat index',
+  humidity_pct: 'Humidity',
+  temp_c: 'Temperature',
+  uv_index: 'UV index',
+  aqi: 'Air quality',
+  daylight_hours: 'Daylight',
+  supp_omega3: 'Omega-3',
+  supp_magnesium: 'Magnesium',
+  supp_vitamin_d: 'Vitamin D',
+  supp_b_complex: 'B-complex',
+  supp_creatine: 'Creatine',
+  supp_melatonin: 'Melatonin',
+  supp_l_theanine: 'L-theanine',
+  supp_zinc: 'Zinc',
 }
 
 const ACTION_NATIVE_UNIT_PER_STEP: Record<string, string> = {
   bedtime: 'h',
   sleep_duration: 'h',
+  sleep_quality: 'pts',
+  bedroom_temp_c: 'deg C',
+  caffeine_mg: 'mg',
+  caffeine_timing: 'h',
+  alcohol_units: 'drinks',
+  alcohol_timing: 'h',
   running_volume: 'km',
   steps: '1k steps',
+  resistance_training_minutes: 'min/wk',
   training_load: 'TRIMP',
   active_energy: 'kcal',
   zone2_volume: 'km',
   training_volume: 'h',
   dietary_protein: 'g',
   dietary_energy: 'kcal',
+  acwr: 'ratio',
+  sleep_debt: 'h',
+  travel_load: 'score',
+  heat_index_c: 'deg C',
+  humidity_pct: '%',
+  temp_c: 'deg C',
+  uv_index: 'index',
+  aqi: 'AQI',
+  daylight_hours: 'h',
+  supp_omega3: 'on/off',
+  supp_magnesium: 'on/off',
+  supp_vitamin_d: 'on/off',
+  supp_b_complex: 'on/off',
+  supp_creatine: 'on/off',
+  supp_melatonin: 'on/off',
+  supp_l_theanine: 'on/off',
+  supp_zinc: 'on/off',
 }
 
 const OUTCOME_NATIVE_UNIT: Record<string, string> = {
@@ -114,16 +160,6 @@ export function InsightActionRow({
   const nativeStr = `${native >= 0 ? '+' : ''}${formatNative(native)}${outcomeUnit ? ' ' + outcomeUnit : ''} per ${stepLabel}`
   const horizon = horizonLabel(edge.horizon_days)
 
-  const evidenceLabel = (() => {
-    if (dataMode === 'cohort') return 'cohort'
-    switch (edge.evidence_tier) {
-      case 'personal_established': return 'personal'
-      case 'personal_emerging': return 'emerging'
-      case 'cohort_level': return 'cohort'
-      default: return ''
-    }
-  })()
-
   return (
     <button
       onClick={onToggle}
@@ -154,20 +190,7 @@ export function InsightActionRow({
 
       <ContractionPip contraction={contraction} />
 
-      {evidenceLabel && (
-        <span
-          className={cn(
-            'text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border',
-            evidenceLabel === 'personal'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : evidenceLabel === 'emerging'
-                ? 'border-amber-200 bg-amber-50 text-amber-700'
-                : 'border-slate-200 bg-slate-50 text-slate-500',
-          )}
-        >
-          {evidenceLabel}
-        </span>
-      )}
+      <EdgeEvidenceChip edge={edge} />
 
       <ChevronDown
         className={cn(
@@ -186,7 +209,7 @@ function ContractionPip({ contraction }: { contraction: number }) {
   return (
     <span
       className="inline-flex flex-col items-end gap-[1px] flex-shrink-0"
-      title={`Posterior contraction ${(contraction * 100).toFixed(0)}%`}
+      title={`Uncertainty narrowed ${(contraction * 100).toFixed(0)}%`}
       aria-label={`Confidence ${filled}/5`}
     >
       {[5, 4, 3, 2, 1].map((seg) => (

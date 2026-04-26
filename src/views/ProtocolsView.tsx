@@ -24,7 +24,7 @@ import {
   Users,
 } from 'lucide-react'
 import { PageLayout } from '@/components/layout'
-import { Card, DataModeToggle, MemberAvatar } from '@/components/common'
+import { Card, DataModeToggle, PainterlyPageHeader } from '@/components/common'
 import type { ParticipantPortal, RegimeKey } from '@/data/portal/types'
 import {
   ProtocolContextVariantToggle,
@@ -110,9 +110,8 @@ export function ProtocolsView() {
     writeModeToStorage(next)
   }
 
-  const titleAccessory = (
-    <MemberAvatar persona={persona} displayName={displayName} size="xl" />
-  )
+  // Header is now rendered by PainterlyPageHeader; persona portrait
+  // lives there along with the cross-tab ScopeBar.
 
   const today = useMemo(() => new Date(), [])
 
@@ -176,10 +175,11 @@ export function ProtocolsView() {
 
   if (activePid == null) {
     return (
-      <PageLayout
-        title="Today's plan"
-        subtitle="The day's protocol, grounded in today's active regimes and loads."
-      >
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader
+          subtitle="The day's protocol, grounded in today's active regimes and loads."
+          hideHorizon
+        />
         <Card padding="md" className="flex flex-col items-center text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center mb-3">
             <Users className="w-6 h-6 text-primary-500" />
@@ -195,7 +195,8 @@ export function ProtocolsView() {
 
   if (isLoading) {
     return (
-      <PageLayout title={`${displayName} — today's plan`} titleAccessory={titleAccessory}>
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader subtitle="Today's plan" hideHorizon />
         <Card padding="md" className="flex flex-col items-center text-slate-500 py-12">
           <Loader2 className="w-5 h-5 animate-spin mb-2" />
           <span className="text-sm">Loading {displayName}…</span>
@@ -206,7 +207,8 @@ export function ProtocolsView() {
 
   if (error) {
     return (
-      <PageLayout title={`${displayName} — today's plan`} titleAccessory={titleAccessory}>
+      <PageLayout maxWidth="2xl">
+        <PainterlyPageHeader subtitle="Today's plan" hideHorizon />
         <Card padding="md" className="flex flex-col items-center text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-3">
             <AlertCircle className="w-6 h-6 text-rose-500" />
@@ -236,16 +238,16 @@ export function ProtocolsView() {
   )
 
   return (
-    <PageLayout
-      title={`${displayName} — today's plan`}
-      titleAccessory={titleAccessory}
-      actions={actions}
-      subtitle={
-        mode === 'lanes'
-          ? 'Swim-lanes — anchors, focus, and recovery prep in parallel columns.'
-          : 'Compact — one row per protocol item, expand for dose shape + context.'
-      }
-    >
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle={
+          mode === 'lanes'
+            ? 'Swim-lanes — anchors, focus, and recovery prep in parallel columns.'
+            : 'Compact — one row per protocol item, expand for dose shape + context.'
+        }
+        hideHorizon
+        actions={actions}
+      />
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}

@@ -2,7 +2,17 @@ import type { CandidateDataSource } from './types'
 
 /**
  * 9 candidate data sources that could unlock new causal edges.
- * Each specifies which new dose/response families and columns it would provide.
+ *
+ * Each spec lists:
+ *   - newDoseFamilies   — dose families the device adds (registered in
+ *                         DOSE_FAMILIES). Each family unlocks every
+ *                         mechanism that targets it.
+ *   - newResponseFamilies — same idea for outcomes (e.g. systolic_bp).
+ *   - newColumns        — raw columns added on top, used for confounder-
+ *                         resolution scoring.
+ *
+ * Narratives intentionally trimmed to one short sentence per edge —
+ * the card surfaces the headline + signal-boost number, not a paragraph.
  */
 export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
   {
@@ -10,19 +20,24 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Continuous Glucose Monitor',
     icon: 'Activity',
     category: 'Metabolic',
-    description: 'Real-time interstitial glucose every 1-5 minutes, enabling glucose variability metrics, time-in-range, and meal response curves.',
+    description:
+      'Real-time interstitial glucose every 1-5 min — adds variability, time-in-range, and dawn-effect metrics.',
     exampleProducts: ['Dexcom G7', 'Abbott Libre 3', 'Levels'],
-    newDoseFamilies: [],
+    newDoseFamilies: ['cgm_variability'],
     newResponseFamilies: ['glucose', 'hba1c'],
     newColumns: [
-      'cgm_mean_glucose', 'cgm_glucose_variability_cv', 'cgm_time_in_range_pct',
-      'cgm_time_above_140', 'cgm_time_above_180', 'cgm_dawn_effect',
+      'cgm_mean_glucose',
+      'cgm_glucose_variability_cv',
+      'cgm_time_in_range_pct',
+      'cgm_time_above_140',
+      'cgm_time_above_180',
+      'cgm_dawn_effect',
     ],
     frequency: 'Continuous (288+ readings/day)',
     keyEdgeNarratives: [
-      { edgeTitle: 'Training Hours → Glucose', type: 'boost', narrative: 'Currently eff_n=4 from quarterly labs. CGM would provide daily glucose, boosting personal evidence from 7% to near 100% — revealing whether Caspian\'s training volume actually improves his glycemic control.' },
-      { edgeTitle: 'Training Hours → Insulin', type: 'boost', narrative: 'Insulin sensitivity is a latent confounder in Caspian\'s metabolic pathway. Daily glucose variability from CGM would serve as a proxy, helping disentangle the training → insulin_sensitivity → glucose chain.' },
-      { edgeTitle: 'Sleep Duration → Glucose', type: 'boost', narrative: 'Caspian\'s sleep-glucose edge is prior-dominated (eff_n=4). CGM would capture overnight glucose dips and dawn effects, directly testing whether his 7+ hour sleep target actually lowers fasting glucose.' },
+      { edgeTitle: 'Glucose Variability → hsCRP', type: 'unlock', narrative: 'Direct test of variability-driven inflammation.' },
+      { edgeTitle: 'Time-in-Range → VO₂peak', type: 'unlock', narrative: 'Tests whether glycemic control supports aerobic capacity.' },
+      { edgeTitle: 'Training Hours → Glucose', type: 'boost', narrative: 'eff_n 4 → ~100 with daily readings.' },
     ],
   },
   {
@@ -30,17 +45,22 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Nutrition Tracker',
     icon: 'Apple',
     category: 'Nutrition',
-    description: 'Dedicated daily macro/micronutrient tracking improves dietary data consistency and adds carbs, fat, fiber, and sodium columns beyond what Apple Health provides.',
+    description:
+      'Daily macros + micros — adds carbs, fat, fiber, sodium streams Apple Health doesn\'t provide.',
     exampleProducts: ['Cronometer', 'MacroFactor', 'MyFitnessPal'],
-    newDoseFamilies: [],
+    newDoseFamilies: ['dietary_carbs', 'dietary_fat', 'dietary_fiber', 'dietary_sodium'],
     newResponseFamilies: [],
     newColumns: [
-      'dietary_carbs_g', 'dietary_fat_g', 'dietary_fiber_g', 'dietary_sodium_mg',
+      'dietary_carbs_g',
+      'dietary_fat_g',
+      'dietary_fiber_g',
+      'dietary_sodium_mg',
     ],
     frequency: 'Daily logging',
     keyEdgeNarratives: [
-      { edgeTitle: 'Dietary Protein → Body Fat', type: 'boost', narrative: 'Currently only 28 raw observations. Consistent daily logging would dramatically increase eff_n, testing whether Caspian\'s protein intake above ~50g/day actually drives the body fat reduction the literature predicts.' },
-      { edgeTitle: 'Dietary Energy → Body Mass', type: 'boost', narrative: 'With 29 raw data points, this edge is 73% population prior. Daily caloric tracking would personalize the energy balance curve — does Caspian\'s 75.9kg frame respond to energy surplus the way the Hall et al. Lancet model predicts?' },
+      { edgeTitle: 'Carbs → Glucose / TG', type: 'unlock', narrative: 'Direct dietary lever for glycemic + lipid response.' },
+      { edgeTitle: 'Fiber → hsCRP / LDL', type: 'unlock', narrative: 'Microbiome + bile-acid pathway not currently measured.' },
+      { edgeTitle: 'Protein → Body Fat', type: 'boost', narrative: 'Lifts eff_n on the existing protein edge.' },
     ],
   },
   {
@@ -48,18 +68,22 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Blood Pressure Monitor',
     icon: 'Heart',
     category: 'Cardiovascular',
-    description: 'Daily systolic/diastolic and MAP readings to link training load, sleep, and sodium to vascular health.',
+    description:
+      'Daily BP — links sodium, training spikes, sleep, and travel to vascular health.',
     exampleProducts: ['Withings BPM Connect', 'Omron Evolv', 'QardioArm'],
     newDoseFamilies: [],
-    newResponseFamilies: [],
+    newResponseFamilies: ['systolic_bp'],
     newColumns: [
-      'systolic_bp', 'diastolic_bp', 'mean_arterial_pressure', 'pulse_pressure',
+      'systolic_bp',
+      'diastolic_bp',
+      'mean_arterial_pressure',
+      'pulse_pressure',
     ],
     frequency: 'Daily (AM/PM)',
     keyEdgeNarratives: [
-      { edgeTitle: 'ACWR → Resting HR Trend', type: 'boost', narrative: 'Caspian\'s strongest edge (eff_n=342, 100% personal). Adding daily BP would reveal whether the ACWR → HR elevation also drives blood pressure spikes — a cardiovascular risk signal not currently captured.' },
-      { edgeTitle: 'Travel → Resting HR', type: 'boost', narrative: 'Travel elevates Caspian\'s resting HR by +1.09 bpm per 0.2 jet-lag load. BP data would show whether this sympathetic activation also raises blood pressure, distinguishing benign HR elevation from vascular stress.' },
-      { edgeTitle: 'Sleep Debt → Resting HR', type: 'boost', narrative: 'Sleep debt raises Caspian\'s HR by +0.19 bpm per hour of deficit. Daily BP would test whether this HR signal propagates to hypertensive risk — critical for a 43-year-old endurance athlete.' },
+      { edgeTitle: 'Sodium → BP', type: 'unlock', narrative: 'New cardiovascular outcome paired with the sodium lever.' },
+      { edgeTitle: 'ACWR / Sleep Debt / Travel → BP', type: 'unlock', narrative: 'Tests vascular consequences of existing load drivers.' },
+      { edgeTitle: 'ACWR → Resting HR', type: 'boost', narrative: 'BP pairs with HR to flag sympathetic-driven hypertension risk.' },
     ],
   },
   {
@@ -67,18 +91,21 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Body Temperature Sensor',
     icon: 'Thermometer',
     category: 'Recovery',
-    description: 'Continuous skin or core temperature enables circadian tracking, illness detection, and recovery monitoring.',
+    description:
+      'Continuous skin/core temperature — circadian, illness, and recovery monitoring.',
     exampleProducts: ['Oura Ring', 'WHOOP 4.0', 'TempDrop'],
-    newDoseFamilies: [],
-    newResponseFamilies: [],
+    newDoseFamilies: ['body_temperature'],
+    newResponseFamilies: ['core_temperature'],
     newColumns: [
-      'skin_temp_deviation', 'core_temp_est', 'nocturnal_temp_min',
+      'skin_temp_deviation',
+      'core_temp_est',
+      'nocturnal_temp_min',
     ],
     frequency: 'Continuous overnight',
     keyEdgeNarratives: [
-      { edgeTitle: 'Workout Time → Sleep Efficiency', type: 'boost', narrative: 'Caspian\'s data shows workouts after 8:09 PM drop sleep efficiency by -2.19%/hr. Core temperature is the latent mediator — temperature data would directly test whether post-exercise thermoregulation is the mechanism, not just correlational timing.' },
-      { edgeTitle: 'Bedtime → Deep Sleep', type: 'boost', narrative: 'Deep sleep drops -2.64 min per hour of late bedtime. Nocturnal temperature minimum timing would reveal whether circadian temperature rhythm — not bedtime per se — is the true driver of deep sleep architecture.' },
-      { edgeTitle: 'core_temperature (confounder)', type: 'confounder', narrative: 'Resolves the core_temperature latent node in the DAG. Currently unobservable, it sits on the training_load → core_temp → sleep_quality causal chain. Direct measurement eliminates this confounding pathway.' },
+      { edgeTitle: 'Core Temp → Deep Sleep / SE', type: 'unlock', narrative: 'Resolves thermoregulation as a sleep mediator.' },
+      { edgeTitle: 'Training → Core Temp', type: 'unlock', narrative: 'Quantifies post-session core-temp elevation.' },
+      { edgeTitle: 'core_temperature (latent)', type: 'confounder', narrative: 'Resolves the latent core-temperature node in the DAG.' },
     ],
   },
   {
@@ -86,19 +113,23 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Mood / Stress Tracker',
     icon: 'Brain',
     category: 'Subjective',
-    description: 'Daily subjective ratings for mood, stress, energy, and motivation. Resolves confounders like perceived stress → cortisol.',
+    description:
+      'Daily ratings for mood, stress, energy, motivation, and session RPE.',
     exampleProducts: ['Daylio', 'How We Feel', 'Bearable'],
-    newDoseFamilies: [],
+    newDoseFamilies: ['subjective_stress', 'perceived_exertion'],
     newResponseFamilies: [],
     newColumns: [
-      'mood_score', 'stress_score', 'energy_score', 'motivation_score',
+      'mood_score',
+      'stress_score',
+      'energy_score',
+      'motivation_score',
       'perceived_exertion_rpe',
     ],
     frequency: 'Daily self-report',
     keyEdgeNarratives: [
-      { edgeTitle: 'Training Hours → Testosterone', type: 'boost', narrative: 'Caspian\'s testosterone edge (eff_n=3) is 94% population prior. Perceived stress data would help disentangle the cortisol → testosterone suppression pathway — is overtraining or psychological stress driving the inverted-U curve at θ=1354 min/month?' },
-      { edgeTitle: 'Training Hours → Cortisol', type: 'boost', narrative: 'Cortisol rises above the training threshold (v_min curve). RPE and stress ratings would reveal whether cortisol spikes come from training load itself or from life stress confounding the dose-response relationship.' },
-      { edgeTitle: 'energy_expenditure (confounder)', type: 'confounder', narrative: 'Resolves the energy_expenditure latent node. RPE data serves as a proxy for total energy expenditure, helping separate the training → energy_expenditure → body_fat pathway from dietary effects.' },
+      { edgeTitle: 'Stress → Cortisol / Testosterone / HRV', type: 'unlock', narrative: 'Disentangles psychological stress from training load.' },
+      { edgeTitle: 'RPE → Next-Day HRV', type: 'unlock', narrative: 'Captures the central-fatigue dimension TRIMP misses.' },
+      { edgeTitle: 'energy_expenditure (latent)', type: 'confounder', narrative: 'RPE proxies for total energy expenditure.' },
     ],
   },
   {
@@ -106,16 +137,16 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Monthly Lab Testing',
     icon: 'TestTube',
     category: 'Biomarkers',
-    description: 'Increasing blood draw frequency from quarterly to monthly dramatically boosts eff_n for all marker-based edges, improving personal evidence weight.',
+    description:
+      'Quarterly → monthly draws — boosts eff_n on every marker-based edge.',
     exampleProducts: ['Quest Direct', 'InsideTracker', 'Function Health'],
     newDoseFamilies: [],
     newResponseFamilies: [],
     newColumns: [],
     frequency: 'Monthly blood draws',
     keyEdgeNarratives: [
-      { edgeTitle: 'Running Volume → Iron', type: 'boost', narrative: 'The most critical edge for Caspian — iron depletion from running — currently has eff_n=2 (6% personal). Monthly draws would push eff_n above 30, crossing the sigmoid inflection point where personal data overtakes the Sim et al. 2019 population prior.' },
-      { edgeTitle: 'Running Volume → Ferritin', type: 'boost', narrative: 'Ferritin is Caspian\'s primary iron status marker, but at eff_n=2 the posterior is 94% literature. Monthly testing would reveal his personal ferritin depletion rate — critical for calibrating iron supplementation around high-mileage training blocks.' },
-      { edgeTitle: 'Training Hours → Testosterone', type: 'boost', narrative: 'The inverted-U testosterone curve (θ=1354 min/month) is almost entirely population prior. Monthly testosterone draws would test whether Caspian\'s specific HPA axis responds to overtraining the way Hackney et al. predict.' },
+      { edgeTitle: 'Running → Iron / Ferritin', type: 'boost', narrative: 'eff_n 2 → 30+: crosses the prior/personal inflection.' },
+      { edgeTitle: 'Training → Testosterone', type: 'boost', narrative: 'Tests the inverted-U curve against personal HPA response.' },
     ],
   },
   {
@@ -123,18 +154,21 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Dedicated HRV Monitor',
     icon: 'HeartPulse',
     category: 'Recovery',
-    description: 'Chest-strap or finger-clip HRV with higher accuracy than wrist-based sensors, enabling RMSSD, pNN50, and frequency-domain metrics.',
+    description:
+      'Chest-strap HRV — adds RMSSD, pNN50, and LF/HF frequency-domain metrics.',
     exampleProducts: ['Polar H10', 'Elite HRV', 'Corsense'],
-    newDoseFamilies: [],
+    newDoseFamilies: ['hrv_advanced'],
     newResponseFamilies: ['hrv_daily', 'hrv_baseline'],
     newColumns: [
-      'hrv_rmssd_morning', 'hrv_pnn50', 'hrv_lf_hf_ratio',
+      'hrv_rmssd_morning',
+      'hrv_pnn50',
+      'hrv_lf_hf_ratio',
     ],
     frequency: 'Daily 2-min morning reading',
     keyEdgeNarratives: [
-      { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'Caspian\'s strongest recovery edge (eff_n=797). Chest-strap RMSSD would improve measurement accuracy, potentially revealing the v_max curve\'s true shape — HRV peaks at θ=86 TRIMP then drops -0.06 ms per 50 TRIMP above that.' },
-      { edgeTitle: 'Weekly Volume → HRV Baseline', type: 'boost', narrative: 'Running volume boosts HRV baseline up to 21 km/week, then plateaus. Higher-accuracy HRV data would sharpen the plateau_up curve, helping Caspian identify whether additional weekly mileage still provides vagal tone benefit.' },
-      { edgeTitle: 'Sleep Duration → HRV', type: 'boost', narrative: 'Currently eff_n=745 with wrist-based HRV. A dedicated monitor would reduce measurement noise on this linear edge (+0.41 ms per hour of sleep), giving more precise sleep optimization targets.' },
+      { edgeTitle: 'LF/HF → VO₂peak', type: 'unlock', narrative: 'Sympathovagal balance as a fitness-adaptation marker.' },
+      { edgeTitle: 'pNN50 → Resting HR Trend', type: 'unlock', narrative: 'Vagal-tone proxy beyond wrist-based HRV noise.' },
+      { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'Cleaner measurement on the strongest recovery edge.' },
     ],
   },
   {
@@ -142,19 +176,23 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Genetic Data',
     icon: 'Dna',
     category: 'Genomics',
-    description: 'SNP data enables Mendelian randomization and gene-environment interaction analysis. Resolves confounders for iron metabolism, vitamin D, and lipid pathways.',
+    description:
+      'SNP data for Mendelian randomization and gene × environment interactions.',
     exampleProducts: ['23andMe', 'AncestryDNA + Promethease', 'SelfDecode'],
     newDoseFamilies: [],
     newResponseFamilies: [],
     newColumns: [
-      'iron_absorption_prs', 'vitd_metabolism_prs', 'ldl_receptor_prs',
-      'caffeine_metabolism_cyp1a2', 'apoe_genotype',
+      'iron_absorption_prs',
+      'vitd_metabolism_prs',
+      'ldl_receptor_prs',
+      'caffeine_metabolism_cyp1a2',
+      'apoe_genotype',
     ],
     frequency: 'One-time test',
     keyEdgeNarratives: [
-      { edgeTitle: 'Running Volume → Iron (via iron_absorption_prs)', type: 'confounder', narrative: 'Caspian\'s iron depletion may partly reflect genetic iron absorption efficiency. An iron absorption PRS would enable Mendelian randomization — separating how much iron loss comes from running hemolysis vs. how much is constitutional poor absorption.' },
-      { edgeTitle: 'Zone 2 → LDL (via ldl_receptor_prs)', type: 'confounder', narrative: 'Caspian\'s LDL response to zone 2 exercise (β=-0.075 mg/dL per 120 min/mo) is mostly prior-driven. An LDL receptor PRS would reveal whether his genetic lipid metabolism explains the weak personal signal, resolving the lipoprotein_lipase confounder.' },
-      { edgeTitle: 'insulin_sensitivity (confounder)', type: 'confounder', narrative: 'Resolves the insulin_sensitivity latent node. Genetic data provides time-invariant instruments for HOMA-IR, disentangling the training → insulin_sensitivity → glucose chain without needing repeated fasting insulin measurements.' },
+      { edgeTitle: 'Iron PRS (instrument)', type: 'confounder', narrative: 'Mendelian randomization for iron absorption.' },
+      { edgeTitle: 'LDL receptor PRS', type: 'confounder', narrative: 'Resolves lipoprotein-lipase confounder on Z2 → LDL.' },
+      { edgeTitle: 'insulin_sensitivity (latent)', type: 'confounder', narrative: 'Time-invariant instrument for HOMA-IR.' },
     ],
   },
   {
@@ -162,17 +200,19 @@ export const CANDIDATE_DATA_SOURCES: CandidateDataSource[] = [
     name: 'Respiratory Rate Monitor',
     icon: 'Wind',
     category: 'Recovery',
-    description: 'Nocturnal respiratory rate is an early marker of overtraining, illness onset, and autonomic stress.',
+    description:
+      'Nocturnal respiratory rate + variability — early marker of overreaching, illness, autonomic stress.',
     exampleProducts: ['WHOOP', 'Oura Gen3', 'Garmin (select models)'],
-    newDoseFamilies: [],
+    newDoseFamilies: ['respiratory_rate'],
     newResponseFamilies: [],
     newColumns: [
-      'respiratory_rate_sleep', 'respiratory_rate_variability',
+      'respiratory_rate_sleep',
+      'respiratory_rate_variability',
     ],
     frequency: 'Continuous overnight',
     keyEdgeNarratives: [
-      { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'Respiratory rate is an independent autonomic stress marker. Combined with HRV, it would disambiguate whether post-training HRV suppression (the v_max curve at θ=86 TRIMP) reflects cardiac autonomic fatigue or respiratory compensation.' },
-      { edgeTitle: 'Travel → Sleep Efficiency', type: 'boost', narrative: 'Caspian\'s travel → sleep efficiency edge is strong (β=-8.63%/per 0.2 jet-lag load above θ=0.48). Nocturnal respiratory rate changes during travel would reveal whether the disruption is primarily circadian or stress-mediated.' },
+      { edgeTitle: 'Nocturnal RR → HRV / SE', type: 'unlock', narrative: 'Independent autonomic-stress signal beyond HRV.' },
+      { edgeTitle: 'TRIMP → Next-Day HRV', type: 'boost', narrative: 'RR disambiguates cardiac vs respiratory fatigue.' },
     ],
   },
 ]

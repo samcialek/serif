@@ -37,6 +37,7 @@ import {
   newSnapshotId,
   type TwinSnapshot,
 } from '@/stores/twinSnapshotStore'
+import { useSearchParams } from 'react-router-dom'
 import { useScopeStore } from '@/stores/scopeStore'
 import { PainterlyPageHeader, CrossTabLinks } from '@/components/common'
 import {
@@ -50,7 +51,6 @@ import {
 import { trimpFor } from '@/views/twinForks/leverConcepts/HRDialVariants'
 import { DecayCurveLever } from '@/views/twinForks/leverConcepts/ConsumableConcepts'
 import { MinimalLine } from '@/views/twinForks/leverConcepts/SleepVariants'
-import { cn } from '@/utils/classNames'
 import { optimizationScore } from '@/utils/insightStandardization'
 import { useParticipant } from '@/hooks/useParticipant'
 import { useActiveParticipant } from '@/hooks/useActiveParticipant'
@@ -58,15 +58,11 @@ import { useSCMv2 as useSCM } from '@/hooks/useSCMv2'
 import { useBartTwin } from '@/hooks/useBartTwin'
 import { mergeBandsFromMC } from '@/views/twinForks/_graph'
 import type { MCFullCounterfactualState } from '@/data/scm/bartMonteCarlo'
-import { PersonaPortrait } from '@/components/common'
 import { StorylinePanel } from '@/components/portal'
 import { buildTodaysStory } from '@/utils/storyline'
 import { buildObservedValues } from '@/views/twinForks/_shared'
 import { outcomeStatesAt } from '@/views/twinForks/_graph'
-import {
-  CURATED_LONGEVITY_OUTCOMES,
-  horizonBandFor,
-} from '@/data/scm/outcomeHorizons'
+import { edgeWeight, personalizationForEdge } from '@/utils/edgeEvidence'
 import { OUTCOME_META, canonicalOutcomeKey } from '@/components/portal/InsightRow'
 import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
 import { PHASE_2_EDGES as PHASE_2_EDGES_REF } from '@/data/scm/syntheticEdgesV2'
@@ -272,93 +268,9 @@ function buildOutcomesForRegime(
 // Edges are now derived at render time from participant.effects_bayesian
 // filtered by regime + active lever set. See `deriveEdgesForRegime` below.
 
-// Full curated longevity set — all 20 from CURATED_LONGEVITY_OUTCOMES in
-// `outcomeHorizons.ts`. Splits naturally into a weeks-band (top row) and
-// months-band (bottom row) when rendered.
-const LONGEVITY_OUTCOMES: Outcome[] = [
-  // Weeks band (8-42d)
-  {
-    id: 'cortisol', label: 'Cortisol', baseline: 14, unit: 'µg/dL', decimals: 1, beneficial: 'lower',
-    description: 'Lower morning cortisol indicates a calm HPA axis and reduced chronic-stress burden.',
-  },
-  {
-    id: 'glucose', label: 'Glucose', baseline: 92, unit: 'mg/dL', decimals: 0, beneficial: 'lower',
-    description: 'Lower fasting glucose reflects insulin sensitivity and reduces diabetes and cardiovascular risk.',
-  },
-  {
-    id: 'insulin', label: 'Insulin', baseline: 9, unit: 'µIU/mL', decimals: 1, beneficial: 'lower',
-    description: 'Lower fasting insulin signals metabolic health and a lower long-term type-2 diabetes risk.',
-  },
-  {
-    id: 'nlr', label: 'NLR', baseline: 2.1, unit: '', decimals: 1, beneficial: 'lower',
-    description: 'A neutrophil-to-lymphocyte ratio under 2 reflects balanced immunity and low systemic inflammation.',
-  },
-  {
-    id: 'trigs', label: 'Triglycerides', baseline: 110, unit: 'mg/dL', decimals: 0, beneficial: 'lower',
-    description: 'Lower triglycerides reduce cardiovascular risk and indicate good carbohydrate and alcohol handling.',
-  },
-  {
-    id: 'alt', label: 'ALT', baseline: 22, unit: 'U/L', decimals: 0, beneficial: 'lower',
-    description: 'Lower ALT indicates a healthier liver and reduced fatty-liver and metabolic-dysfunction risk.',
-  },
-  {
-    id: 'dhea_s', label: 'DHEA-S', baseline: 220, unit: 'µg/dL', decimals: 0, beneficial: 'higher',
-    description: 'Higher DHEA-S supports hormonal balance, mood, immune function, and cognitive resilience with age.',
-  },
-  {
-    id: 'hscrp', label: 'hsCRP', baseline: 1.4, unit: 'mg/L', decimals: 1, beneficial: 'lower',
-    description: 'Lower hsCRP means less chronic inflammation — a major driver of cardiovascular and metabolic disease.',
-  },
-  {
-    id: 'testosterone', label: 'Testosterone', baseline: 580, unit: 'ng/dL', decimals: 0, beneficial: 'higher',
-    description: 'Optimal testosterone supports muscle, mood, libido, and metabolic health across both sexes.',
-  },
-  {
-    id: 'uric_acid', label: 'Uric acid', baseline: 5.4, unit: 'mg/dL', decimals: 1, beneficial: 'lower',
-    description: 'Lower uric acid reduces gout, kidney-stone, and cardiovascular risk; high values flag metabolic stress.',
-  },
-  // Months band (≥43d)
-  {
-    id: 'ferritin', label: 'Ferritin', baseline: 145, unit: 'ng/mL', decimals: 0, beneficial: 'higher',
-    description: 'Adequate ferritin reflects iron stores essential for oxygen transport, energy, and cognition.',
-  },
-  {
-    id: 'homocysteine', label: 'Homocysteine', baseline: 9.5, unit: 'µmol/L', decimals: 1, beneficial: 'lower',
-    description: 'Lower homocysteine reduces cardiovascular and cognitive-decline risk; reflects B-vitamin status.',
-  },
-  {
-    id: 'rdw', label: 'RDW', baseline: 13.2, unit: '%', decimals: 1, beneficial: 'lower',
-    description: 'Low red-cell distribution width indicates healthy erythropoiesis and predicts long-term survival.',
-  },
-  {
-    id: 'vo2_peak', label: 'VO₂ peak', baseline: 42, unit: 'ml/kg', decimals: 1, beneficial: 'higher',
-    description: 'Higher VO₂ peak is the single strongest fitness-related predictor of all-cause mortality and longevity.',
-  },
-  {
-    id: 'hdl', label: 'HDL', baseline: 52, unit: 'mg/dL', decimals: 0, beneficial: 'higher',
-    description: 'Higher HDL assists cholesterol clearance from arteries and lowers cardiovascular disease risk.',
-  },
-  {
-    id: 'apob', label: 'ApoB', baseline: 95, unit: 'mg/dL', decimals: 0, beneficial: 'lower',
-    description: 'Lower ApoB (atherogenic particle count) is the most direct lipid driver of cardiovascular disease.',
-  },
-  {
-    id: 'body_fat_pct', label: 'Body fat', baseline: 22, unit: '%', decimals: 1, beneficial: 'lower',
-    description: 'Lower body fat improves insulin sensitivity, hormonal balance, and cardiovascular health.',
-  },
-  {
-    id: 'hemoglobin', label: 'Hemoglobin', baseline: 14.5, unit: 'g/dL', decimals: 1, beneficial: 'higher',
-    description: 'Adequate hemoglobin sustains oxygen delivery to tissues; low values cause fatigue and cognitive impairment.',
-  },
-  {
-    id: 'ldl', label: 'LDL', baseline: 120, unit: 'mg/dL', decimals: 0, beneficial: 'lower',
-    description: 'Lower LDL reduces atherogenic burden and slows progression of cardiovascular disease.',
-  },
-  {
-    id: 'magnesium_rbc', label: 'Mg (RBC)', baseline: 5.2, unit: 'mg/dL', decimals: 1, beneficial: 'higher',
-    description: 'Adequate red-cell magnesium supports cardiovascular rhythm, glucose control, and neuromuscular function.',
-  },
-]
+// (Hand-rolled longevity-outcome metadata removed — runtime list flows
+//  through `buildOutcomesForRegime` against canonical `OUTCOME_META` +
+//  `LONGEVITY_OUTCOME_IDS` instead.)
 
 // Longevity-relevant levers only — cardio/HR, daily steps (NEAT), diet,
 // and sleep. Caffeine and alcohol are quotidian-class lifestyle factors;
@@ -374,13 +286,15 @@ type LeverId =
   | 'alcohol'
   | 'diet'
   | 'sleep'
+  | 'sleep_supplementation'
   | 'resistance'
   | 'supplementation'
 
-// Quotidian = 1-week horizon, so diet + resistance + supplementation
-// effects haven't accrued yet. Longevity adds resistance training and
-// supplementation as additional levers.
-const QUOTIDIAN_LEVERS: LeverId[] = ['hr', 'caffeine', 'alcohol', 'sleep']
+// Quotidian = 1-week horizon, so diet + resistance + longevity
+// supplementation effects haven't accrued yet. Sleep aids are modeled
+// separately because their effects can plausibly move wearable sleep
+// outcomes within days.
+const QUOTIDIAN_LEVERS: LeverId[] = ['hr', 'caffeine', 'alcohol', 'sleep', 'sleep_supplementation']
 const LONGEVITY_LEVERS: LeverId[] = [
   'hr',
   'resistance',
@@ -395,20 +309,26 @@ const LONGEVITY_LEVERS: LeverId[] = [
 // fixed (encoded in the synthetic-edge rationale strings) — the lever is
 // "are you taking it?" not "how much?".
 
-interface SupplementSpec {
-  id: keyof SupplementationState
+interface SupplementSpec<TId extends string = string> {
+  id: TId
   action: string
   label: string
   /** Short dose text shown next to the toggle. */
   dose: string
 }
 
-const SUPPLEMENTS: SupplementSpec[] = [
+const SUPPLEMENTS: SupplementSpec<keyof SupplementationState>[] = [
   { id: 'omega3', action: 'supp_omega3', label: 'Omega-3', dose: '2 g EPA+DHA' },
   { id: 'magnesium', action: 'supp_magnesium', label: 'Magnesium', dose: '400 mg' },
   { id: 'vitaminD', action: 'supp_vitamin_d', label: 'Vitamin D', dose: '2000 IU' },
   { id: 'bComplex', action: 'supp_b_complex', label: 'B-complex', dose: 'B12+B6+folate' },
   { id: 'creatine', action: 'supp_creatine', label: 'Creatine', dose: '5 g' },
+]
+
+const QUOTIDIAN_SUPPLEMENTS: SupplementSpec<keyof SleepSupplementationState>[] = [
+  { id: 'melatonin', action: 'supp_melatonin', label: 'Melatonin', dose: '0.3-1 mg' },
+  { id: 'lTheanine', action: 'supp_l_theanine', label: 'L-theanine', dose: '200 mg' },
+  { id: 'zinc', action: 'supp_zinc', label: 'Zinc', dose: '15 mg' },
 ]
 
 interface SupplementationState {
@@ -419,6 +339,12 @@ interface SupplementationState {
   creatine: boolean
 }
 
+interface SleepSupplementationState {
+  melatonin: boolean
+  lTheanine: boolean
+  zinc: boolean
+}
+
 function defaultSupplementation(): SupplementationState {
   return {
     omega3: false,
@@ -426,6 +352,14 @@ function defaultSupplementation(): SupplementationState {
     vitaminD: false,
     bComplex: false,
     creatine: false,
+  }
+}
+
+function defaultSleepSupplementation(): SleepSupplementationState {
+  return {
+    melatonin: false,
+    lTheanine: false,
+    zinc: false,
   }
 }
 
@@ -441,23 +375,27 @@ interface AllState {
     wake: number
     hours: number
     quality: number
+    bedroomTempC: number
   }
   diet: { proteinG: number; totalKcal: number }
   /** Weekly resistance-training minutes. Longevity-only lever. */
   resistanceMin: number
   /** Supplementation toggles. Longevity-only lever. */
   supp: SupplementationState
+  /** Fast-acting sleep-aid toggles. Quotidian-only lever. */
+  sleepSupp: SleepSupplementationState
 }
 
 const DIET_DEFAULT_PROTEIN_G = 100
 const DIET_DEFAULT_TOTAL_KCAL = 2500
-const STEPS_DEFAULT = 8000
-const STEPS_MIN = 0
-const STEPS_MAX = 15000
-const STEPS_STEP = 500
 
 const SLEEP_HOURS_DEFAULT = 8
 const SLEEP_QUALITY_DEFAULT = 80
+const BEDROOM_TEMP_C_DEFAULT = 21.5
+const BEDROOM_TEMP_C_MIN = 16
+const BEDROOM_TEMP_C_MAX = 27
+const BEDROOM_TEMP_C_STEP = 0.5
+const QUOTIDIAN_SLEEP_NATURAL_H = 118
 
 // Sessions/week is the user-facing unit; the engine still consumes
 // resistance_training_minutes. We use 30 min/session as the conversion
@@ -490,10 +428,12 @@ function defaultState(): AllState {
       wake: SLEEP_SPEC.yAxis.default,
       hours: SLEEP_HOURS_DEFAULT,
       quality: SLEEP_QUALITY_DEFAULT,
+      bedroomTempC: BEDROOM_TEMP_C_DEFAULT,
     },
     diet: { proteinG: DIET_DEFAULT_PROTEIN_G, totalKcal: DIET_DEFAULT_TOTAL_KCAL },
     resistanceMin: RESISTANCE_MIN_DEFAULT,
     supp: defaultSupplementation(),
+    sleepSupp: defaultSleepSupplementation(),
   }
 }
 
@@ -502,6 +442,7 @@ interface Contributions {
   caffeine: number
   alcohol: number
   sleep: number
+  sleep_supplementation: number
   diet: number
   resistance: number
   supplementation: number
@@ -529,11 +470,8 @@ function toneFor(out: Outcome, delta: number): Tone {
   return improved ? 'benefit' : 'harm'
 }
 
-function buildOutcome(out: Outcome, c: Contributions): OutcomeWithDelta {
-  const delta =
-    c.hr + c.caffeine + c.alcohol + c.sleep + c.diet + c.resistance + c.supplementation
-  return { ...out, delta, tone: toneFor(out, delta), contributions: c }
-}
+// (`buildOutcome` removed — outcomes now flow through
+//  `computeOutcomesFromEngine`, not the legacy direct constructor.)
 
 function emptyContributions(): Contributions {
   return {
@@ -541,6 +479,7 @@ function emptyContributions(): Contributions {
     caffeine: 0,
     alcohol: 0,
     sleep: 0,
+    sleep_supplementation: 0,
     diet: 0,
     resistance: 0,
     supplementation: 0,
@@ -633,13 +572,23 @@ const LEVER_ACTIONS: Record<LeverId, LeverActionMapping> = {
       return out
     },
   },
+  sleep_supplementation: {
+    actions: QUOTIDIAN_SUPPLEMENTS.map((s) => s.action),
+    valuesFor: (s) => {
+      const out: Record<string, number> = {}
+      for (const spec of QUOTIDIAN_SUPPLEMENTS) {
+        out[spec.action] = s.sleepSupp[spec.id] ? 1 : 0
+      }
+      return out
+    },
+  },
   sleep: {
     // v2: longevity emits sleep_duration AND sleep_quality as
     // independent engine inputs. The Phase-2 synthetic edges
     // (sleep_quality → cortisol, hsCRP, insulin, glucose, dhea_s,
     // hrv_daily, testosterone) make quality a real driver instead
     // of a multiplier on duration.
-    actions: ['bedtime', 'sleep_duration', 'sleep_quality'],
+    actions: ['bedtime', 'sleep_duration', 'sleep_quality', 'bedroom_temp_c'],
     valuesFor: (s, regime) =>
       regime === 'longevity'
         ? {
@@ -650,13 +599,10 @@ const LEVER_ACTIONS: Record<LeverId, LeverActionMapping> = {
         : {
             bedtime: s.sleep.bedtime,
             sleep_duration: sleepDuration(s.sleep.bedtime, s.sleep.wake),
+            bedroom_temp_c: s.sleep.bedroomTempC,
           },
   },
 }
-
-const ALL_CANONICAL_ACTIONS: string[] = Array.from(
-  new Set(Object.values(LEVER_ACTIONS).flatMap((m) => m.actions)),
-)
 
 /** Build the engine intervention list for a single lever (for per-lever
  *  attribution) or the full set (for the combined state). Only includes
@@ -798,7 +744,6 @@ function computeOutcomesFromEngine(
   return outcomes.map((out): OutcomeWithDelta => {
     const combined = combinedStates.get(out.id)
     const factual = combined?.factual ?? out.baseline
-    const after = combined?.after ?? out.baseline
     const delta = combined?.delta ?? 0
     const afterLow = combined?.afterLow
     const afterHigh = combined?.afterHigh
@@ -1316,129 +1261,77 @@ function DietLever({
 // painterly redesign. Visual language matches Diet (warm tan track,
 // pill handle) so it doesn't look out of place.
 
-const STEPS_BAR_W = 320
-const STEPS_BAR_H = 38
-const STEPS_BAR_PAD_X = 8
-const STEPS_BAR_INNER_W = STEPS_BAR_W - STEPS_BAR_PAD_X * 2
-const STEPS_TRACK_BG = '#f0e9d8'
-const STEPS_FILL = '#9CAE7B' // sage green for movement
-
-function StepsLever({
-  steps,
+function BedroomTemperatureLever({
+  value,
   onChange,
 }: {
-  steps: number
-  onChange: (steps: number) => void
+  value: number
+  onChange: (value: number) => void
 }) {
-  const ref = useRef<HTMLDivElement | null>(null)
-  const [dragging, setDragging] = useState(false)
-
-  const valueFrac = clamp((steps - STEPS_MIN) / (STEPS_MAX - STEPS_MIN), 0, 1)
-  const valuePx = valueFrac * STEPS_BAR_INNER_W
-
-  const apply = useCallback(
-    (x: number) => {
-      const xClamped = clamp(x, 0, STEPS_BAR_INNER_W)
-      const frac = xClamped / STEPS_BAR_INNER_W
-      const newValue = quantize(
-        STEPS_MIN + frac * (STEPS_MAX - STEPS_MIN),
-        STEPS_STEP,
-        STEPS_MIN,
-        STEPS_MAX,
-      )
-      onChange(newValue)
-    },
-    [onChange],
+  const pct = clamp(
+    (value - BEDROOM_TEMP_C_MIN) / (BEDROOM_TEMP_C_MAX - BEDROOM_TEMP_C_MIN),
+    0,
+    1,
   )
+  const sweetSpotLeft =
+    ((21 - BEDROOM_TEMP_C_MIN) / (BEDROOM_TEMP_C_MAX - BEDROOM_TEMP_C_MIN)) * 100
+  const sweetSpotWidth =
+    ((22 - 21) / (BEDROOM_TEMP_C_MAX - BEDROOM_TEMP_C_MIN)) * 100
 
   return (
-    <div className="select-none" style={{ width: STEPS_BAR_W }}>
-      <div className="flex items-baseline justify-end mb-3" style={{ width: STEPS_BAR_W }}>
-        <span
-          className="text-[13px] text-stone-500"
-          style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
-        >
-          {steps.toLocaleString()} steps
-        </span>
-      </div>
+    <div className="select-none px-2 pt-2" style={{ width: 400 }}>
       <div
-        ref={ref}
-        className="relative touch-none"
+        className="flex items-baseline justify-between"
         style={{
-          width: STEPS_BAR_W,
-          height: STEPS_BAR_H,
-          cursor: dragging ? 'grabbing' : 'pointer',
-        }}
-        onPointerDown={(e) => {
-          if (!ref.current) return
-          const rect = ref.current.getBoundingClientRect()
-          setDragging(true)
-          ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
-          apply(e.clientX - rect.left - STEPS_BAR_PAD_X)
-        }}
-        onPointerMove={(e) => {
-          if (!dragging || !ref.current) return
-          const rect = ref.current.getBoundingClientRect()
-          apply(e.clientX - rect.left - STEPS_BAR_PAD_X)
-        }}
-        onPointerUp={(e) => {
-          setDragging(false)
-          ;(e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId)
-        }}
-      >
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: STEPS_BAR_PAD_X,
-            top: 0,
-            width: STEPS_BAR_INNER_W,
-            height: STEPS_BAR_H,
-            background: STEPS_TRACK_BG,
-            borderRadius: 5,
-          }}
-        />
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: STEPS_BAR_PAD_X,
-            top: 0,
-            width: valuePx,
-            height: STEPS_BAR_H,
-            background: STEPS_FILL,
-            borderRadius: 5,
-          }}
-        />
-        <div
-          className="absolute"
-          style={{
-            left: STEPS_BAR_PAD_X + valuePx - 3,
-            top: -3,
-            width: 6,
-            height: STEPS_BAR_H + 6,
-            background: '#fff',
-            border: `1.5px solid ${STEPS_FILL}`,
-            borderRadius: 3,
-            cursor: 'ew-resize',
-            pointerEvents: 'none',
-          }}
-        />
-      </div>
-      <div
-        className="flex justify-between mt-1.5"
-        style={{
-          marginLeft: STEPS_BAR_PAD_X,
-          marginRight: STEPS_BAR_PAD_X,
-          fontSize: 10,
-          color: '#a8a29e',
           fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
         }}
       >
-        <span>{STEPS_MIN.toLocaleString()}</span>
-        <span>{STEPS_MAX.toLocaleString()} steps/day</span>
+        <span className="text-[10px] uppercase text-stone-400">
+          Bedroom temp
+        </span>
+        <span className="text-[12px] text-stone-700">
+          {value.toFixed(1)} C
+        </span>
+      </div>
+      <div className="relative h-7 mt-1">
+        <div
+          className="absolute left-0 right-0 top-3 h-1.5 rounded-full"
+          style={{ background: '#f0e9d8' }}
+        />
+        <div
+          className="absolute top-3 h-1.5 rounded-full"
+          style={{
+            left: `${sweetSpotLeft}%`,
+            width: `${sweetSpotWidth}%`,
+            background: '#89CFF0',
+            opacity: 0.75,
+          }}
+        />
+        <div
+          className="absolute top-1.5 w-3.5 h-3.5 rounded-full border bg-white"
+          style={{
+            left: `calc(${pct * 100}% - 7px)`,
+            borderColor: '#4A8AB5',
+            boxShadow: '0 1px 4px rgba(74, 138, 181, 0.25)',
+          }}
+        />
+        <input
+          aria-label="Bedroom temperature"
+          type="range"
+          min={BEDROOM_TEMP_C_MIN}
+          max={BEDROOM_TEMP_C_MAX}
+          step={BEDROOM_TEMP_C_STEP}
+          value={value}
+          onChange={(e) => onChange(Number(e.currentTarget.value))}
+          className="absolute inset-0 h-7 w-full cursor-pointer opacity-0"
+        />
       </div>
     </div>
   )
 }
+
+// (StepsLever removed — Z1 minutes/day flows through CompactHRDial's
+//  outer ring instead of a standalone slider. Its constants went with it.)
 
 // ─── Longevity sleep — 2D rectangle: width = hours, height = quality ─
 //
@@ -1796,14 +1689,16 @@ const SUPP_FILL = '#7C9F8B' // muted sage
 const SUPP_TRACK = '#eef2ec'
 const SUPP_BORDER = '#d8e0d4'
 
-function SupplementationLever({
+function SupplementationLever<TId extends string>({
   supp,
+  specs,
   onChange,
 }: {
-  supp: SupplementationState
-  onChange: (next: SupplementationState) => void
+  supp: Record<TId, boolean>
+  specs: readonly SupplementSpec<TId>[]
+  onChange: (next: Record<TId, boolean>) => void
 }) {
-  const activeCount = SUPPLEMENTS.filter((s) => supp[s.id]).length
+  const activeCount = specs.filter((s) => supp[s.id]).length
 
   return (
     <div className="select-none" style={{ width: SUPP_W }}>
@@ -1819,13 +1714,15 @@ function SupplementationLever({
         </span>
       </div>
       <div className="flex flex-col" style={{ gap: SUPP_PILL_GAP }}>
-        {SUPPLEMENTS.map((spec) => {
+        {specs.map((spec) => {
           const on = supp[spec.id]
           return (
             <button
               key={spec.id}
               type="button"
-              onClick={() => onChange({ ...supp, [spec.id]: !on })}
+              onClick={() =>
+                onChange({ ...supp, [spec.id]: !on } as Record<TId, boolean>)
+              }
               className="relative flex items-center justify-between cursor-pointer transition-colors"
               style={{
                 width: SUPP_W,
@@ -1884,7 +1781,9 @@ interface ActionRangeSpec {
 }
 
 const ACTION_RANGES: Record<string, ActionRangeSpec> = {
-  steps: { min: STEPS_MIN, max: STEPS_MAX, step: STEPS_STEP },
+  // Steps (Z1 NEAT) — solver bounds. The standalone StepsLever was
+  // removed; Z1 minutes/day flows through CompactHRDial's outer ring.
+  steps: { min: 0, max: 15000, step: 500 },
   zone2_minutes: { min: 0, max: 90, step: 5 },
   zone4_5_minutes: { min: 0, max: 30, step: 2 },
   caffeine_mg: { min: 0, max: 400, step: 25 },
@@ -1904,6 +1803,11 @@ const ACTION_RANGES: Record<string, ActionRangeSpec> = {
     max: SLEEP_QUALITY_MAX,
     step: SLEEP_QUALITY_STEP,
   },
+  bedroom_temp_c: {
+    min: BEDROOM_TEMP_C_MIN,
+    max: BEDROOM_TEMP_C_MAX,
+    step: BEDROOM_TEMP_C_STEP,
+  },
   resistance_training_minutes: {
     min: RESISTANCE_MIN_MIN,
     max: RESISTANCE_MIN_MAX,
@@ -1915,6 +1819,9 @@ const ACTION_RANGES: Record<string, ActionRangeSpec> = {
   supp_vitamin_d: { min: 0, max: 1, step: 1 },
   supp_b_complex: { min: 0, max: 1, step: 1 },
   supp_creatine: { min: 0, max: 1, step: 1 },
+  supp_melatonin: { min: 0, max: 1, step: 1 },
+  supp_l_theanine: { min: 0, max: 1, step: 1 },
+  supp_zinc: { min: 0, max: 1, step: 1 },
 }
 
 /** Inverse of LEVER_ACTIONS.valuesFor — given a flat action dict, fold
@@ -1933,6 +1840,7 @@ function applyActionsToState(
     sleep: { ...state.sleep },
     diet: { ...state.diet },
     supp: { ...state.supp },
+    sleepSupp: { ...state.sleepSupp },
   }
   if ('steps' in actions) next.hrValues[0] = actions.steps / 100
   if ('zone2_minutes' in actions) next.hrValues[1] = actions.zone2_minutes
@@ -1950,6 +1858,7 @@ function applyActionsToState(
     if ('sleep_quality' in actions) next.sleep.quality = actions.sleep_quality
   } else {
     if ('bedtime' in actions) next.sleep.bedtime = actions.bedtime
+    if ('bedroom_temp_c' in actions) next.sleep.bedroomTempC = actions.bedroom_temp_c
     // sleep_duration in quotidian == wake - bedtime; recover wake.
     if ('sleep_duration' in actions) {
       next.sleep.wake = (next.sleep.bedtime + actions.sleep_duration) % 24
@@ -1958,6 +1867,11 @@ function applyActionsToState(
   for (const spec of SUPPLEMENTS) {
     if (spec.action in actions) {
       next.supp[spec.id] = actions[spec.action] >= 0.5
+    }
+  }
+  for (const spec of QUOTIDIAN_SUPPLEMENTS) {
+    if (spec.action in actions) {
+      next.sleepSupp[spec.id] = actions[spec.action] >= 0.5
     }
   }
   return next
@@ -1998,10 +1912,10 @@ function OutcomeHoverCard({
   const after = outcome.baseline + outcome.delta
   const beneficialLabel = outcome.beneficial === 'higher' ? 'higher is better' : 'lower is better'
   const confLabel: Record<typeof conf, string> = {
-    high: 'High confidence',
-    med: 'Moderate confidence',
-    low: 'Low confidence',
-    lit: 'Literature only',
+    high: 'Tight posterior',
+    med: 'Partial posterior',
+    low: 'Wide posterior',
+    lit: 'Prior only',
   }
   return (
     <div
@@ -2175,6 +2089,7 @@ function OutcomeBubble({
   onOptimize,
   isOptimizing = false,
   isGoal = false,
+  isHighlighted = false,
   onClick,
   isSelected = false,
 }: {
@@ -2186,6 +2101,11 @@ function OutcomeBubble({
   /** When true, this is the outcome the active solver is targeting —
    *  bubble draws a soft halo so the user can see what's being moved. */
   isGoal?: boolean
+  /** When true, the chit was deep-linked to (e.g. arrived via
+   *  `/twin?outcome=hrv_daily` from Insights or Fingerprint) — same
+   *  sage halo as `isGoal`, but applied transiently as a deep-link
+   *  acknowledgement rather than as an active solver target. */
+  isHighlighted?: boolean
   /** Click handler — opens the per-outcome detail panel. */
   onClick?: (outcomeId: string) => void
   /** True when this is the chit the detail panel is currently open for. */
@@ -2222,10 +2142,10 @@ function OutcomeBubble({
     lit: '#9CA3AF', // stone — literature-only
   }
   const confTitle: Record<typeof conf, string> = {
-    high: 'High confidence — posterior band is narrow relative to projected delta',
-    med: 'Moderate confidence — band overlaps roughly half the projected delta',
-    low: 'Low confidence — posterior band is wider than the projected delta',
-    lit: 'Literature-only — no per-participant posterior; effect size from RCT priors',
+    high: 'Tight posterior band relative to projected delta',
+    med: 'Partial posterior: band overlaps roughly half the projected delta',
+    low: 'Wide posterior band relative to projected delta',
+    lit: 'Prior-only: no per-participant posterior yet',
   }
   // ─── Hover tooltip state ──
   // Suppressed when the detail panel is open for this chit (isSelected)
@@ -2243,14 +2163,20 @@ function OutcomeBubble({
         width,
         textAlign: 'center',
         background: '#fff',
-        border: `1px solid ${isSelected ? '#5C7B6B' : isGoal ? '#7C9F8B' : BORDER}`,
+        border: `1px solid ${
+          isSelected
+            ? '#5C7B6B'
+            : isGoal || isHighlighted
+              ? '#7C9F8B'
+              : BORDER
+        }`,
         borderRadius: 22,
         padding: '8px 10px',
         cursor: onClick ? 'pointer' : 'help',
         position: 'relative',
         boxShadow: isSelected
           ? '0 0 0 3px rgba(92,123,107,0.22), 0 4px 16px rgba(92,123,107,0.18)'
-          : isGoal
+          : isGoal || isHighlighted
             ? '0 0 0 3px rgba(124,159,139,0.18), 0 4px 16px rgba(124,159,139,0.18)'
             : 'none',
         transition: 'box-shadow 200ms ease, border-color 200ms ease',
@@ -2625,7 +2551,34 @@ function LeverRow({
             <ScaledBox width={SUPP_W} height={suppNaturalH} scale={dietScale}>
               <SupplementationLever
                 supp={state.supp}
+                specs={SUPPLEMENTS}
                 onChange={(next) => setState((s) => ({ ...s, supp: next }))}
+              />
+            </ScaledBox>
+          </div>
+        )
+      }
+      case 'sleep_supplementation': {
+        const sleepSuppNaturalH =
+          24 + QUOTIDIAN_SUPPLEMENTS.length * SUPP_PILL_H +
+          (QUOTIDIAN_SUPPLEMENTS.length - 1) * SUPP_PILL_GAP
+        const suppW = SUPP_W * dietScale
+        return (
+          <div
+            key={id}
+            className="absolute"
+            style={{
+              left: x - suppW / 2,
+              top: topY + (hrSize - sleepSuppNaturalH * dietScale) / 2,
+            }}
+          >
+            <ScaledBox width={SUPP_W} height={sleepSuppNaturalH} scale={dietScale}>
+              <SupplementationLever
+                supp={state.sleepSupp}
+                specs={QUOTIDIAN_SUPPLEMENTS}
+                onChange={(next) =>
+                  setState((s) => ({ ...s, sleepSupp: next }))
+                }
               />
             </ScaledBox>
           </div>
@@ -2669,10 +2622,10 @@ function LeverRow({
             className="absolute"
             style={{
               left: x - sleepW / 2,
-              top: topY + (hrSize - 72 * sleepScale) / 2,
+              top: topY + (hrSize - QUOTIDIAN_SLEEP_NATURAL_H * sleepScale) / 2,
             }}
           >
-            <ScaledBox width={400} height={72} scale={sleepScale}>
+            <ScaledBox width={400} height={QUOTIDIAN_SLEEP_NATURAL_H} scale={sleepScale}>
               <MinimalLine
                 spec={SLEEP_SPEC}
                 bedtime={state.sleep.bedtime}
@@ -2681,6 +2634,15 @@ function LeverRow({
                   setState((s) => ({
                     ...s,
                     sleep: { ...s.sleep, bedtime: b, wake: w },
+                  }))
+                }
+              />
+              <BedroomTemperatureLever
+                value={state.sleep.bedroomTempC}
+                onChange={(bedroomTempC) =>
+                  setState((s) => ({
+                    ...s,
+                    sleep: { ...s.sleep, bedroomTempC },
                   }))
                 }
               />
@@ -2719,9 +2681,12 @@ function computeLeverAnchors(
   regime: Regime,
 ): LeverAnchors {
   const dietNaturalH = 80
-  const sleepNaturalH = regime === 'longevity' ? 100 : 72
+  const sleepNaturalH = regime === 'longevity' ? 100 : QUOTIDIAN_SLEEP_NATURAL_H
   const suppNaturalH =
     24 + SUPPLEMENTS.length * SUPP_PILL_H + (SUPPLEMENTS.length - 1) * SUPP_PILL_GAP
+  const sleepSuppNaturalH =
+    24 + QUOTIDIAN_SUPPLEMENTS.length * SUPP_PILL_H +
+    (QUOTIDIAN_SUPPLEMENTS.length - 1) * SUPP_PILL_GAP
   const out: LeverAnchors = {}
   for (const id of leverSet) {
     const x = positions[id]
@@ -2733,6 +2698,8 @@ function computeLeverAnchors(
       y = topY + (hrSize + 80 * dietScale) / 2 + 4
     else if (id === 'supplementation')
       y = topY + (hrSize + suppNaturalH * dietScale) / 2 + 4
+    else if (id === 'sleep_supplementation')
+      y = topY + (hrSize + sleepSuppNaturalH * dietScale) / 2 + 4
     else if (id === 'sleep')
       y = topY + (hrSize + sleepNaturalH * sleepScale) / 2 + 4
 
@@ -2776,6 +2743,7 @@ const LEVER_LABEL: Record<LeverId, string> = {
   alcohol: 'Alcohol',
   diet: 'Diet',
   sleep: 'Sleep',
+  sleep_supplementation: 'Sleep aids',
   resistance: 'Resistance',
   supplementation: 'Supplements',
 }
@@ -2803,6 +2771,10 @@ interface PainterlyCanvasProps {
     observedValues: Record<string, number>,
     interventions: Intervention[],
   ) => FullCounterfactualState
+  /** Outcome id to highlight transiently — set when the user arrives
+   *  via /twin?outcome=<id> from another tab. Cleared by the parent
+   *  after a few seconds. */
+  highlightOutcomeId?: string | null
 }
 
 function PainterlyCanvas({
@@ -2813,6 +2785,7 @@ function PainterlyCanvas({
   participantLabel,
   equations,
   runFullCounterfactual,
+  highlightOutcomeId,
 }: PainterlyCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [size, setSize] = useState({ width: 1280, height: 660 })
@@ -3038,6 +3011,7 @@ function PainterlyCanvas({
         for (const action of LEVER_ACTIONS[lever].actions) {
           if (!ACTION_RANGES[action]) continue
           if (regime === 'longevity' && action === 'bedtime') continue
+          if (regime === 'longevity' && action === 'bedroom_temp_c') continue
           if (regime === 'quotidian' && action === 'sleep_quality') continue
           activeActions.push(action)
         }
@@ -3217,12 +3191,31 @@ function PainterlyCanvas({
   const evidenceStats = useMemo(() => {
     const fittedEdges = edges.filter((e) => e.provenance === 'fitted').length
     const literatureEdges = edges.length - fittedEdges
+    const evidenceByKey = new Map<string, { personalization: number; weight: number }>()
+    for (const edge of participant.effects_bayesian ?? []) {
+      evidenceByKey.set(
+        `${edge.action}|${canonicalOutcomeKey(edge.outcome)}`,
+        {
+          personalization: personalizationForEdge(edge),
+          weight: edgeWeight(edge),
+        },
+      )
+    }
+    let personalizationWeighted = 0
+    let weightSum = 0
+    for (const edge of edges) {
+      const evidence = evidenceByKey.get(`${edge.action}|${edge.outcomeId}`)
+      if (!evidence) continue
+      personalizationWeighted += evidence.personalization * evidence.weight
+      weightSum += evidence.weight
+    }
+    const personalPct = weightSum > 0 ? Math.round((personalizationWeighted / weightSum) * 100) : 0
     const drivenIds = new Set(edges.map((e) => e.outcomeId))
     const undriven = outcomes
       .filter((o) => !drivenIds.has(o.id))
       .map((o) => o.label)
-    return { fittedEdges, literatureEdges, undriven }
-  }, [edges, outcomes])
+    return { fittedEdges, literatureEdges, personalPct, undriven }
+  }, [edges, outcomes, participant.effects_bayesian])
 
   // Lightweight DevTools diagnostic — logs once per (regime, leverSet)
   // change. Use to verify that an action like zone4_5_minutes actually
@@ -3383,6 +3376,9 @@ function PainterlyCanvas({
             onOptimize={solver?.isRunning ? undefined : startSolve}
             isOptimizing={solver?.isRunning && solver.goalOutcomeId === o.id}
             isGoal={solver != null && solver.goalOutcomeId === o.id}
+            isHighlighted={
+              highlightOutcomeId === o.id && solver?.goalOutcomeId !== o.id
+            }
             onClick={(id) =>
               setSelectedOutcomeId((prev) => (prev === id ? null : id))
             }
@@ -3404,6 +3400,7 @@ function PainterlyCanvas({
       <MethodologyPill
         fittedEdges={evidenceStats.fittedEdges}
         literatureEdges={evidenceStats.literatureEdges}
+        personalPct={evidenceStats.personalPct}
         undrivenOutcomes={evidenceStats.undriven}
         regime={regime}
         atDays={atDays}
@@ -3600,6 +3597,7 @@ function SolverBanner({
 function MethodologyPill({
   fittedEdges,
   literatureEdges,
+  personalPct,
   undrivenOutcomes,
   regime,
   atDays,
@@ -3608,13 +3606,14 @@ function MethodologyPill({
 }: {
   fittedEdges: number
   literatureEdges: number
+  personalPct: number
   undrivenOutcomes: string[]
   regime: Regime
   atDays: number
   open: boolean
   onToggle: () => void
 }) {
-  const totalEdges = fittedEdges + literatureEdges
+  const cohortPct = 100 - personalPct
   return (
     <div
       className="absolute pointer-events-auto"
@@ -3657,14 +3656,26 @@ function MethodologyPill({
           <ul className="space-y-2">
             <li>
               <span style={{ color: '#1c1917', fontWeight: 500 }}>
-                {fittedEdges} fitted
+                {fittedEdges} posterior-backed
               </span>{' '}
-              + {literatureEdges} literature edges
+              + {literatureEdges} prior-only edges
               <span className="text-stone-500">
                 {' '}
                 are driving the {regime} regime at the {atDays}d horizon.
-                Dashed strokes mark literature-only edges (RCT priors, no
-                per-cohort posterior).
+                Dashed strokes mark edges that are still carried by external
+                priors.
+              </span>
+            </li>
+            <li>
+              <span style={{ color: '#1c1917', fontWeight: 500 }}>
+                Average personalization: {personalPct}% (prior weight {cohortPct}%).
+              </span>
+              <span className="text-stone-500">
+                {' '}
+                Magnitude-weighted uncertainty reduction across the edges
+                drawn here. This is a personalization proxy, not a literal
+                data-vs-prior split. Hover any outcome chit for its posterior
+                width.
               </span>
             </li>
             <li>
@@ -3681,12 +3692,12 @@ function MethodologyPill({
             </li>
             <li>
               <span style={{ color: '#1c1917', fontWeight: 500 }}>
-                Synthetic edges treat all members the same.
+                Prior-only edges treat similar members the same.
               </span>
               <span className="text-stone-500">
                 {' '}
-                Per-participant heterogeneity only kicks in for fitted
-                edges. The confidence dot on each chit reflects this.
+                They become individual-specific only after exposure, outcome,
+                and confounder coverage are sufficient.
               </span>
             </li>
             {undrivenOutcomes.length > 0 && (
@@ -3724,13 +3735,31 @@ function MethodologyPill({
           fontSize: 11,
           cursor: 'pointer',
         }}
-        title="What this Twin actually models"
+        title={
+          // Pip color encodes the personalization mix at a glance:
+          // sage = mostly personalized; gold = partial; stone = mostly prior.
+          `Personalized ${personalPct}% — ` +
+          (personalPct >= 65
+            ? 'most edges are tightening on this person'
+            : personalPct >= 30
+              ? 'partial personalization; many edges still leaning on priors'
+              : 'mostly prior-driven; needs more personal exposure to tighten')
+        }
       >
         <span
           className="inline-block rounded-full"
-          style={{ width: 6, height: 6, background: '#7C9F8B' }}
+          style={{
+            width: 6,
+            height: 6,
+            background:
+              personalPct >= 65
+                ? '#7C9F8B' // sage — well-personalized
+                : personalPct >= 30
+                  ? '#D4A857' // gold — middling
+                  : '#9CA3AF', // stone — mostly prior
+          }}
         />
-        {fittedEdges} fitted · {literatureEdges} lit
+        Personalized {personalPct}% · {literatureEdges} prior-only
         {undrivenOutcomes.length > 0 && (
           <span className="text-stone-400">
             · {undrivenOutcomes.length} undriven
@@ -3915,75 +3944,8 @@ function TwinWeatherPanel({ participant }: { participant: ParticipantPortal }) {
   )
 }
 
-const HORIZON_PRESETS: Array<{ days: number; label: string }> = [
-  { days: 1, label: '1d' },
-  { days: 7, label: '1w' },
-  { days: 30, label: '1mo' },
-  { days: 90, label: '3mo' },
-  { days: 180, label: '6mo' },
-  { days: 365, label: '1y' },
-]
-
-function HorizonScrubber({
-  atDays,
-  onChange,
-}: {
-  atDays: number
-  onChange: (days: number) => void
-}) {
-  return (
-    <div
-      className="absolute pointer-events-auto"
-      style={{ bottom: 14, left: 16 }}
-    >
-      <div
-        className="inline-flex items-center rounded-full"
-        style={{
-          background: '#fff',
-          border: `1px solid ${BORDER}`,
-          padding: 3,
-          fontFamily: 'Inter, sans-serif',
-          fontSize: 11,
-        }}
-      >
-        <span
-          style={{
-            padding: '4px 10px 4px 8px',
-            color: '#a8a29e',
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            fontSize: 9,
-          }}
-        >
-          Horizon
-        </span>
-        {HORIZON_PRESETS.map((p) => {
-          const active = atDays === p.days
-          return (
-            <button
-              key={p.days}
-              type="button"
-              onClick={() => onChange(p.days)}
-              style={{
-                padding: '4px 9px',
-                borderRadius: 999,
-                background: active ? BG : 'transparent',
-                color: active ? '#1c1917' : '#78716c',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: 11,
-                fontWeight: active ? 500 : 400,
-              }}
-            >
-              {p.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+// (HorizonScrubber removed — horizon is owned by ScopeBar in the
+//  PainterlyPageHeader, which writes through useScopeStore.)
 
 // ─── Outcome detail panel ────────────────────────────────────────
 //
@@ -4270,6 +4232,7 @@ function seedStateFromParticipant(participant: ParticipantPortal): AllState {
       wake: SLEEP_SPEC.yAxis.default,
       hours: f('sleep_duration', SLEEP_HOURS_DEFAULT),
       quality: seededQuality,
+      bedroomTempC: f('bedroom_temp_c', BEDROOM_TEMP_C_DEFAULT),
     },
     diet: {
       proteinG: f('dietary_protein', DIET_DEFAULT_PROTEIN_G),
@@ -4277,6 +4240,7 @@ function seedStateFromParticipant(participant: ParticipantPortal): AllState {
     },
     resistanceMin: f('resistance_training_minutes', RESISTANCE_MIN_DEFAULT),
     supp: defaultSupplementation(),
+    sleepSupp: defaultSleepSupplementation(),
   }
 }
 
@@ -4291,6 +4255,24 @@ export function TwinV2View() {
   // view since it covers more ground.
   const scopeRegime = useScopeStore((s) => s.regime)
   const regime: Regime = scopeRegime === 'quotidian' ? 'quotidian' : 'longevity'
+
+  // Deep-link acknowledgement — when arriving via /twin?outcome=hrv_daily
+  // (from Insights / Fingerprint / etc.), pulse the matching chit sage
+  // for ~3s so the click feels acknowledged. Twin is a fixed-viewport
+  // canvas, so we can't scrollIntoView meaningfully — the halo is the
+  // affordance.
+  const [searchParams] = useSearchParams()
+  const focusOutcome = searchParams.get('outcome')
+  const [highlightOutcomeId, setHighlightOutcomeId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!focusOutcome) {
+      setHighlightOutcomeId(null)
+      return
+    }
+    setHighlightOutcomeId(focusOutcome)
+    const t = window.setTimeout(() => setHighlightOutcomeId(null), 3200)
+    return () => window.clearTimeout(t)
+  }, [focusOutcome])
 
   // When the active participant changes, reseed the lever state so
   // levers start at the participant's actual baseline (no interventions).
@@ -4334,6 +4316,7 @@ export function TwinV2View() {
             : 'Months-scale biomarkers — projected with literature edges'
         }
         actions={headerActions}
+        sticky={false}
       />
 
       {pid == null ? (
@@ -4368,6 +4351,7 @@ export function TwinV2View() {
             participantLabel={displayName}
             equations={equations}
             runFullCounterfactual={runFullCounterfactual}
+            highlightOutcomeId={highlightOutcomeId}
           />
         </>
       )}

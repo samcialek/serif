@@ -84,9 +84,16 @@ export const OUTCOME_SD: Record<string, number> = {
 const FALLBACK_ACTION_SD: Record<string, number> = {
   bedtime: 0.6, // hours
   sleep_duration: 0.8, // hours
+  sleep_quality: 8, // points
+  caffeine_mg: 100, // mg/day
+  caffeine_timing: 2, // hours before bed
+  alcohol_units: 1, // drinks/day
+  alcohol_timing: 1.5, // hours before bed
   running_volume: 6, // km/day
   steps: 3500, // steps/day
+  bedroom_temp_c: 1.5, // deg C
   training_load: 50, // TRIMP/day
+  resistance_training_minutes: 60, // min/week
   active_energy: 400, // kcal/day
   zone2_volume: 4, // km/day
   training_volume: 0.5, // hours/day
@@ -95,6 +102,14 @@ const FALLBACK_ACTION_SD: Record<string, number> = {
   acwr: 0.2,
   sleep_debt: 2,
   travel_load: 0.5,
+  supp_omega3: 0.5,
+  supp_magnesium: 0.5,
+  supp_vitamin_d: 0.5,
+  supp_b_complex: 0.5,
+  supp_creatine: 0.5,
+  supp_melatonin: 0.5,
+  supp_l_theanine: 0.5,
+  supp_zinc: 0.5,
 }
 
 /** SD of an action in the user's own behavioral data. Falls back to a
