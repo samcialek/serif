@@ -16,7 +16,7 @@
 
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/utils/classNames'
-import { EdgeEvidenceChip } from '@/components/common'
+import { EdgeEvidenceChip, GlossaryTerm } from '@/components/common'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import {
   cohensD,
@@ -172,7 +172,10 @@ export function InsightActionRow({
       title={`${ACTION_LABEL[edge.action] ?? edge.action} → ${edge.outcome}: d=${dStr}, ${band}`}
     >
       <div className="flex-1 min-w-0 text-sm font-medium text-slate-800 truncate">
-        {ACTION_LABEL[edge.action] ?? edge.action}
+        <GlossaryTerm
+          termId={edge.action}
+          display={ACTION_LABEL[edge.action] ?? edge.action}
+        />
       </div>
 
       <MiniDoseResponse edge={effectiveEdge} participant={participant} band={band} />

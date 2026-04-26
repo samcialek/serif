@@ -137,10 +137,16 @@ REGIME_THRESHOLDS = {
     # ≈ ln(9)/0.3 ≈ 7.3.
     "overreaching":      {"input_node": "acwr",       "threshold": 1.5, "direction": "above",
                           "steepness": 7.3, "label": "Overreaching"},
-    # ferritin 30 → 20 ng/mL is the depletion gradient (≈10 ng/mL);
-    # steepness ≈ ln(9)/10 ≈ 0.22 — matches the old hardcoded 0.2.
-    "iron_deficiency":   {"input_node": "ferritin",   "threshold": 30,  "direction": "below",
-                          "steepness": 0.22, "label": "Iron Deficiency"},
+    # ferritin threshold = 50 ng/mL — DellaValle & Haas (MSSE 2014) and
+    # Sim et al. (Sports Med 2019) consistently show endurance-performance
+    # loss below ~47 ng/mL via reduced O2-carrying capacity and
+    # mitochondrial-enzyme limitation. The previous threshold of 30 was
+    # the hard clinical-anaemia floor, missing the broad athlete-relevant
+    # depletion zone. Steepness ≈ ln(9)/15 ≈ 0.15 — the meaningful
+    # transition is ~15 ng/mL (50 → 35 = "depleted but not anaemic"
+    # → "athlete-deficient and limiting performance").
+    "iron_deficiency":   {"input_node": "ferritin",   "threshold": 50,  "direction": "below",
+                          "steepness": 0.15, "label": "Iron Deficiency"},
     # sleep_debt 5 → 10 h is the meaningful transition (≈5 h);
     # steepness ≈ ln(9)/5 ≈ 0.44. The OLD value was 5.0 — that's why
     # Caspian was pegged at 100%.

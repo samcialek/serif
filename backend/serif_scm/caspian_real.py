@@ -69,6 +69,7 @@ CASPIAN_OUTCOME_BASELINES_BIOMARKER: dict[str, float] = {
     # Iron status — the headline of his archetype
     "ferritin":     46.0,    # 2025-11-22 (low end; trended from 24 → 46 with intervention)
     "iron_total":   37.0,    # 2025-11-22 (still low; below clinical threshold)
+    "hemoglobin":   13.9,    # 2025-11-22 (slight recent decline; was 15.1 in 2024-11-13)
     # Inflammation
     "hscrp":        0.3,     # 2025-11-22 (excellent — anti-inflammatory)
     # Metabolic
@@ -82,7 +83,7 @@ CASPIAN_OUTCOME_BASELINES_BIOMARKER: dict[str, float] = {
     "total_cholesterol": 125.0,  # 2025-11-22
     "apob":         61.0,    # 2025-11-22
     # Hormones
-    "testosterone": 348.0,   # 2025-11-22 (low-normal)
+    "testosterone": 348.0,   # 2025-11-22 (low-normal — endurance-athlete pattern)
     "cortisol":     11.1,    # 2025-11-22 (calm HPA)
     # Other
     "vitamin_d":    47.0,    # 2025-11-22 (close to optimal)

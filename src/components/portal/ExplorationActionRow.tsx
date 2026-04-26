@@ -27,6 +27,7 @@ import {
   progressFor,
   useExplorationStore,
 } from '@/stores/explorationStore'
+import { GlossaryTerm } from '@/components/common'
 
 const KIND_STYLE: Record<string, string> = {
   vary_action: 'text-indigo-700 bg-indigo-50 border-indigo-200',
@@ -97,14 +98,14 @@ export function ExplorationActionRow({ edge, expanded = false, onToggle }: Props
         className="text-[13px] font-medium text-slate-800 w-28 flex-shrink-0 truncate"
         title={formatAction(edge.action)}
       >
-        {formatAction(edge.action)}
+        <GlossaryTerm termId={edge.action} display={formatAction(edge.action)} />
       </span>
       <span className="text-slate-300 text-xs flex-shrink-0">→</span>
       <span
         className="text-[12px] text-slate-600 w-28 flex-shrink-0 truncate"
         title={formatOutcome(edge.outcome)}
       >
-        {formatOutcome(edge.outcome)}
+        <GlossaryTerm termId={edge.outcome} display={formatOutcome(edge.outcome)} />
       </span>
 
       {/* Narrow bar — what fraction of uncertainty the experiment removes */}

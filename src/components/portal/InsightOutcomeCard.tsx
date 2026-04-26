@@ -24,7 +24,7 @@ import {
 import { CONFOUNDERS_BY_OUTCOME } from '@/utils/dailyProtocol'
 import { InsightActionRow } from './InsightActionRow'
 import { InsightActionDetail } from './InsightActionDetail'
-import { CrossTabLinks } from '@/components/common'
+import { CrossTabLinks, GlossaryTerm } from '@/components/common'
 import { Fingerprint as FingerprintIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { hasFingerprintsForOutcome } from '@/data/fingerprints/reverseIndex'
@@ -317,7 +317,10 @@ export function InsightOutcomeCard({
           <div className="px-4 py-3 border-b border-slate-100 flex items-baseline justify-between gap-3">
             <div className="min-w-0">
               <h3 className="text-sm font-bold text-slate-800 truncate">
-                {OUTCOME_LABELS[outcome] ?? outcome}
+                <GlossaryTerm
+                  termId={outcome}
+                  display={OUTCOME_LABELS[outcome] ?? outcome}
+                />
               </h3>
               <p className="text-[10px] text-slate-500 mt-0.5">
                 {direction} · cohort SD ≈ {formatSD(sd)} {unit}

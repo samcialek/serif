@@ -39,7 +39,7 @@ import {
 } from '@/stores/twinSnapshotStore'
 import { useSearchParams } from 'react-router-dom'
 import { useScopeStore } from '@/stores/scopeStore'
-import { PainterlyPageHeader, CrossTabLinks } from '@/components/common'
+import { PainterlyPageHeader, CrossTabLinks, GlossaryTerm } from '@/components/common'
 import {
   HR_THREE_BAND,
   ALCOHOL_SPEC,
@@ -934,13 +934,16 @@ function CompactHRDial({ values, onChange, size = 180, regime = 'quotidian' }: C
         {/* TRIMP score — the label is rendered as the lever header above
             the dial (LEVER_LABEL.hr), so the dial center is just the
             number. Visually centered using `dominant-baseline` so the
-            number reads as anchored regardless of digit count. */}
+            number reads as anchored regardless of digit count. Font
+            scales down for 4+ digit values (Longevity weekly TRIMP
+            routinely lands in the 1000-9999 range, occasionally above)
+            so the number doesn't outgrow the dial center. */}
         <text
           x={cx}
           y={cy}
           textAnchor="middle"
           dominantBaseline="central"
-          fontSize={size * 0.22}
+          fontSize={size * (trimp >= 10000 ? 0.15 : trimp >= 1000 ? 0.18 : 0.22)}
           fontWeight={200}
           fill="#1c1917"
           style={{
@@ -2263,7 +2266,7 @@ function OutcomeBubble({
           marginBottom: 5,
         }}
       >
-        {outcome.label}
+        <GlossaryTerm termId={outcome.id} display={outcome.label} />
       </div>
       {hasDelta ? (
         <>
@@ -4044,19 +4047,19 @@ function OutcomeDetailPanel({
       <div className="flex items-baseline justify-between gap-4 mb-3">
         <div className="min-w-0">
           <div
-            className="text-[11px] uppercase tracking-wider text-stone-500"
+            className="text-[12px] uppercase tracking-wider text-stone-500"
             style={{ marginBottom: 2 }}
           >
             Outcome detail · {horizonText} horizon
           </div>
           <div className="flex items-baseline gap-3 flex-wrap">
             <span
-              className="text-[18px] font-medium"
+              className="text-[19px] font-medium"
               style={{ color: '#1c1917', letterSpacing: '-0.01em' }}
             >
-              {outcome.label}
+              <GlossaryTerm termId={outcome.id} display={outcome.label} />
             </span>
-            <span className="text-[13px] tabular-nums text-stone-500">
+            <span className="text-[14px] tabular-nums text-stone-500">
               {fmt(outcome.baseline, outcome.decimals)}
               {outcome.unit && ' ' + outcome.unit}
               <span className="mx-1.5 text-stone-300">→</span>
@@ -4066,26 +4069,26 @@ function OutcomeDetailPanel({
               </span>
             </span>
             <span
-              className="text-[14px] tabular-nums"
+              className="text-[16px] tabular-nums"
               style={{ color: tc, fontWeight: 500 }}
             >
               {signed(outcome.delta, outcome.decimals)}
               {outcome.unit && (
-                <span style={{ fontSize: 10, marginLeft: 2, opacity: 0.75 }}>
+                <span style={{ fontSize: 11, marginLeft: 2, opacity: 0.75 }}>
                   {outcome.unit}
                 </span>
               )}
             </span>
             {outcome.bandHalf != null && outcome.bandHalf > eps && (
               <span
-                className="text-[10px] text-stone-500 tabular-nums"
+                className="text-[11px] text-stone-500 tabular-nums"
                 title="BART posterior 90% credible band (half-spread)"
               >
                 ± {fmt(outcome.bandHalf, outcome.decimals)} (BART)
               </span>
             )}
           </div>
-          <div className="text-[11px] text-stone-500 mt-1.5 leading-relaxed max-w-[760px]">
+          <div className="text-[12.5px] text-stone-500 mt-1.5 leading-relaxed max-w-[760px]">
             {outcome.description}
           </div>
         </div>
@@ -4101,7 +4104,7 @@ function OutcomeDetailPanel({
       {/* Contribution + evidence */}
       <div className="flex-1 overflow-auto">
         {activeContribs.length === 0 ? (
-          <div className="text-[12px] text-stone-500 italic py-4">
+          <div className="text-[13px] text-stone-500 italic py-4">
             No active levers are moving this outcome. Drag a lever (or use the
             ⚡ optimize button) to see contribution attribution.
           </div>
@@ -4123,23 +4126,23 @@ function OutcomeDetailPanel({
                   <div className="flex items-baseline justify-between gap-3 mb-1.5">
                     <div className="flex items-baseline gap-2">
                       <span
-                        className="text-[13px] font-medium"
+                        className="text-[14px] font-medium"
                         style={{ color: '#44403c' }}
                       >
                         {LEVER_LABEL[c.id]}
                       </span>
-                      <span className="text-[10px] text-stone-500">
+                      <span className="text-[11px] text-stone-500">
                         {pct.toFixed(0)}% of total movement
                       </span>
                     </div>
                     <span
-                      className="text-[13px] tabular-nums"
+                      className="text-[14px] tabular-nums"
                       style={{ color: text, fontWeight: 500 }}
                     >
                       {signed(c.value, outcome.decimals)}
                       {outcome.unit && (
                         <span
-                          style={{ fontSize: 10, marginLeft: 2, opacity: 0.75 }}
+                          style={{ fontSize: 11, marginLeft: 2, opacity: 0.75 }}
                         >
                           {outcome.unit}
                         </span>
@@ -4158,12 +4161,12 @@ function OutcomeDetailPanel({
                   </div>
                   {/* Evidence list */}
                   {rationales.length > 0 ? (
-                    <ul className="text-[11px] text-stone-600 space-y-1 pl-3">
+                    <ul className="text-[12.5px] text-stone-600 space-y-1 pl-3">
                       {rationales.slice(0, 3).map((r, i) => (
                         <li key={i} className="leading-relaxed">
                           <span className="text-stone-400 mr-1">·</span>
                           <span style={{ color: '#5b524a' }}>
-                            <span className="text-[10px] uppercase tracking-wider text-stone-400 mr-1.5">
+                            <span className="text-[11px] uppercase tracking-wider text-stone-400 mr-1.5">
                               {r.source.replace(/_/g, ' ')}
                             </span>
                             {r.rationale}
@@ -4171,14 +4174,14 @@ function OutcomeDetailPanel({
                         </li>
                       ))}
                       {rationales.length > 3 && (
-                        <li className="text-stone-400 text-[10px] italic">
+                        <li className="text-stone-400 text-[11px] italic">
                           + {rationales.length - 3} more literature edge
                           {rationales.length - 3 === 1 ? '' : 's'}
                         </li>
                       )}
                     </ul>
                   ) : (
-                    <div className="text-[11px] text-stone-500 italic pl-3">
+                    <div className="text-[12.5px] text-stone-500 italic pl-3">
                       Cohort-fitted edge
                       {fittedN > 0
                         ? ` · ${fittedN} fitted equation${fittedN === 1 ? '' : 's'}`

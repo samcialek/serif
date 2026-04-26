@@ -21,6 +21,7 @@ import {
   Card,
   DataModeToggle,
   EdgeEvidenceChip,
+  GlossaryTerm,
   MetricCard,
   MemberAvatar,
   PainterlyPageHeader,
@@ -54,6 +55,17 @@ import {
   type TimeSeriesMetric,
   type LabMetricDef,
 } from '@/data/caspianRawData'
+import {
+  sarahCausalStories,
+  sarahDataStreams,
+  sarahDataSummary,
+  sarahLabs as sarahRichLabs,
+  sarahMetrics,
+  SARAH_RECORD_END,
+  SARAH_RECORD_START,
+  type SarahMetric,
+  type SarahMetricCategory,
+} from '@/data/sarahRichData'
 import {
   EDGE_LIFECYCLE_STAGE_META,
   buildEdgeLifecycleSummary,
@@ -96,6 +108,33 @@ const CATEGORIES: CategoryDef[] = [
   { id: 'lifestyle', label: 'Lifestyle log', icon: Coffee, color: '#C76B4D', metricCount: '4 metrics · 90d' },
   { id: 'loads', label: 'Rolling loads', icon: Gauge, color: '#6366f1', metricCount: '8 metrics · 14d' },
   { id: 'environment', label: 'Environment', icon: CloudSun, color: '#f59e0b', metricCount: '5 metrics · 14d' },
+]
+
+type SarahCategoryId =
+  | 'overview'
+  | SarahMetricCategory
+  | 'labs'
+  | 'stories'
+
+interface SarahCategoryDef {
+  id: SarahCategoryId
+  label: string
+  icon: React.ElementType
+  color: string
+  metricCount: string
+}
+
+const SARAH_CATEGORIES: SarahCategoryDef[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: '#64748B', metricCount: 'Summary' },
+  { id: 'metabolic', label: 'Metabolic', icon: Gauge, color: '#D4A857', metricCount: '2 daily metrics' },
+  { id: 'cycle', label: 'Cycle', icon: Calendar, color: '#B88AC9', metricCount: '2 context streams' },
+  { id: 'sleep', label: 'Sleep', icon: Moon, color: '#7C9F8B', metricCount: '3 wearable metrics' },
+  { id: 'nutrition', label: 'Nutrition', icon: Coffee, color: '#C76B4D', metricCount: '3 food streams' },
+  { id: 'activity', label: 'Movement', icon: Activity, color: '#5BA8D4', metricCount: '1 behavior stream' },
+  { id: 'context', label: 'Environment', icon: CloudSun, color: '#F97316', metricCount: '2 context streams' },
+  { id: 'body', label: 'Body', icon: Scale, color: '#5BA8D4', metricCount: '1 slow outcome' },
+  { id: 'labs', label: 'Blood work', icon: FlaskConical, color: '#9182C4', metricCount: `${sarahDataSummary.labDraws} draws` },
+  { id: 'stories', label: 'Causal stories', icon: Database, color: '#6366F1', metricCount: `${sarahCausalStories.length} contrasts` },
 ]
 
 const CATEGORY_TO_TS: Record<string, TimeSeriesMetric['category']> = {
@@ -1074,7 +1113,7 @@ function DerivedSeriesRow({
       <div className="flex items-center gap-4">
         <div className="w-44 flex-shrink-0">
           <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-            {spec.name}
+            <GlossaryTerm termId={spec.key} display={spec.name} />
           </div>
           <div className="flex items-baseline mt-1">
             <span className="text-xl font-semibold font-mono text-slate-800">
@@ -1342,6 +1381,470 @@ function CaspianDataView() {
   )
 }
 
+function SarahCategorySidebar({
+  active,
+  onChange,
+}: {
+  active: SarahCategoryId
+  onChange: (id: SarahCategoryId) => void
+}) {
+  return (
+    <nav className="space-y-1 sticky top-4">
+      <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-3 px-3">
+        Sarah's Data
+      </div>
+      {SARAH_CATEGORIES.map((cat) => {
+        const Icon = cat.icon
+        const isActive = active === cat.id
+        return (
+          <button
+            key={cat.id}
+            onClick={() => onChange(cat.id)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150 ${
+              isActive
+                ? 'bg-white border border-slate-200 shadow-sm'
+                : 'hover:bg-slate-50 border border-transparent'
+            }`}
+          >
+            <div
+              className="p-1.5 rounded-md flex-shrink-0"
+              style={{ backgroundColor: isActive ? cat.color + '18' : 'transparent' }}
+            >
+              <Icon
+                className="w-4 h-4"
+                style={{ color: isActive ? cat.color : '#94a3b8' }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div
+                className={`text-sm font-medium truncate ${
+                  isActive ? 'text-slate-800' : 'text-slate-600'
+                }`}
+              >
+                {cat.label}
+              </div>
+              <div className="text-[10px] text-slate-400">{cat.metricCount}</div>
+            </div>
+            {isActive && (
+              <div
+                className="w-1.5 h-6 rounded-full flex-shrink-0"
+                style={{ backgroundColor: cat.color }}
+              />
+            )}
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
+function sarahMetricStats(metric: SarahMetric) {
+  const values = metric.data.map((d) => d.value)
+  const last7 = values.slice(-7)
+  const last30 = values.slice(-30)
+  const avg = (arr: number[]) =>
+    arr.length ? arr.reduce((sum, value) => sum + value, 0) / arr.length : 0
+  return {
+    current: values[values.length - 1] ?? 0,
+    avg7d: avg(last7),
+    avg30d: avg(last30),
+    min: Math.min(...values),
+    max: Math.max(...values),
+  }
+}
+
+function formatSarahMetricValue(value: number, unit: string): string {
+  if (!Number.isFinite(value)) return 'N/A'
+  if (unit === 'deg C' || unit === '0-10' || unit === '%') {
+    return value.toFixed(1).replace(/\.0$/, '')
+  }
+  if (unit === 'count' || unit === 'day' || unit === 'mg/dL' || unit === 'min' || unit === 'ms' || unit === 'g') {
+    return Math.round(value).toString()
+  }
+  return value.toFixed(1).replace(/\.0$/, '')
+}
+
+function SarahMetricRow({ metric, color }: { metric: SarahMetric; color: string }) {
+  const stats = sarahMetricStats(metric)
+  const sparkData = metric.data.map((d) => d.value)
+
+  return (
+    <Card padding="sm" className="mb-3">
+      <div className="flex items-center gap-4">
+        <div className="w-44 flex-shrink-0">
+          <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+            {metric.name}
+          </div>
+          <div className="flex items-baseline mt-1">
+            <span className="text-xl font-semibold font-mono text-slate-800">
+              {formatSarahMetricValue(stats.current, metric.unit)}
+            </span>
+            <span className="ml-1.5 text-xs text-slate-400">{metric.unit}</span>
+          </div>
+        </div>
+
+        <div className="flex-shrink-0">
+          <MetricSparkline
+            data={sparkData}
+            width={200}
+            height={36}
+            color={color}
+            showDots
+          />
+        </div>
+
+        <div className="flex-1 flex items-center gap-4 justify-end">
+          <StatPill
+            label="7d avg"
+            value={formatSarahMetricValue(stats.avg7d, metric.unit)}
+            unit={metric.unit}
+          />
+          <StatPill
+            label="30d avg"
+            value={formatSarahMetricValue(stats.avg30d, metric.unit)}
+            unit={metric.unit}
+          />
+          <StatPill
+            label="range"
+            value={`${formatSarahMetricValue(stats.min, metric.unit)}-${formatSarahMetricValue(stats.max, metric.unit)}`}
+            unit={metric.unit}
+          />
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+        <ProvenanceBadge
+          kind={provenanceFromSource(metric.source)}
+          label={metric.source}
+        />
+        <span>{metric.note}</span>
+        {metric.referenceRange && (
+          <span>
+            Ref: {metric.referenceRange.low}-{metric.referenceRange.high} {metric.unit}
+          </span>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+function SarahMetricSection({
+  categoryId,
+  color,
+}: {
+  categoryId: SarahMetricCategory
+  color: string
+}) {
+  const metrics = sarahMetrics.filter((metric) => metric.category === categoryId)
+  if (metrics.length === 0) return null
+  return (
+    <div>
+      {metrics.map((metric) => (
+        <SarahMetricRow key={metric.id} metric={metric} color={color} />
+      ))}
+    </div>
+  )
+}
+
+function SarahDataCoverageCard() {
+  return (
+    <Card padding="none" className="overflow-hidden rounded-xl mb-6">
+      <div className="px-6 py-4 bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-t-xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <Calendar className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">Data Coverage & Cadence</h3>
+            <p className="text-sm text-slate-300">
+              Multi-year record across endocrine, metabolic, sleep, food, movement, lab, and environment streams
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="px-6 py-4">
+        <DataCadenceChart
+          streams={sarahDataStreams}
+          timelineStartDate="2018-01-01"
+          timelineEndDate="2026-06-01"
+        />
+        <div className="flex items-center gap-6 mt-3 text-[10px] text-slate-400 uppercase tracking-wider">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-6 h-2 rounded-sm bg-emerald-500 opacity-80" />
+            Daily stream
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-6 h-2 rounded-sm bg-amber-500 opacity-50" />
+            High-density logging
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width={10} height={10} viewBox="0 0 10 10">
+              <polygon points="5,1 9,5 5,9 1,5" fill="#8B5CF6" />
+            </svg>
+            Episodic event
+          </span>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function SarahOverviewTile({
+  label,
+  value,
+  detail,
+  icon,
+}: {
+  label: string
+  value: string
+  detail: string
+  icon: React.ReactNode
+}) {
+  return (
+    <Card padding="sm">
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-lg bg-slate-50 text-slate-500 border border-slate-100">
+          {icon}
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-slate-400">{label}</div>
+          <div className="text-xl font-semibold text-slate-800 tabular-nums mt-1">
+            {value}
+          </div>
+          <div className="text-xs text-slate-500 mt-1 leading-snug">{detail}</div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function latestSarahMetric(id: string): SarahMetric | undefined {
+  return sarahMetrics.find((metric) => metric.id === id)
+}
+
+function latestSarahValue(id: string): string {
+  const metric = latestSarahMetric(id)
+  if (!metric) return 'N/A'
+  const current = metric.data[metric.data.length - 1]?.value ?? 0
+  return `${formatSarahMetricValue(current, metric.unit)} ${metric.unit}`
+}
+
+function SarahOverviewSection() {
+  return (
+    <div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <SarahOverviewTile
+          label="Record depth"
+          value={`${sarahDataSummary.days.toLocaleString()} days`}
+          detail={`${SARAH_RECORD_START} to ${SARAH_RECORD_END}`}
+          icon={<Database className="w-4 h-4" />}
+        />
+        <SarahOverviewTile
+          label="Glucose"
+          value={latestSarahValue('fasting_glucose')}
+          detail="CGM plus lab-confirmed metabolic trajectory"
+          icon={<Gauge className="w-4 h-4" />}
+        />
+        <SarahOverviewTile
+          label="Cycle context"
+          value={`${sarahDataSummary.cycles} cycles`}
+          detail="Recurring moderator for sleep and glucose"
+          icon={<Calendar className="w-4 h-4" />}
+        />
+        <SarahOverviewTile
+          label="Lab cadence"
+          value={`${sarahDataSummary.labDraws} draws`}
+          detail="Blood work confirms slower biomarker effects"
+          icon={<FlaskConical className="w-4 h-4" />}
+        />
+      </div>
+
+      <SarahCausalStoryGrid />
+    </div>
+  )
+}
+
+function SarahLabBiomarkerCard({ def }: { def: LabMetricDef }) {
+  const draws = sarahRichLabs
+    .filter((lab) => lab[def.key] != null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((lab) => ({ date: lab.date, value: lab[def.key] as number }))
+
+  if (draws.length === 0) return null
+
+  const latest = draws[draws.length - 1]
+  const prev = draws.length >= 2 ? draws[draws.length - 2] : null
+  const delta = prev ? latest.value - prev.value : 0
+
+  return (
+    <Card padding="sm" className="mb-3">
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <div className="text-sm font-medium text-slate-800">{def.name}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">{def.description}</div>
+        </div>
+        {prev && (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            {delta > 0 ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : delta < 0 ? (
+              <TrendingDown className="w-3 h-3" />
+            ) : (
+              <ArrowRight className="w-3 h-3" />
+            )}
+            <span>{delta >= 0 ? '+' : ''}{delta.toFixed(Math.abs(delta) < 2 ? 1 : 0)}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-baseline gap-2 mb-3">
+        <span className="text-2xl font-semibold font-mono text-slate-800">{latest.value}</span>
+        <span className="text-sm text-slate-400">{def.unit}</span>
+      </div>
+
+      <ReferenceRangeBar
+        value={latest.value}
+        referenceRange={def.referenceRange}
+        optimalRange={def.optimalRange}
+      />
+
+      <div className="mt-3 pt-3 border-t border-slate-100">
+        <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">
+          Draw History
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {draws.map((d) => (
+            <div key={d.date} className="flex items-baseline gap-1.5">
+              <span className="text-[10px] text-slate-400">{formatLabDate(d.date)}</span>
+              <span className="text-xs font-mono font-medium text-slate-700">{d.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function SarahLabBiomarkersSection() {
+  return (
+    <div>
+      {LAB_SUBCATEGORY_ORDER.map((subcat) => {
+        const metricsInGroup = LAB_METRICS.filter((m) => m.subcategory === subcat.key)
+        const metricsWithData = metricsInGroup.filter((m) =>
+          sarahRichLabs.some((lab) => lab[m.key] != null)
+        )
+        if (metricsWithData.length === 0) return null
+
+        return (
+          <div key={subcat.key} className="mb-6">
+            <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-3 px-1">
+              {subcat.label}
+            </div>
+            {metricsWithData.map((def) => (
+              <SarahLabBiomarkerCard key={def.key} def={def} />
+            ))}
+          </div>
+        )
+      })}
+
+      <div className="mt-4 px-1 flex items-center gap-2 text-[10px] text-slate-400">
+        <ProvenanceBadge kind="lab" label="Blood work" />
+        <span>
+          Last draw: {sarahRichLabs[sarahRichLabs.length - 1]?.date ?? 'N/A'} - {sarahDataSummary.labDraws} total
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function SarahCausalStoryGrid() {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      {sarahCausalStories.map((story) => (
+        <Card key={story.title} padding="sm">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] uppercase tracking-wider text-slate-500">
+              {story.lever}
+            </span>
+            <ArrowRight className="w-3 h-3 text-slate-300" />
+            <span className="px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-[10px] uppercase tracking-wider text-emerald-700">
+              {story.outcome}
+            </span>
+          </div>
+          <div className="text-sm font-semibold text-slate-800">{story.title}</div>
+          <p className="text-xs text-slate-500 mt-2 leading-snug">{story.evidence}</p>
+          <p className="text-[11px] text-slate-400 mt-3 leading-snug">
+            Contrast: {story.whyDifferentFromCaspian}
+          </p>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+function SarahDataView() {
+  const [activeCategory, setActiveCategory] = useState<SarahCategoryId>('overview')
+  const activeDef = SARAH_CATEGORIES.find((c) => c.id === activeCategory) ?? SARAH_CATEGORIES[0]
+
+  return (
+    <PageLayout maxWidth="2xl">
+      <PainterlyPageHeader
+        subtitle="Raw streams - metabolic, endocrine, sleep, nutrition, environmental, episodic labs, and model-derived loads."
+        hideHorizon
+        actions={<DataModeToggle />}
+      />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <SarahDataCoverageCard />
+        <CausalEvidenceMixCard />
+        <EdgeLedAcquisitionCard />
+        <div className="flex gap-6">
+          <aside className="flex-shrink-0" style={{ width: '240px' }}>
+            <SarahCategorySidebar active={activeCategory} onChange={setActiveCategory} />
+          </aside>
+
+          <div className="flex-1 min-w-0">
+            {activeCategory !== 'overview' && (
+              <div className="mb-4 flex items-center gap-3">
+                <div
+                  className="p-2 rounded-lg"
+                  style={{ backgroundColor: activeDef.color + '18' }}
+                >
+                  <activeDef.icon className="w-5 h-5" style={{ color: activeDef.color }} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">{activeDef.label}</h2>
+                  <p className="text-xs text-slate-400">{activeDef.metricCount}</p>
+                </div>
+              </div>
+            )}
+
+            <motion.div
+              key={activeCategory}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {activeCategory === 'overview' && <SarahOverviewSection />}
+              {activeCategory === 'metabolic' && <SarahMetricSection categoryId="metabolic" color="#D4A857" />}
+              {activeCategory === 'cycle' && <SarahMetricSection categoryId="cycle" color="#B88AC9" />}
+              {activeCategory === 'sleep' && <SarahMetricSection categoryId="sleep" color="#7C9F8B" />}
+              {activeCategory === 'nutrition' && <SarahMetricSection categoryId="nutrition" color="#C76B4D" />}
+              {activeCategory === 'activity' && <SarahMetricSection categoryId="activity" color="#5BA8D4" />}
+              {activeCategory === 'context' && <SarahMetricSection categoryId="context" color="#F97316" />}
+              {activeCategory === 'body' && <SarahMetricSection categoryId="body" color="#5BA8D4" />}
+              {activeCategory === 'labs' && <SarahLabBiomarkersSection />}
+              {activeCategory === 'stories' && <SarahCausalStoryGrid />}
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+    </PageLayout>
+  )
+}
+
 function CohortDataPlaceholder() {
   const { participant, isLoading } = useParticipant()
   return (
@@ -1394,6 +1897,7 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
 export function DataView() {
   const { namedPersonaId } = useActiveParticipant()
   if (namedPersonaId === 'caspian') return <CaspianDataView />
+  if (namedPersonaId === 'sarah') return <SarahDataView />
   return <CohortDataPlaceholder />
 }
 

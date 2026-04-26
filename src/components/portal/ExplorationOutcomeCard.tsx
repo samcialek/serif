@@ -24,6 +24,7 @@ import {
 } from '@/stores/explorationStore'
 import { ExplorationActionRow } from './ExplorationActionRow'
 import { ExplorationActionDetail } from './ExplorationActionDetail'
+import { GlossaryTerm } from '@/components/common'
 
 interface Props {
   outcome: string
@@ -101,7 +102,9 @@ export function ExplorationOutcomeCard({
     >
       {/* Header */}
       <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3 flex-wrap">
-        <h3 className="text-[13px] font-semibold text-slate-800">{outcomeLabel}</h3>
+        <h3 className="text-[13px] font-semibold text-slate-800">
+          <GlossaryTerm termId={outcome} display={outcomeLabel} />
+        </h3>
         <span className="text-[11px] text-slate-500">
           {edges.length} experiment{edges.length === 1 ? '' : 's'} could personalize this
           {totalRunning > 0 && (

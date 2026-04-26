@@ -1309,48 +1309,69 @@
       "action": "active_energy",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.6,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 20.2,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 100.0,
-      "dose_multiplier": 0.5060468670489368,
-      "dose_multiplier_raw": 0.5060468670489368,
+      "dose_multiplier": 0.7021165196556658,
+      "dose_multiplier_raw": 0.7021165196556658,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5060468670489368,
-      "unbounded_scaled_effect": 0.3272118834298486,
-      "scaled_effect": 0.3272118834298486,
+      "unbounded_dose_multiplier": 0.7021165196556658,
+      "unbounded_scaled_effect": 0.44466769311529464,
+      "scaled_effect": 0.44466769311529464,
       "posterior": {
-        "mean": 0.6466039110923019,
-        "variance": 0.06689512674195065,
-        "sd": 0.25864092240392017,
-        "contraction": 0.006046867048936755,
+        "mean": 0.6333246415187183,
+        "variance": 0.05369922863915435,
+        "sd": 0.23173094018528115,
+        "contraction": 0.2021165196556658,
         "prior_mean": 0.648566176046176,
         "prior_variance": 0.0673020935537855,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 2.5000062058335026
+        "z_like": 2.7330171836887285
       },
       "cohort_prior": {
         "mean": 0.646250137362637,
         "variance": 0.06682227840659638,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.005792861420215358,
+        "se": 0.005485673317542042,
+        "n": 45,
+        "at_nominal_step": 0.5792861420215358,
+        "se_at_step": 0.5485673317542042,
+        "residual_sd": 1.5306690779742556,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.006046867048936755,
+        "score": 0.2021165196556658,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -2341,41 +2362,62 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.6,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 17.7,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 100.0,
-      "dose_multiplier": 0.5061829613205869,
-      "dose_multiplier_raw": 0.5061829613205869,
+      "dose_multiplier": 0.6766697529975,
+      "dose_multiplier_raw": 0.6766697529975,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5061829613205869,
-      "unbounded_scaled_effect": 0.3734134802491945,
-      "scaled_effect": 0.3734134802491945,
+      "unbounded_dose_multiplier": 0.6766697529975,
+      "unbounded_scaled_effect": 0.42585172120960363,
+      "scaled_effect": 0.42585172120960363,
       "posterior": {
-        "mean": 0.7377045629410194,
-        "variance": 0.08707283154134413,
-        "sd": 0.2950810592724381,
-        "contraction": 0.006182961320586933,
+        "mean": 0.6293346485832609,
+        "variance": 0.07213570819373695,
+        "sd": 0.2685809155426665,
+        "contraction": 0.17666975299749998,
         "prior_mean": 0.7399938720538721,
         "prior_variance": 0.08761454890836522,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 2.5000064889285976
+        "z_like": 2.343184538304567
       },
       "cohort_prior": {
         "mean": 0.7372918269230772,
         "variance": 0.086975878087611,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.0010598484841281442,
+        "se": 0.0028532471435930204,
+        "n": 45,
+        "at_nominal_step": 0.10598484841281441,
+        "se_at_step": 0.28532471435930207,
+        "residual_sd": 0.7961424098205491,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.006182961320586933,
+        "score": 0.17666975299749998,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -2401,41 +2443,62 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.6,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 2.6,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 100.0,
-      "dose_multiplier": 0.506182961320587,
-      "dose_multiplier_raw": 0.506182961320587,
+      "dose_multiplier": 0.5256611746780624,
+      "dose_multiplier_raw": 0.5256611746780624,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.506182961320587,
-      "unbounded_scaled_effect": 0.18670674012459698,
-      "scaled_effect": 0.18670674012459698,
+      "unbounded_dose_multiplier": 0.5256611746780624,
+      "unbounded_scaled_effect": 0.1889933962370121,
+      "scaled_effect": 0.1889933962370121,
       "posterior": {
-        "mean": 0.3688522814705091,
-        "variance": 0.021768207885335962,
-        "sd": 0.1475405296362188,
-        "contraction": 0.006182961320587044,
+        "mean": 0.3595346305588573,
+        "variance": 0.02134156416612194,
+        "sd": 0.1460875222807271,
+        "contraction": 0.025661174678062393,
         "prior_mean": 0.36999693602693556,
         "prior_variance": 0.02190363722709124,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 2.5000064889285976
+        "z_like": 2.4610906184579027
       },
       "cohort_prior": {
         "mean": 0.3686459134615379,
         "variance": 0.021743969521902676,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.0010655272958059556,
+        "se": 0.0038222945503329393,
+        "n": 45,
+        "at_nominal_step": -0.10655272958059556,
+        "se_at_step": 0.3822294550332939,
+        "residual_sd": 1.0665359995818422,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.006182961320587044,
+        "score": 0.025661174678062393,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -4030,7 +4093,7 @@
         "sd": 0.47155078800275646,
         "contraction": 0.0,
         "prior_mean": -0.8974093903655512,
-        "prior_variance": 0.2047281799139353,
+        "prior_variance": 0.20472817991393527,
         "source": "pop+cohort",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
@@ -6714,48 +6777,70 @@
       "action": "bedtime",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 20.2,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": -0.5,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 0.7019211040589153,
+      "dose_multiplier_raw": 0.7019211040589153,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.233480109503531,
-      "scaled_effect": 0.233480109503531,
+      "unbounded_dose_multiplier": 0.7019211040589153,
+      "unbounded_scaled_effect": 0.28491993014979367,
+      "scaled_effect": 0.28491993014979367,
       "posterior": {
-        "mean": 0.466960219007062,
-        "variance": 0.08049088971711722,
-        "sd": 0.28370916396393897,
-        "contraction": 0.0,
+        "mean": 0.4059144660307565,
+        "variance": 0.06212246759685489,
+        "sd": 0.24924379149109188,
+        "contraction": 0.20192110405891528,
         "prior_mean": 0.46114718614718614,
         "prior_variance": 0.07784000794006819,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.6459116529151498
+        "z_like": 1.6285840606194764
       },
       "cohort_prior": {
         "mean": 0.46800824175824157,
         "variance": 0.0809881420816706,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.39891237489977144,
+        "se": 0.6667998133504416,
+        "n": 45,
+        "at_nominal_step": 0.19945618744988572,
+        "se_at_step": 0.3333999066752208,
+        "residual_sd": 1.5486028766366284,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
+        "score": 0.26249743527658986,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": true,
@@ -7775,41 +7860,63 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 7.3,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": -0.5,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 0.5732571591609461,
+      "dose_multiplier_raw": 0.5732571591609461,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.1899289740583021,
-      "scaled_effect": 0.1899289740583021,
+      "unbounded_dose_multiplier": 0.5732571591609461,
+      "unbounded_scaled_effect": 0.20030825230924457,
+      "scaled_effect": 0.20030825230924457,
       "posterior": {
-        "mean": 0.3798579481166042,
-        "variance": 0.048692019705416915,
-        "sd": 0.2206626830830644,
-        "contraction": 0.0,
+        "mean": 0.3494212834645238,
+        "variance": 0.04363883746143653,
+        "sd": 0.2088991083308795,
+        "contraction": 0.0732571591609461,
         "prior_mean": 0.3753367003367004,
         "prior_variance": 0.04708839986497961,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.7214417173274998
+        "z_like": 1.6726796311215861
       },
       "cohort_prior": {
         "mean": 0.3806730769230772,
         "variance": 0.04899282669138135,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.1731458485086365,
+        "se": 0.34155795913024345,
+        "n": 45,
+        "at_nominal_step": 0.08657292425431826,
+        "se_at_step": 0.17077897956512172,
+        "residual_sd": 0.7932480295540273,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
+        "score": 0.09523430690922995,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": true,
@@ -7830,49 +7937,71 @@
       "action": "bedtime",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 44.5,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": -0.5,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 0.9448366293921024,
+      "dose_multiplier_raw": 0.9448366293921024,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.2373013973749719,
-      "scaled_effect": 0.2373013973749719,
+      "unbounded_dose_multiplier": 0.9448366293921024,
+      "unbounded_scaled_effect": 0.5793568150593731,
+      "scaled_effect": 0.5793568150593731,
       "posterior": {
-        "mean": 0.4746027947499438,
-        "variance": 0.8987917765767901,
-        "sd": 0.9480462945324928,
-        "contraction": 0.0,
+        "mean": 0.6131820010324165,
+        "variance": 0.49237505598510345,
+        "sd": 0.7016944178095643,
+        "contraction": 0.44483662939210245,
         "prior_mean": 0.4607862962962967,
         "prior_variance": 0.8869011935098643,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 0.5006114126356912
+        "z_like": 0.8738590267634571
       },
       "cohort_prior": {
         "mean": 0.4770937500000004,
         "variance": 0.9009695161433752,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -1.5621422365447821,
+        "se": 0.46632097300699143,
+        "n": 45,
+        "at_nominal_step": 0.7810711182723911,
+        "se_at_step": 0.23316048650349572,
+        "residual_sd": 1.0830027030242875,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.5782876182097332,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -9681,45 +9810,68 @@
       "action": "dietary_energy",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 98.1,
+        "model_pct": 1.9,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 98.1,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": -200.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.4810095920937894,
+      "dose_multiplier_raw": 1.4810095920937894,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.4810095920937894,
+      "unbounded_scaled_effect": -0.08327269650687523,
+      "scaled_effect": -0.08327269650687523,
       "posterior": {
-        "mean": 0.0,
-        "variance": 14.0625,
-        "sd": 3.75,
-        "contraction": 0.0,
+        "mean": -0.05622697985983181,
+        "variance": 0.2670526111810871,
+        "sd": 0.5167713335519755,
+        "contraction": 0.9810095920937894,
         "prior_mean": 0.0,
         "prior_variance": 14.0625,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": -0.10880437092623028
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.00028657711562139466,
+        "se": 0.0022103863755402182,
+        "n": 45,
+        "at_nominal_step": -0.05731542312427893,
+        "se_at_step": 0.4420772751080436,
+        "residual_sd": 1.5729557005908774,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.69,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": false,
         "regimes_addressed": []
@@ -10694,45 +10846,68 @@
       "action": "dietary_energy",
       "outcome": "sleep_efficiency",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 78.8,
+        "model_pct": 21.2,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 78.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": -200.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.2879475542107919,
+      "dose_multiplier_raw": 1.2879475542107919,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.2879475542107919,
+      "unbounded_scaled_effect": 0.005281772874297285,
+      "scaled_effect": 0.005281772874297285,
       "posterior": {
-        "mean": 0.0,
-        "variance": 1.5625,
-        "sd": 1.25,
-        "contraction": 0.0,
+        "mean": 0.0041009223217429586,
+        "variance": 0.33133194654563786,
+        "sd": 0.5756144078683558,
+        "contraction": 0.7879475542107918,
         "prior_mean": 0.0,
         "prior_variance": 1.5625,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": 0.0071244261187444905
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": -2.6022812684852115e-05,
+        "se": 0.0011325337402058764,
+        "n": 45,
+        "at_nominal_step": 0.005204562536970423,
+        "se_at_step": 0.2265067480411753,
+        "residual_sd": 0.8059339409984199,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.69,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": false,
         "regimes_addressed": []
@@ -10750,45 +10925,68 @@
       "action": "dietary_energy",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 89.2,
+        "model_pct": 10.8,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 89.2,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": -200.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.3920704845814977,
+      "dose_multiplier_raw": 1.3920704845814977,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.3920704845814977,
+      "unbounded_scaled_effect": -0.003080306183406458,
+      "scaled_effect": -0.003080306183406458,
       "posterior": {
-        "mean": 0.0,
-        "variance": 9.0,
-        "sd": 3.0,
-        "contraction": 0.0,
+        "mean": -0.0022127515937761582,
+        "variance": 0.9713656387665198,
+        "sd": 0.9855788343742573,
+        "contraction": 0.8920704845814977,
         "prior_mean": 0.0,
         "prior_variance": 9.0,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": -0.002245128970511051
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": 1.2402336093510814e-05,
+        "se": 0.001546232991549192,
+        "n": 45,
+        "at_nominal_step": -0.002480467218702163,
+        "se_at_step": 0.3092465983098384,
+        "residual_sd": 1.1003307048092752,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.69,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": false,
         "regimes_addressed": []
@@ -12411,45 +12609,68 @@
       "action": "dietary_protein",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 98.1,
+        "model_pct": 1.9,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 98.1,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 20.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.4810095920937894,
+      "dose_multiplier_raw": 1.4810095920937894,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.4810095920937894,
+      "unbounded_scaled_effect": 0.5207217704113014,
+      "scaled_effect": 0.5207217704113014,
       "posterior": {
-        "mean": 0.0,
-        "variance": 14.0625,
-        "sd": 3.75,
-        "contraction": 0.0,
+        "mean": 0.35159918827745523,
+        "variance": 0.2670526111810871,
+        "sd": 0.5167713335519755,
+        "contraction": 0.9810095920937894,
         "prior_mean": 0.0,
         "prior_variance": 14.0625,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": 0.6803767265122347
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.017920272702279583,
+        "se": 0.03028794781171678,
+        "n": 45,
+        "at_nominal_step": 0.35840545404559165,
+        "se_at_step": 0.6057589562343356,
+        "residual_sd": 1.5645729712168952,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.69,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -13304,45 +13525,68 @@
       "action": "dietary_protein",
       "outcome": "sleep_efficiency",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 78.8,
+        "model_pct": 21.2,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 78.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 20.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.2879475542107919,
+      "dose_multiplier_raw": 1.2879475542107919,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.2879475542107919,
+      "unbounded_scaled_effect": -0.46438917599132545,
+      "scaled_effect": -0.46438917599132545,
       "posterior": {
-        "mean": 0.0,
-        "variance": 1.5625,
-        "sd": 1.25,
-        "contraction": 0.0,
+        "mean": -0.36056528425638146,
+        "variance": 0.33133194654563786,
+        "sd": 0.5756144078683558,
+        "contraction": 0.7879475542107918,
         "prior_mean": 0.0,
         "prior_variance": 1.5625,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": -0.6264007282090887
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.02288003067777294,
+        "se": 0.015050978792509918,
+        "n": 45,
+        "at_nominal_step": -0.45760061355545883,
+        "se_at_step": 0.30101957585019834,
+        "residual_sd": 0.7774826724975447,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.69,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -13362,45 +13606,68 @@
       "action": "dietary_protein",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 89.2,
+        "model_pct": 10.8,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 89.2,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 20.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.3920704845814977,
+      "dose_multiplier_raw": 1.3920704845814977,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.3920704845814977,
+      "unbounded_scaled_effect": -0.6448862718187256,
+      "scaled_effect": -0.6448862718187256,
       "posterior": {
-        "mean": 0.0,
-        "variance": 9.0,
-        "sd": 3.0,
-        "contraction": 0.0,
+        "mean": -0.46325691045205925,
+        "variance": 0.9713656387665198,
+        "sd": 0.9855788343742573,
+        "contraction": 0.8920704845814977,
         "prior_mean": 0.0,
         "prior_variance": 9.0,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": -0.4700353683489768
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.025965263869782085,
+        "se": 0.02078411903046645,
+        "n": 45,
+        "at_nominal_step": -0.5193052773956417,
+        "se_at_step": 0.415682380609329,
+        "residual_sd": 1.0736373117046556,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.69,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -15136,48 +15403,70 @@
       "action": "running_volume",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "personal_emerging",
+      "evidence_tier": "personal_established",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Personal response emerging from daily data",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 24.3,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 58.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 30.0,
       "dose_multiplier": 0.06938888888888887,
-      "dose_multiplier_raw": 0.7429770015089868,
-      "direction_conflict": false,
+      "dose_multiplier_raw": 1.0882516234816249,
+      "direction_conflict": true,
       "dose_bounded": true,
-      "unbounded_dose_multiplier": 0.7429770015089868,
-      "unbounded_scaled_effect": 0.09153032544542787,
-      "scaled_effect": 0.008548296339452454,
+      "unbounded_dose_multiplier": 0.5,
+      "unbounded_scaled_effect": -0.03917863048212386,
+      "scaled_effect": -0.005437123274685855,
       "posterior": {
-        "mean": 0.12319402250612026,
-        "variance": 0.22827394163662157,
-        "sd": 0.4777802231535139,
-        "contraction": 0.24297700150898682,
+        "mean": -0.07835726096424772,
+        "variance": 0.12415927264783759,
+        "sd": 0.3523624166222011,
+        "contraction": 0.5882516234816249,
         "prior_mean": 0.14166006734006728,
         "prior_variance": 0.3015416203888705,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 0.2578466343646401
+        "z_like": -0.22237689738704872
       },
       "cohort_prior": {
         "mean": 0.11986480769230769,
         "variance": 0.21869384983125126,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.31871206399027324,
+        "se": 0.3078116785475113,
+        "n": 45,
+        "at_nominal_step": -0.31871206399027324,
+        "se_at_step": 0.3078116785475113,
+        "residual_sd": 1.548602876636629,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.022692363459461053,
+        "score": 0.04081812654047496,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -16187,41 +16476,63 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 3.9,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 10.9,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 30.0,
       "dose_multiplier": 0.06938888888888887,
-      "dose_multiplier_raw": 0.5391773797493267,
+      "dose_multiplier_raw": 0.6090152414815185,
       "direction_conflict": false,
       "dose_bounded": true,
-      "unbounded_dose_multiplier": 0.5391773797493267,
-      "unbounded_scaled_effect": 0.17216058189102137,
-      "scaled_effect": 0.022156032386663665,
+      "unbounded_dose_multiplier": 0.6090152414815185,
+      "unbounded_scaled_effect": 0.19366505205970597,
+      "scaled_effect": 0.022065462181769746,
       "posterior": {
-        "mean": 0.3193023082145285,
-        "variance": 0.03295995871715856,
-        "sd": 0.1815487777903188,
-        "contraction": 0.03917737974932667,
+        "mean": 0.31799705305993237,
+        "variance": 0.030564248009403647,
+        "sd": 0.17482633671562087,
+        "contraction": 0.10901524148151853,
         "prior_mean": 0.3157444444444446,
         "prior_variance": 0.0343038954563325,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.7587687017276934
+        "z_like": 1.8189310548627373
       },
       "cohort_prior": {
         "mean": 0.3199437500000003,
         "variance": 0.03272878777710828,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.30134473267271283,
+        "se": 0.15767180286519974,
+        "n": 45,
+        "at_nominal_step": 0.30134473267271283,
+        "se_at_step": 0.15767180286519974,
+        "residual_sd": 0.7932480295540301,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.005041893359190442,
+        "score": 0.012420783525802833,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -16240,48 +16551,70 @@
       "action": "running_volume",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 3.9,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 31.4,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 30.0,
       "dose_multiplier": 0.06938888888888887,
-      "dose_multiplier_raw": 0.5391773797493228,
+      "dose_multiplier_raw": 0.8138235348281064,
       "direction_conflict": false,
       "dose_bounded": true,
-      "unbounded_dose_multiplier": 0.5391773797493228,
-      "unbounded_scaled_effect": 0.6701529924922898,
-      "scaled_effect": 0.08624466322423142,
+      "unbounded_dose_multiplier": 0.8138235348281064,
+      "unbounded_scaled_effect": 0.850401236609904,
+      "scaled_effect": 0.07250760686167906,
       "posterior": {
-        "mean": 1.2429174844164659,
-        "variance": 0.43583416485499127,
-        "sd": 0.660177373782979,
-        "contraction": 0.03917737974932278,
+        "mean": 1.0449454952043422,
+        "variance": 0.31125323273854455,
+        "sd": 0.557900737352573,
+        "contraction": 0.31382353482810643,
         "prior_mean": 1.229979797979798,
         "prior_variance": 0.4536052291746449,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.882702336940514
+        "z_like": 1.8729953650231057
       },
       "cohort_prior": {
         "mean": 1.2452499999999997,
         "variance": 0.43277735903614484,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.5503319087820027,
+        "se": 0.2152655693197562,
+        "n": 45,
+        "at_nominal_step": 0.5503319087820027,
+        "se_at_step": 0.2152655693197562,
+        "residual_sd": 1.0830027030242821,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0050418933591899785,
+        "score": 0.026757479302322296,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -19262,8 +19595,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19333,8 +19666,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19404,8 +19737,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19475,8 +19808,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19546,8 +19879,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19617,8 +19950,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19688,8 +20021,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19763,8 +20096,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19832,8 +20165,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19917,8 +20250,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -19988,8 +20321,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20059,8 +20392,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20130,8 +20463,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20201,8 +20534,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20276,8 +20609,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20347,8 +20680,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20418,8 +20751,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20489,8 +20822,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20558,8 +20891,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20582,47 +20915,69 @@
       "horizon_display": "4 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 0.3,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 0.5,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 0.5030247282107735,
+      "dose_multiplier_raw": 0.5030247282107735,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.06796889942485654,
-      "scaled_effect": 0.06796889942485654,
+      "unbounded_dose_multiplier": 0.5030247282107735,
+      "unbounded_scaled_effect": 0.06801743516671155,
+      "scaled_effect": 0.06801743516671155,
       "posterior": {
-        "mean": 0.13593779884971308,
-        "variance": 0.0029566294090057027,
-        "sd": 0.054374896864322446,
-        "contraction": 0.0,
+        "mean": 0.13521688170012075,
+        "variance": 0.0029248622240989485,
+        "sd": 0.05408199537830449,
+        "contraction": 0.0030247282107734863,
         "prior_mean": 0.13540993265993248,
         "prior_variance": 0.0029337359780747924,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 2.5000102379763285
+        "z_like": 2.5002199115301926
       },
       "cohort_prior": {
         "mean": 0.13603296703296677,
         "variance": 0.0029607948991667568,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.13768146924909433,
+        "se": 0.8667742526810942,
+        "n": 45,
+        "at_nominal_step": 0.06884073462454716,
+        "se_at_step": 0.4333871263405471,
+        "residual_sd": 1.5486028766366289,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
+        "score": 0.003932146674005532,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20692,8 +21047,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20763,8 +21118,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20834,8 +21189,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20905,8 +21260,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -20976,8 +21331,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21047,8 +21402,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21118,8 +21473,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21189,8 +21544,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21260,8 +21615,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21331,8 +21686,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21402,8 +21757,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21473,8 +21828,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21505,20 +21860,20 @@
         "basis": "member_rows_and_posterior"
       },
       "nominal_step": 0.5,
-      "dose_multiplier": 0.9310037551868411,
-      "dose_multiplier_raw": 0.9310037551868411,
+      "dose_multiplier": 0.931003755186841,
+      "dose_multiplier_raw": 0.931003755186841,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.9310037551868411,
+      "unbounded_dose_multiplier": 0.931003755186841,
       "unbounded_scaled_effect": -0.2530865013642537,
       "scaled_effect": -0.2530865013642537,
       "posterior": {
         "mean": -0.2718426214225767,
         "variance": 0.01466931097006948,
         "sd": 0.12111693098022869,
-        "contraction": 0.4310037551868411,
+        "contraction": 0.431003755186841,
         "prior_mean": -0.21885521881063738,
-        "prior_variance": 0.025781033009956746,
+        "prior_variance": 0.025781033009956742,
         "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
@@ -21553,13 +21908,13 @@
         ]
       },
       "gate": {
-        "score": 0.5603048817428934,
+        "score": 0.5603048817428933,
         "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21629,8 +21984,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21646,54 +22001,76 @@
       "action": "sleep_duration",
       "outcome": "sleep_efficiency",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.2,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 47.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 0.5,
-      "dose_multiplier": 0.5018664840289863,
-      "dose_multiplier_raw": 0.5018664840289863,
+      "dose_multiplier": 0.9776616878838079,
+      "dose_multiplier_raw": 0.9776616878838079,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5018664840289863,
-      "unbounded_scaled_effect": 0.16095072878885536,
-      "scaled_effect": 0.16095072878885536,
+      "unbounded_dose_multiplier": 0.9776616878838079,
+      "unbounded_scaled_effect": 0.08922746549866288,
+      "scaled_effect": 0.08922746549866288,
       "posterior": {
-        "mean": 0.32070427874908525,
-        "variance": 0.38303122436182185,
-        "sd": 0.618895164274065,
-        "contraction": 0.0018664840289862594,
+        "mean": 0.091266198322448,
+        "variance": 0.2004460125019614,
+        "sd": 0.4477119749369693,
+        "contraction": 0.4776616878838079,
         "prior_mean": 0.3163059163059164,
         "prior_variance": 0.38374748290983673,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 0.5181883738342928
+        "z_like": 0.20385025067800974
       },
       "cohort_prior": {
         "mean": 0.3214972527472527,
         "variance": 0.3829023755934253,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.32123182247403664,
+        "se": 0.4439917931062821,
+        "n": 45,
+        "at_nominal_step": -0.16061591123701832,
+        "se_at_step": 0.22199589655314106,
+        "residual_sd": 0.7932480295540284,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0024264292376821373,
-        "tier": "not_exposed",
+        "score": 0.6209601942489503,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21709,54 +22086,76 @@
       "action": "sleep_duration",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.2,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 35.6,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 0.5,
-      "dose_multiplier": 0.501866484028987,
-      "dose_multiplier_raw": 0.501866484028987,
+      "dose_multiplier": 0.8558892473870299,
+      "dose_multiplier_raw": 0.8558892473870299,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.501866484028987,
-      "unbounded_scaled_effect": 0.4834883082523746,
-      "scaled_effect": 0.4834883082523746,
+      "unbounded_dose_multiplier": 0.8558892473870299,
+      "unbounded_scaled_effect": 0.5307342995544365,
+      "scaled_effect": 0.5307342995544365,
       "posterior": {
-        "mean": 0.9633803484363563,
-        "variance": 0.5984862880653468,
-        "sd": 0.7736189553425813,
-        "contraction": 0.0018664840289870366,
+        "mean": 0.6200969356429367,
+        "variance": 0.38621231254748134,
+        "sd": 0.6214598237597354,
+        "contraction": 0.3558892473870299,
         "prior_mean": 0.9578823953823953,
         "prior_variance": 0.5996054420466205,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.2452905164529522
+        "z_like": 0.9978069569991613
       },
       "cohort_prior": {
         "mean": 0.9643715659340657,
         "variance": 0.5982849618647271,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.008949179723505453,
+        "se": 0.6061714547529826,
+        "n": 45,
+        "at_nominal_step": -0.004474589861752727,
+        "se_at_step": 0.3030857273764913,
+        "residual_sd": 1.0830027030242841,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "run_km",
+          "steps",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.002426429237683148,
-        "tier": "not_exposed",
+        "score": 0.46265602160313885,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21830,8 +22229,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21901,8 +22300,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -21970,8 +22369,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -22041,8 +22440,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -22112,8 +22511,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -22187,8 +22586,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -22258,8 +22657,8 @@
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
-          "sleep_deprivation_state",
-          "inflammation_state"
+          "inflammation_state",
+          "sleep_deprivation_state"
         ]
       },
       "positivity_flag": "marginal",
@@ -23579,49 +23978,71 @@
       "action": "steps",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.3,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 59.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 2000.0,
-      "dose_multiplier": 0.5025561400197566,
-      "dose_multiplier_raw": 0.5025561400197566,
+      "dose_multiplier": 1.0983865890869222,
+      "dose_multiplier_raw": 1.0983865890869222,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5025561400197566,
-      "unbounded_scaled_effect": 0.39561838720425496,
-      "scaled_effect": 0.39561838720425496,
+      "unbounded_dose_multiplier": 1.0983865890869222,
+      "unbounded_scaled_effect": 0.7866050697676406,
+      "scaled_effect": 0.7866050697676406,
       "posterior": {
-        "mean": 0.7872123245548295,
-        "variance": 0.40386671486882547,
-        "sd": 0.6355050864224656,
-        "contraction": 0.00255614001975657,
+        "mean": 0.716145915821439,
+        "variance": 0.16261395294562353,
+        "sd": 0.4032542038784265,
+        "contraction": 0.5983865890869222,
         "prior_mean": 0.7860594276094274,
         "prior_variance": 0.4049017003090529,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.238719156421532
+        "z_like": 1.7759168011980442
       },
       "cohort_prior": {
         "mean": 0.7874201785714283,
         "variance": 0.4036806816334542,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.00033412216548525344,
+        "se": 0.0003048956255649758,
+        "n": 45,
+        "at_nominal_step": 0.6682443309705068,
+        "se_at_step": 0.6097912511299516,
+        "residual_sd": 1.548602876636628,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.00255614001975657,
-        "tier": "not_exposed",
+        "score": 0.5983865890869222,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": false,
         "regimes_addressed": []
@@ -24603,45 +25024,67 @@
       "action": "steps",
       "outcome": "sleep_efficiency",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 78.8,
+        "model_pct": 21.2,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 78.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 2000.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.2879475542107919,
+      "dose_multiplier_raw": 1.2879475542107919,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.2879475542107919,
+      "unbounded_scaled_effect": 0.32812545410778265,
+      "scaled_effect": 0.32812545410778265,
       "posterior": {
-        "mean": 0.0,
-        "variance": 1.5625,
-        "sd": 1.25,
-        "contraction": 0.0,
+        "mean": 0.2547661611181413,
+        "variance": 0.33133194654563786,
+        "sd": 0.5756144078683558,
+        "contraction": 0.7879475542107918,
         "prior_mean": 0.0,
         "prior_variance": 1.5625,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": 0.4425986522151246
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.00016166441519912777,
+        "se": 0.0001561780995295228,
+        "n": 45,
+        "at_nominal_step": 0.32332883039825555,
+        "se_at_step": 0.3123561990590456,
+        "residual_sd": 0.7932480295540306,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.7879475542107918,
+        "tier": "recommended",
         "suppression_reason": null,
         "regime_boost_applied": false,
         "regimes_addressed": []
@@ -24666,41 +25109,63 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.3,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 4.1,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 2000.0,
-      "dose_multiplier": 0.5025561400197586,
-      "dose_multiplier_raw": 0.5025561400197586,
+      "dose_multiplier": 0.5405882722162035,
+      "dose_multiplier_raw": 0.5405882722162035,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5025561400197586,
-      "unbounded_scaled_effect": 0.1332025968938512,
-      "scaled_effect": 0.1332025968938512,
+      "unbounded_dose_multiplier": 0.5405882722162035,
+      "unbounded_scaled_effect": 0.13644942274082342,
+      "scaled_effect": 0.13644942274082342,
       "posterior": {
-        "mean": 0.26505018302754035,
-        "variance": 0.04316474874152747,
-        "sd": 0.2077612782534981,
-        "contraction": 0.002556140019758568,
+        "mean": 0.25240914343449106,
+        "variance": 0.041518894276699116,
+        "sd": 0.20376185677574474,
+        "contraction": 0.040588272216203536,
         "prior_mean": 0.2646732744107741,
         "prior_variance": 0.04327536663806074,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 1.2757438982645346
+        "z_like": 1.2387457958448342
       },
       "cohort_prior": {
         "mean": 0.26511813530219774,
         "variance": 0.04314486575150441,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -3.3239047881926476e-05,
+        "se": 0.00021322625161610754,
+        "n": 45,
+        "at_nominal_step": -0.06647809576385295,
+        "se_at_step": 0.42645250323221506,
+        "residual_sd": 1.0830027030242866,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "training_min",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.002556140019758568,
+        "score": 0.040588272216203536,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -26317,49 +26782,71 @@
       "action": "training_load",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.6,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 93.8,
+        "model_pct": 6.2,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 93.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 100.0,
-      "dose_multiplier": 0.505781791082964,
-      "dose_multiplier_raw": 0.505781791082964,
+      "dose_multiplier": 1.4376187187649556,
+      "dose_multiplier_raw": 1.4376187187649556,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.505781791082964,
-      "unbounded_scaled_effect": -2.5498156651148784,
-      "scaled_effect": -2.5498156651148784,
+      "unbounded_dose_multiplier": 1.4376187187649556,
+      "unbounded_scaled_effect": -0.6315908729434164,
+      "scaled_effect": -0.6315908729434164,
       "posterior": {
-        "mean": -5.041335433715979,
-        "variance": 4.066391619090632,
-        "sd": 2.016529597871212,
-        "contraction": 0.00578179108296395,
+        "mean": -0.43933128074877187,
+        "variance": 0.25514189634348927,
+        "sd": 0.5051157256941119,
+        "contraction": 0.9376187187649556,
         "prior_mean": -5.055961439393939,
         "prior_variance": 4.090039372262149,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": -2.50000567263578
+        "z_like": -0.8697636173276106
       },
       "cohort_prior": {
         "mean": -5.038698533653847,
         "variance": 4.062157266087269,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.0013125278891950112,
+        "se": 0.024462415457293978,
+        "n": 45,
+        "at_nominal_step": -0.13125278891950112,
+        "se_at_step": 2.446241545729398,
+        "residual_sd": 1.548602876636629,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.007516328407853135,
-        "tier": "not_exposed",
+        "score": 1.0,
+        "tier": "recommended",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -27217,45 +27704,67 @@
       "action": "training_load",
       "outcome": "sleep_efficiency",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 78.8,
+        "model_pct": 21.2,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 78.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 100.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.2879475542107919,
+      "dose_multiplier_raw": 1.2879475542107919,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.2879475542107919,
+      "unbounded_scaled_effect": -1.127815445792348,
+      "scaled_effect": -1.127815445792348,
       "posterior": {
-        "mean": 0.0,
-        "variance": 1.5625,
-        "sd": 1.25,
-        "contraction": 0.0,
+        "mean": -0.8756687662514588,
+        "variance": 0.33133194654563786,
+        "sd": 0.5756144078683558,
+        "contraction": 0.7879475542107918,
         "prior_mean": 0.0,
         "prior_variance": 1.5625,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": -1.5212766641722526
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.011113287446250515,
+        "se": 0.012530496457410159,
+        "n": 45,
+        "at_nominal_step": -1.1113287446250515,
+        "se_at_step": 1.2530496457410158,
+        "residual_sd": 0.7932480295540286,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 1.0,
+        "tier": "recommended",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -27275,45 +27784,67 @@
       "action": "training_load",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "weak_default",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 89.2,
+        "model_pct": 10.8,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 89.2,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 100.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.3920704845814977,
+      "dose_multiplier_raw": 1.3920704845814977,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.0,
-      "scaled_effect": 0.0,
+      "unbounded_dose_multiplier": 1.3920704845814977,
+      "unbounded_scaled_effect": -0.3490193514887495,
+      "scaled_effect": -0.3490193514887495,
       "posterior": {
-        "mean": 0.0,
-        "variance": 9.0,
-        "sd": 3.0,
-        "contraction": 0.0,
+        "mean": -0.25071959743020933,
+        "variance": 0.9713656387665198,
+        "sd": 0.9855788343742573,
+        "contraction": 0.8920704845814977,
         "prior_mean": 0.0,
         "prior_variance": 9.0,
-        "source": "pop",
+        "source": "pop+user",
         "lam_js": 0.0,
         "n_cohort": 0,
-        "z_like": 0.0
+        "z_like": -0.2543881713829527
       },
       "cohort_prior": null,
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.002810535734155927,
+        "se": 0.017107589339038023,
+        "n": 45,
+        "at_nominal_step": -0.2810535734155927,
+        "se_at_step": 1.7107589339038023,
+        "residual_sd": 1.0830027030242841,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 1.0,
+        "tier": "recommended",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -28903,49 +29434,71 @@
       "action": "training_volume",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_established",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personalized to your data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 93.8,
+        "model_pct": 6.2,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 93.8,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 150.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 1.4380206097958217,
+      "dose_multiplier_raw": 1.4380206097958217,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": -0.4808101380402806,
-      "scaled_effect": -0.4808101380402806,
+      "unbounded_dose_multiplier": 1.4380206097958217,
+      "unbounded_scaled_effect": -0.10094827394139375,
+      "scaled_effect": -0.10094827394139375,
       "posterior": {
-        "mean": -0.9616202760805612,
-        "variance": 4.146838625602166,
-        "sd": 2.0363788020901628,
-        "contraction": 0.0,
+        "mean": -0.0701994625485423,
+        "variance": 0.25545283596041307,
+        "sd": 0.505423422449349,
+        "contraction": 0.9380206097958217,
         "prior_mean": -1.0074074074074075,
         "prior_variance": 4.121577110050235,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": -0.47222072587553116
+        "z_like": -0.13889238098295165
       },
       "cohort_prior": {
         "mean": -0.9533653846153847,
         "variance": 4.151425968489341,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.002336299642764435,
+        "se": 0.043543099513987056,
+        "n": 45,
+        "at_nominal_step": -0.011681498213822175,
+        "se_at_step": 0.21771549756993527,
+        "residual_sd": 1.5486028766366295,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 1.0,
+        "tier": "recommended",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -29826,41 +30379,63 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.8,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 18.9,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 150.0,
-      "dose_multiplier": 0.5080737380508299,
-      "dose_multiplier_raw": 0.5080737380508299,
+      "dose_multiplier": 0.6887302704139692,
+      "dose_multiplier_raw": 0.6887302704139692,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5080737380508299,
-      "unbounded_scaled_effect": -0.029593805794904168,
-      "scaled_effect": -0.029593805794904168,
+      "unbounded_dose_multiplier": 0.6887302704139692,
+      "unbounded_scaled_effect": -0.045216910956211706,
+      "scaled_effect": -0.045216910956211706,
       "posterior": {
-        "mean": -0.058247068444115244,
-        "variance": 0.0936384892574058,
-        "sd": 0.3060040673870297,
-        "contraction": 0.008073738050829893,
+        "mean": -0.06565256806417637,
+        "variance": 0.07658439419622184,
+        "sd": 0.27673885559534617,
+        "contraction": 0.18873027041396917,
         "prior_mean": -0.06216414141414135,
         "prior_variance": 0.09440065542110243,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": -0.19034736675720446
+        "z_like": -0.23723653811799758
       },
       "cohort_prior": {
         "mean": -0.05754086538461534,
         "variance": 0.09350238701343817,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.019781651654320533,
+        "se": 0.02230428369419204,
+        "n": 45,
+        "at_nominal_step": -0.09890825827160266,
+        "se_at_step": 0.1115214184709602,
+        "residual_sd": 0.7932480295540297,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.010495859466078861,
+        "score": 0.24534935153815993,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": true,
@@ -29881,49 +30456,71 @@
       "action": "training_volume",
       "outcome": "sleep_quality",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 2,
       "horizon_display": "2 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.8,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 38.4,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 150.0,
-      "dose_multiplier": 0.508073738050827,
-      "dose_multiplier_raw": 0.508073738050827,
+      "dose_multiplier": 0.8844765718054519,
+      "dose_multiplier_raw": 0.8844765718054519,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.508073738050827,
-      "unbounded_scaled_effect": -0.05351312855053607,
-      "scaled_effect": -0.05351312855053607,
+      "unbounded_dose_multiplier": 0.8844765718054519,
+      "unbounded_scaled_effect": -0.06620297782444294,
+      "scaled_effect": -0.06620297782444294,
       "posterior": {
-        "mean": -0.10532551585097415,
-        "variance": 0.6658737013859984,
-        "sd": 0.8160108463654134,
-        "contraction": 0.008073738050827006,
+        "mean": -0.07484989420274304,
+        "variance": 0.4131969070123321,
+        "sd": 0.6428039413478515,
+        "contraction": 0.3844765718054519,
         "prior_mean": -0.11577104377104389,
         "prior_variance": 0.6712935496611726,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": -0.12907367141025586
+        "z_like": -0.11644280532225026
       },
       "cohort_prior": {
         "mean": -0.10344230769230772,
         "variance": 0.6649058632066734,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.005002753606794001,
+        "se": 0.0304515090234903,
+        "n": 45,
+        "at_nominal_step": -0.025013768033970006,
+        "se_at_step": 0.15225754511745151,
+        "residual_sd": 1.083002703024284,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "zone2_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.010495859466075109,
-        "tier": "not_exposed",
+        "score": 0.4998195433470875,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": true,
         "regimes_addressed": [
@@ -32176,20 +32773,20 @@
         "basis": "model_only"
       },
       "nominal_step": -0.3,
-      "dose_multiplier": 0.5000000000000021,
-      "dose_multiplier_raw": 0.5000000000000021,
+      "dose_multiplier": 0.5000000000000028,
+      "dose_multiplier_raw": 0.5000000000000028,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5000000000000021,
-      "unbounded_scaled_effect": -0.03194999999349173,
-      "scaled_effect": -0.03194999999349173,
+      "unbounded_dose_multiplier": 0.5000000000000028,
+      "unbounded_scaled_effect": -0.03194999999349178,
+      "scaled_effect": -0.03194999999349178,
       "posterior": {
         "mean": -0.0638999999869832,
         "variance": 0.0006533135997338326,
         "sd": 0.025559999994793282,
-        "contraction": 2.1094237467877974e-15,
-        "prior_mean": -0.06389999998698327,
-        "prior_variance": 0.000653313599733834,
+        "contraction": 2.7755575615628914e-15,
+        "prior_mean": -0.06389999998698329,
+        "prior_variance": 0.0006533135997338344,
         "source": "pop+cohort",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
@@ -32202,7 +32799,7 @@
       },
       "user_obs": null,
       "gate": {
-        "score": 2.1094237467877974e-15,
+        "score": 2.7755575615628914e-15,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -33883,49 +34480,71 @@
       "action": "zone2_volume",
       "outcome": "hrv_daily",
       "pathway": "wearable",
-      "evidence_tier": "cohort_level",
+      "evidence_tier": "personal_emerging",
       "prior_provenance": "synthetic",
       "literature_backed": false,
       "horizon_days": 4,
       "horizon_display": "4 days",
-      "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
+      "supporting_data_description": "Personal response emerging from daily data",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 36.3,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 60.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 0.8627687750266964,
+      "dose_multiplier_raw": 0.8627687750266964,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.18692922092616596,
-      "scaled_effect": 0.18692922092616596,
+      "unbounded_dose_multiplier": 0.8627687750266964,
+      "unbounded_scaled_effect": 0.1312970217454448,
+      "scaled_effect": 0.1312970217454448,
       "posterior": {
-        "mean": 0.3738584418523319,
-        "variance": 0.16563326601666595,
-        "sd": 0.4069806703231321,
-        "contraction": 0.0,
+        "mean": 0.15218100787361263,
+        "variance": 0.10297702543443121,
+        "sd": 0.32090033567204507,
+        "contraction": 0.36276877502669636,
         "prior_mean": 0.360993265993266,
         "prior_variance": 0.16160072105497555,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 0.9186147380304278
+        "z_like": 0.47423137640198404
       },
       "cohort_prior": {
         "mean": 0.37617788461538465,
         "variance": 0.16638179680259496,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.10607557038347841,
+        "se": 0.09377175793231245,
+        "n": 45,
+        "at_nominal_step": -0.21215114076695682,
+        "se_at_step": 0.1875435158646249,
+        "residual_sd": 1.5486028766366295,
+        "sigma_data_used": 3.5,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
-        "tier": "not_exposed",
+        "score": 0.36276877502669636,
+        "tier": "possible",
         "suppression_reason": null,
         "regime_boost_applied": false,
         "regimes_addressed": []
@@ -34768,12 +35387,12 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
         "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 60.0,
       "dose_multiplier": 0.5,
@@ -34781,26 +35400,48 @@
       "direction_conflict": false,
       "dose_bounded": false,
       "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.046732305231541524,
-      "scaled_effect": 0.046732305231541524,
+      "unbounded_scaled_effect": 0.04513240377512058,
+      "scaled_effect": 0.04513240377512058,
       "posterior": {
-        "mean": 0.09346461046308305,
-        "variance": 0.010352079126041636,
-        "sd": 0.1017451675807831,
+        "mean": 0.09026480755024116,
+        "variance": 0.01010334981168111,
+        "sd": 0.10051542076557761,
         "contraction": 0.0,
         "prior_mean": 0.09024831649831659,
         "prior_variance": 0.010100045065935913,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 0.9186147380304278
+        "z_like": 0.8980194965383176
       },
       "cohort_prior": {
         "mean": 0.09404447115384623,
         "variance": 0.010398862300162213,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": -0.019855368655310263,
+        "se": 0.04803314221472826,
+        "n": 45,
+        "at_nominal_step": -0.039710737310620525,
+        "se_at_step": 0.09606628442945651,
+        "residual_sd": 0.7932480295540318,
+        "sigma_data_used": 4.35,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
         "score": 0.0,
         "tier": "not_exposed",
@@ -34828,41 +35469,63 @@
       "horizon_display": "2 days",
       "supporting_data_description": "Based on cohort patterns; personal signal strengthening",
       "personalization": {
-        "member_specific_pct": 0.0,
-        "model_pct": 100.0,
-        "coverage_pct": 0.0,
-        "narrowing_pct": 0.0,
-        "observations": 0,
-        "basis": "model_only"
+        "member_specific_pct": 60.0,
+        "model_pct": 40.0,
+        "coverage_pct": 60.0,
+        "narrowing_pct": 4.6,
+        "observations": 45,
+        "basis": "member_rows_and_posterior"
       },
       "nominal_step": 60.0,
-      "dose_multiplier": 0.5,
-      "dose_multiplier_raw": 0.5,
+      "dose_multiplier": 0.5461420196746221,
+      "dose_multiplier_raw": 0.5461420196746221,
       "direction_conflict": false,
       "dose_bounded": false,
-      "unbounded_dose_multiplier": 0.5,
-      "unbounded_scaled_effect": 0.11885045464831642,
-      "scaled_effect": 0.11885045464831642,
+      "unbounded_dose_multiplier": 0.5461420196746221,
+      "unbounded_scaled_effect": 0.13601632228236574,
+      "scaled_effect": 0.13601632228236574,
       "posterior": {
-        "mean": 0.23770090929663285,
-        "variance": 0.08116030034816657,
-        "sd": 0.28488646922619293,
-        "contraction": 0.0,
+        "mean": 0.24904936332018712,
+        "variance": 0.0755306273282658,
+        "sd": 0.27482835975980685,
+        "contraction": 0.04614201967462206,
         "prior_mean": 0.22869528619528634,
         "prior_variance": 0.0791843533169382,
-        "source": "pop+cohort",
+        "source": "pop+cohort+user",
         "lam_js": 0.8472505091649695,
         "n_cohort": 416,
-        "z_like": 0.8343706527806489
+        "z_like": 0.9061996496207672
       },
       "cohort_prior": {
         "mean": 0.23932451923076983,
         "variance": 0.08152708043327181,
         "n": 416
       },
-      "user_obs": null,
+      "user_obs": {
+        "slope": 0.2006530685641829,
+        "se": 0.06557850875790573,
+        "n": 45,
+        "at_nominal_step": 0.4013061371283658,
+        "se_at_step": 0.13115701751581146,
+        "residual_sd": 1.0830027030242841,
+        "sigma_data_used": 7.0,
+        "pathway": "wearable",
+        "confounders_adjusted": [
+          "bedtime_hr",
+          "sleep_hrs",
+          "run_km",
+          "steps",
+          "training_min",
+          "temp_c",
+          "humidity_pct",
+          "heat_index_c",
+          "aqi",
+          "uv_index",
+          "day_trend"
+        ]
+      },
       "gate": {
-        "score": 0.0,
+        "score": 0.04614201967462206,
         "tier": "not_exposed",
         "suppression_reason": null,
         "regime_boost_applied": false,
@@ -35279,11 +35942,11 @@
     }
   ],
   "tier_counts": {
-    "recommended": 21,
-    "possible": 147,
-    "not_exposed": 391
+    "recommended": 26,
+    "possible": 159,
+    "not_exposed": 374
   },
-  "exposed_count": 168,
+  "exposed_count": 185,
   "protocols": [
     {
       "protocol_id": "active_energy_conservative_p0627",
@@ -35430,6 +36093,7 @@
         "bedtime_non_hdl_cholesterol",
         "bedtime_apob",
         "bedtime_folate",
+        "bedtime_sleep_quality",
         "bedtime_b12",
         "bedtime_creatinine",
         "bedtime_estradiol",
@@ -35464,6 +36128,7 @@
         "non_hdl_cholesterol",
         "apob",
         "folate",
+        "sleep_quality",
         "b12",
         "creatinine",
         "estradiol",
@@ -35484,14 +36149,14 @@
       "weakest_contraction": 0.2312439051876598,
       "horizon_days": 7,
       "description": "Shift bedtime earlier to 10:22pm",
-      "rationale": "Optimizes vo2_peak, triglycerides, uric_acid, omega3_index, ldl, hdl, shbg, alt, total_cholesterol, wbc, ast, homocysteine, iron_total, body_fat_pct, non_hdl_cholesterol, apob, folate, b12, creatinine, estradiol, insulin, platelets, resting HR, glucose, hemoglobin, dhea_s, nlr, rbc, testosterone, cortisol, magnesium_rbc, and deep sleep",
+      "rationale": "Optimizes vo2_peak, triglycerides, uric_acid, omega3_index, ldl, hdl, shbg, alt, total_cholesterol, wbc, ast, homocysteine, iron_total, body_fat_pct, non_hdl_cholesterol, apob, folate, sleep quality, b12, creatinine, estradiol, insulin, platelets, resting HR, glucose, hemoglobin, dhea_s, nlr, rbc, testosterone, cortisol, magnesium_rbc, and deep sleep",
       "clipped_at_ceiling": false,
       "unclipped_value": null,
-      "optimizer_score": -32.53558667666927,
-      "expected_utility": -19.156502762167886,
-      "uncertainty_penalty": 13.379083914501386,
+      "optimizer_score": -32.356349525161136,
+      "expected_utility": -18.88747140155245,
+      "uncertainty_penalty": 13.46887812360869,
       "feasibility_penalty": 0.0,
-      "evidence_quality": 0.4754460784313724,
+      "evidence_quality": 0.48126635514018684,
       "objective_key": "daily_protocol_v1"
     },
     {
@@ -35538,6 +36203,7 @@
       "option_label": "conservative",
       "supporting_insight_ids": [
         "sleep_duration_magnesium_rbc",
+        "sleep_duration_sleep_quality",
         "sleep_duration_nlr",
         "sleep_duration_dhea_s",
         "sleep_duration_rbc",
@@ -35550,6 +36216,7 @@
         "sleep_duration_platelets",
         "sleep_duration_folate",
         "sleep_duration_apob",
+        "sleep_duration_sleep_efficiency",
         "sleep_duration_non_hdl_cholesterol",
         "sleep_duration_body_fat_pct",
         "sleep_duration_ast",
@@ -35568,6 +36235,7 @@
       ],
       "outcomes_served": [
         "magnesium_rbc",
+        "sleep_quality",
         "nlr",
         "dhea_s",
         "rbc",
@@ -35580,6 +36248,7 @@
         "platelets",
         "folate",
         "apob",
+        "sleep_efficiency",
         "non_hdl_cholesterol",
         "body_fat_pct",
         "ast",
@@ -35600,14 +36269,14 @@
       "weakest_contraction": 0.24615384615384628,
       "horizon_days": 7,
       "description": "Target 7.1 hours of sleep per night",
-      "rationale": "Optimizes magnesium_rbc, nlr, dhea_s, rbc, hemoglobin, resting HR, b12, creatinine, estradiol, insulin, platelets, folate, apob, non_hdl_cholesterol, body_fat_pct, ast, homocysteine, iron_total, deep sleep, total_cholesterol, alt, shbg, hdl, ldl, omega3_index, uric_acid, triglycerides, and vo2_peak",
+      "rationale": "Optimizes magnesium_rbc, sleep quality, nlr, dhea_s, rbc, hemoglobin, resting HR, b12, creatinine, estradiol, insulin, platelets, folate, apob, sleep efficiency, non_hdl_cholesterol, body_fat_pct, ast, homocysteine, iron_total, deep sleep, total_cholesterol, alt, shbg, hdl, ldl, omega3_index, uric_acid, triglycerides, and vo2_peak",
       "clipped_at_ceiling": false,
       "unclipped_value": null,
-      "optimizer_score": -135.4415923719817,
-      "expected_utility": -125.11006343729923,
-      "uncertainty_penalty": 10.33152893468247,
+      "optimizer_score": -135.25920939720982,
+      "expected_utility": -124.7997634692353,
+      "uncertainty_penalty": 10.459445927974514,
       "feasibility_penalty": 0.0,
-      "evidence_quality": 0.4939602272727274,
+      "evidence_quality": 0.5037989690721648,
       "objective_key": "daily_protocol_v1"
     },
     {
@@ -35680,6 +36349,7 @@
         "steps_ldl",
         "steps_omega3_index",
         "steps_uric_acid",
+        "steps_hrv_daily",
         "steps_triglycerides",
         "steps_vo2_peak"
       ],
@@ -35711,6 +36381,7 @@
         "ldl",
         "omega3_index",
         "uric_acid",
+        "hrv_daily",
         "triglycerides",
         "vo2_peak"
       ],
@@ -35718,14 +36389,14 @@
       "weakest_contraction": 0.30959326325059167,
       "horizon_days": 7,
       "description": "Target 12396 steps/day",
-      "rationale": "Optimizes testosterone, body_mass_kg, dhea_s, nlr, rbc, hemoglobin, glucose, b12, creatinine, estradiol, insulin, platelets, folate, apob, non_hdl_cholesterol, body_fat_pct, ast, homocysteine, iron_total, wbc, total_cholesterol, alt, shbg, hdl, ldl, omega3_index, uric_acid, triglycerides, and vo2_peak",
+      "rationale": "Optimizes testosterone, body_mass_kg, dhea_s, nlr, rbc, hemoglobin, glucose, b12, creatinine, estradiol, insulin, platelets, folate, apob, non_hdl_cholesterol, body_fat_pct, ast, homocysteine, iron_total, wbc, total_cholesterol, alt, shbg, hdl, ldl, omega3_index, uric_acid, HRV, triglycerides, and vo2_peak",
       "clipped_at_ceiling": false,
       "unclipped_value": null,
-      "optimizer_score": 41.928666652535824,
-      "expected_utility": 56.54958121002943,
-      "uncertainty_penalty": 14.620914557493608,
+      "optimizer_score": 42.21940621771134,
+      "expected_utility": 56.8974533554015,
+      "uncertainty_penalty": 14.678047137690163,
       "feasibility_penalty": 0.0,
-      "evidence_quality": 0.47560335195530734,
+      "evidence_quality": 0.4821851851851853,
       "objective_key": "daily_protocol_v1"
     },
     {
@@ -35739,11 +36410,13 @@
       "option_label": "aggressive",
       "supporting_insight_ids": [
         "steps_ferritin",
+        "steps_sleep_efficiency",
         "steps_hscrp",
         "steps_resting_hr"
       ],
       "outcomes_served": [
         "ferritin",
+        "sleep_efficiency",
         "hscrp",
         "resting_hr"
       ],
@@ -35751,45 +36424,78 @@
       "weakest_contraction": 0.7871536523929471,
       "horizon_days": 7,
       "description": "Target 13351 steps/day",
-      "rationale": "Optimizes ferritin, hscrp, and resting HR",
+      "rationale": "Optimizes ferritin, sleep efficiency, hscrp, and resting HR",
       "clipped_at_ceiling": false,
       "unclipped_value": null,
-      "optimizer_score": 2.9765790808805894,
-      "expected_utility": 3.50236115173439,
-      "uncertainty_penalty": 0.5257820708538004,
+      "optimizer_score": 3.0935042753559125,
+      "expected_utility": 3.7090839337295933,
+      "uncertainty_penalty": 0.6155796583736806,
       "feasibility_penalty": 0.0,
-      "evidence_quality": 0.841,
+      "evidence_quality": 0.8277500000000001,
       "objective_key": "daily_protocol_v1"
     },
     {
-      "protocol_id": "training_load_p0627",
+      "protocol_id": "training_load_conservative_p0627",
+      "action": "training_load",
+      "target_value": 189.49275542107915,
+      "current_value": 60.69799999999999,
+      "delta": 128.79475542107917,
+      "unit": "TRIMP/day",
+      "option_index": 0,
+      "option_label": "conservative",
+      "supporting_insight_ids": [
+        "training_load_sleep_efficiency"
+      ],
+      "outcomes_served": [
+        "sleep_efficiency"
+      ],
+      "gate_tier": "recommended",
+      "weakest_contraction": 0.7879475542107918,
+      "horizon_days": 2,
+      "description": "Target training load ~189 TRIMP/day",
+      "rationale": "Optimizes sleep efficiency",
+      "clipped_at_ceiling": false,
+      "unclipped_value": null,
+      "optimizer_score": -0.8008278306839401,
+      "expected_utility": -0.7109748570274961,
+      "uncertainty_penalty": 0.08985297365644411,
+      "feasibility_penalty": 0.0,
+      "evidence_quality": 0.7879999999999999,
+      "objective_key": "daily_protocol_v1"
+    },
+    {
+      "protocol_id": "training_load_aggressive_p0627",
       "action": "training_load",
       "target_value": 199.35048226950357,
       "current_value": 60.69799999999999,
       "delta": 138.6524822695036,
       "unit": "TRIMP/day",
-      "option_index": 0,
-      "option_label": "collapsed",
+      "option_index": 1,
+      "option_label": "aggressive",
       "supporting_insight_ids": [
         "training_load_deep_sleep",
-        "training_load_resting_hr"
+        "training_load_sleep_quality",
+        "training_load_resting_hr",
+        "training_load_hrv_daily"
       ],
       "outcomes_served": [
         "deep_sleep",
-        "resting_hr"
+        "sleep_quality",
+        "resting_hr",
+        "hrv_daily"
       ],
       "gate_tier": "recommended",
       "weakest_contraction": 0.8865248226950355,
       "horizon_days": 4,
       "description": "Target training load ~199 TRIMP/day",
-      "rationale": "Optimizes deep sleep and resting HR",
+      "rationale": "Optimizes deep sleep, sleep quality, resting HR, and HRV",
       "clipped_at_ceiling": false,
       "unclipped_value": null,
-      "optimizer_score": 0.8439401202403007,
-      "expected_utility": 1.1330235367757724,
-      "uncertainty_penalty": 0.28908341653547165,
+      "optimizer_score": -0.3197582440439468,
+      "expected_utility": 0.25156170237936404,
+      "uncertainty_penalty": 0.5713199464233109,
       "feasibility_penalty": 0.0,
-      "evidence_quality": 0.8912352941176469,
+      "evidence_quality": 0.9040810810810809,
       "objective_key": "daily_protocol_v1"
     }
   ],
@@ -35856,7 +36562,7 @@
   },
   "regime_activations": {
     "overreaching_state": 0.03817307981817658,
-    "iron_deficiency_state": 0.0005221674146441202,
+    "iron_deficiency_state": 0.104097838550519,
     "sleep_deprivation_state": 0.7817681187005096,
     "inflammation_state": 0.6467993925579856
   },
@@ -36066,20 +36772,20 @@
       0.026078891219987698
     ],
     "iron_deficiency_state": [
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648,
-      0.0012497015913102648
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252,
+      0.17407754904178252
     ],
     "sleep_deprivation_state": [
       0.9114928169105582,
@@ -36217,7 +36923,7 @@
     },
     {
       "day": 9,
-      "protocol_id": "training_load_p0627",
+      "protocol_id": "training_load_aggressive_p0627",
       "framing": "initial"
     },
     {
@@ -36232,22 +36938,27 @@
     },
     {
       "day": 12,
-      "protocol_id": "sleep_duration_conservative_p0627",
+      "protocol_id": "training_load_conservative_p0627",
       "framing": "initial"
     },
     {
       "day": 13,
-      "protocol_id": "bedtime_conservative_p0627",
+      "protocol_id": "sleep_duration_conservative_p0627",
       "framing": "initial"
     },
     {
       "day": 14,
-      "protocol_id": "steps_conservative_p0627",
+      "protocol_id": "bedtime_conservative_p0627",
       "framing": "initial"
     },
     {
       "day": 15,
       "protocol_id": "active_energy_aggressive_p0627",
+      "framing": "initial"
+    },
+    {
+      "day": 16,
+      "protocol_id": "steps_conservative_p0627",
       "framing": "initial"
     },
     {
@@ -36262,7 +36973,7 @@
     },
     {
       "day": 23,
-      "protocol_id": "training_load_p0627",
+      "protocol_id": "training_load_aggressive_p0627",
       "framing": "adherence-check"
     },
     {
@@ -36277,22 +36988,27 @@
     },
     {
       "day": 26,
-      "protocol_id": "sleep_duration_conservative_p0627",
+      "protocol_id": "training_load_conservative_p0627",
       "framing": "adherence-check"
     },
     {
       "day": 27,
-      "protocol_id": "bedtime_conservative_p0627",
+      "protocol_id": "sleep_duration_conservative_p0627",
       "framing": "adherence-check"
     },
     {
       "day": 28,
-      "protocol_id": "steps_conservative_p0627",
+      "protocol_id": "bedtime_conservative_p0627",
       "framing": "adherence-check"
     },
     {
       "day": 29,
       "protocol_id": "active_energy_aggressive_p0627",
+      "framing": "adherence-check"
+    },
+    {
+      "day": 30,
+      "protocol_id": "steps_conservative_p0627",
       "framing": "adherence-check"
     },
     {
@@ -36307,7 +37023,7 @@
     },
     {
       "day": 37,
-      "protocol_id": "training_load_p0627",
+      "protocol_id": "training_load_aggressive_p0627",
       "framing": "reinforcement"
     },
     {
@@ -36322,22 +37038,27 @@
     },
     {
       "day": 40,
-      "protocol_id": "sleep_duration_conservative_p0627",
+      "protocol_id": "training_load_conservative_p0627",
       "framing": "reinforcement"
     },
     {
       "day": 41,
-      "protocol_id": "bedtime_conservative_p0627",
+      "protocol_id": "sleep_duration_conservative_p0627",
       "framing": "reinforcement"
     },
     {
       "day": 42,
-      "protocol_id": "steps_conservative_p0627",
+      "protocol_id": "bedtime_conservative_p0627",
       "framing": "reinforcement"
     },
     {
       "day": 43,
       "protocol_id": "active_energy_aggressive_p0627",
+      "framing": "reinforcement"
+    },
+    {
+      "day": 44,
+      "protocol_id": "steps_conservative_p0627",
       "framing": "reinforcement"
     }
   ],
@@ -37631,30 +38352,6 @@
     },
     {
       "action": "dietary_energy",
-      "outcome": "hrv_daily",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": -0.0,
-      "prior_cohens_d_sd": 0.5,
-      "expected_posterior_narrow": 0.8505129814496128,
-      "horizon_days": 4,
-      "experiment": {
-        "action_range_delta": [
-          -300,
-          300
-        ],
-        "cadence": "daily",
-        "duration_days": 28,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
-      }
-    },
-    {
-      "action": "dietary_energy",
       "outcome": "magnesium_rbc",
       "pathway": "biomarker",
       "kind": "vary_action",
@@ -37723,54 +38420,6 @@
         "duration_days": 28,
         "feasibility": "needs_baseline",
         "feasibility_note": "No current dietary energy measurement \u2014 log a baseline first."
-      }
-    },
-    {
-      "action": "dietary_energy",
-      "outcome": "sleep_efficiency",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": -0.0,
-      "prior_cohens_d_sd": 0.5,
-      "expected_posterior_narrow": 0.8505129814496128,
-      "horizon_days": 2,
-      "experiment": {
-        "action_range_delta": [
-          -300,
-          300
-        ],
-        "cadence": "daily",
-        "duration_days": 28,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
-      }
-    },
-    {
-      "action": "dietary_energy",
-      "outcome": "sleep_quality",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": -0.0,
-      "prior_cohens_d_sd": 0.5,
-      "expected_posterior_narrow": 0.8505129814496128,
-      "horizon_days": 2,
-      "experiment": {
-        "action_range_delta": [
-          -300,
-          300
-        ],
-        "cadence": "daily",
-        "duration_days": 28,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
       }
     },
     {
@@ -38231,30 +38880,6 @@
     },
     {
       "action": "dietary_protein",
-      "outcome": "hrv_daily",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": 0.0,
-      "prior_cohens_d_sd": 0.3125,
-      "expected_posterior_narrow": 0.7648837793188639,
-      "horizon_days": 4,
-      "experiment": {
-        "action_range_delta": [
-          0,
-          30
-        ],
-        "cadence": "daily",
-        "duration_days": 28,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
-      }
-    },
-    {
-      "action": "dietary_protein",
       "outcome": "hscrp",
       "pathway": "biomarker",
       "kind": "vary_action",
@@ -38554,54 +39179,6 @@
       "prior_cohens_d_sd": 0.3125,
       "expected_posterior_narrow": 0.3289502048159654,
       "horizon_days": 42,
-      "experiment": {
-        "action_range_delta": [
-          0,
-          30
-        ],
-        "cadence": "daily",
-        "duration_days": 28,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
-      }
-    },
-    {
-      "action": "dietary_protein",
-      "outcome": "sleep_efficiency",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": 0.0,
-      "prior_cohens_d_sd": 0.3125,
-      "expected_posterior_narrow": 0.7648837793188639,
-      "horizon_days": 2,
-      "experiment": {
-        "action_range_delta": [
-          0,
-          30
-        ],
-        "cadence": "daily",
-        "duration_days": 28,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
-      }
-    },
-    {
-      "action": "dietary_protein",
-      "outcome": "sleep_quality",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": 0.0,
-      "prior_cohens_d_sd": 0.3125,
-      "expected_posterior_narrow": 0.7648837793188639,
-      "horizon_days": 2,
       "experiment": {
         "action_range_delta": [
           0,
@@ -40707,12 +41284,12 @@
       "pathway": "wearable",
       "kind": "vary_action",
       "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0,
+      "prior_contraction": 0.0030247282107734863,
       "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": 0.00645031589182365,
-      "prior_cohens_d_sd": 0.002580115790663704,
-      "expected_posterior_narrow": 0.0002911164677705802,
+      "user_n": 45,
+      "prior_cohens_d": 0.006416108015971219,
+      "prior_cohens_d_sd": 0.002566217470064228,
+      "expected_posterior_narrow": 0.0002879899494309113,
       "horizon_days": 4,
       "experiment": {
         "action_range_delta": [
@@ -40771,54 +41348,6 @@
         "duration_days": 14,
         "feasibility": "needs_baseline",
         "feasibility_note": "Only 1 personal observation. Collect more baseline before varying."
-      }
-    },
-    {
-      "action": "sleep_duration",
-      "outcome": "sleep_efficiency",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0018664840289862594,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": 0.04565273065980866,
-      "prior_cohens_d_sd": 0.08810064633832863,
-      "expected_posterior_narrow": 0.22828819374383968,
-      "horizon_days": 2,
-      "experiment": {
-        "action_range_delta": [
-          -0.75,
-          0.75
-        ],
-        "cadence": "daily",
-        "duration_days": 14,
-        "feasibility": "blocked",
-        "feasibility_note": "Cohort prior shows almost no effect. Even a perfect experiment would add little."
-      }
-    },
-    {
-      "action": "sleep_duration",
-      "outcome": "sleep_quality",
-      "pathway": "wearable",
-      "kind": "vary_action",
-      "rationale": "Action variation is marginal. A bit more range would let the engine produce a confident recommendation.",
-      "prior_contraction": 0.0018664840289870366,
-      "positivity_flag": "marginal",
-      "user_n": 0,
-      "prior_cohens_d": 0.05714109342630008,
-      "prior_cohens_d_sd": 0.045885753301212834,
-      "expected_posterior_narrow": 0.08107153710071346,
-      "horizon_days": 2,
-      "experiment": {
-        "action_range_delta": [
-          -0.75,
-          0.75
-        ],
-        "cadence": "daily",
-        "duration_days": 14,
-        "feasibility": "needs_baseline",
-        "feasibility_note": "Only 0 personal observations. Collect more baseline before varying."
       }
     },
     {
