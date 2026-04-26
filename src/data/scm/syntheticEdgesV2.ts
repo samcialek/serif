@@ -238,10 +238,19 @@ const SLEEP_QUALITY_EDGES: SyntheticEdgeSpec[] = [
 // steeper heat penalty than cold penalty.
 
 // Bedroom temperature: thermoneutral-window response with a flat
-// plateau between 19.5 and 23.5 C (the literature's safe range) and
-// asymmetric quadratic roll-off — heat penalty steeper than cold.
-// Replaces the earlier sharp inverted_u peaked at 21.5 which made small
-// deviations look much more dramatic than they are.
+// plateau between 19.5 and 23.5 C and asymmetric quadratic roll-off
+// outside it. Amplitudes are clinically defensible outcome-unit
+// magnitudes — what one input plausibly accounts for in a multi-driver
+// model. Earlier values inherited from the inverted_u math
+// (slopeUp × peak ≈ 36 pp sleep_eff) were a visualizer convention,
+// not a calibration in real outcome units.
+//
+// Recalibrated targets (peak-vs-extreme contributions of bedroom temp,
+// holding everything else fixed):
+//   sleep_efficiency  ±6 pp   (room temp is one of many drivers)
+//   deep_sleep        ±18 min (typical literature: 10-25 min swing)
+//   rem_sleep         ±10 min (REM less sensitive than SWS)
+//   hrv_daily         ±4 ms   (one factor among many for HRV)
 const BEDROOM_TEMPERATURE_EDGES: SyntheticEdgeSpec[] = [
   {
     action: 'bedroom_temp_c',
@@ -250,7 +259,7 @@ const BEDROOM_TEMPERATURE_EDGES: SyntheticEdgeSpec[] = [
     shape: {
       kind: 'thermoneutral_window',
       peakLow: 19.5, peakHigh: 23.5,
-      amplitude: 36.5,
+      amplitude: 6,
       halfBelow: 5.0, halfAbove: 3.5,
     },
     pathway: 'wearable',
@@ -265,7 +274,7 @@ const BEDROOM_TEMPERATURE_EDGES: SyntheticEdgeSpec[] = [
     shape: {
       kind: 'thermoneutral_window',
       peakLow: 19.5, peakHigh: 23.5,
-      amplitude: 75,
+      amplitude: 18,
       halfBelow: 5.0, halfAbove: 3.0,
     },
     pathway: 'wearable',
@@ -280,7 +289,7 @@ const BEDROOM_TEMPERATURE_EDGES: SyntheticEdgeSpec[] = [
     shape: {
       kind: 'thermoneutral_window',
       peakLow: 19.5, peakHigh: 23.5,
-      amplitude: 47,
+      amplitude: 10,
       halfBelow: 5.0, halfAbove: 3.5,
     },
     pathway: 'wearable',
@@ -295,7 +304,7 @@ const BEDROOM_TEMPERATURE_EDGES: SyntheticEdgeSpec[] = [
     shape: {
       kind: 'thermoneutral_window',
       peakLow: 19.5, peakHigh: 23.5,
-      amplitude: 30,
+      amplitude: 4,
       halfBelow: 5.5, halfAbove: 4.0,
     },
     pathway: 'wearable',
