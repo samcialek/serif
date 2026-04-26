@@ -411,6 +411,30 @@ export function ClientsView() {
           </Card>
           )}
 
+          {/* Pre-pilot placeholder — keeps the layout symmetric for partners
+              that haven't started a Serif pilot yet. */}
+          {activeClientId !== 'human-edge' && activeClientId !== 'habit-bandz' && (
+          <Card className="p-6 border border-dashed border-slate-300 bg-slate-50/50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-slate-200/60 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-slate-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-700">Serif Impact Dashboard</h3>
+                  <p className="text-sm text-slate-500">No pilot data yet — dashboard activates once integration begins.</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-slate-500 border-slate-300">
+                Pre-pilot
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              Engagement, retention, and outcome metrics will appear here once the partner's first cohort goes live.
+            </p>
+          </Card>
+          )}
+
           {/* Data Sources */}
           <div>
             <div className="flex items-center justify-between mb-4">

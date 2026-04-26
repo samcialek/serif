@@ -504,7 +504,7 @@ export function DataValueView() {
   return (
     <PageLayout maxWidth="2xl">
       <PainterlyPageHeader
-        subtitle="Connected sources and evaluated additions"
+        subtitle="Which next data source would most reduce uncertainty in this member's recommendations."
         hideHorizon
         actions={<DataModeToggle />}
       />

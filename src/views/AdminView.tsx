@@ -1,16 +1,15 @@
-import { useState } from 'react'
 import { Shield, Database } from 'lucide-react'
 import { PageLayout, Section, Grid } from '@/components/layout'
 import { Card, Button, Toggle, Slider } from '@/components/common'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 export function AdminView() {
-  const [certaintyThreshold, setCertaintyThreshold] = useState(50)
-  const [notifications, setNotifications] = useState({
-    insights: true,
-    protocols: true,
-    weeklyDigest: true,
-    deviceAlerts: false,
-  })
+  const insights = useSettingsStore((s) => s.insights)
+  const notifications = useSettingsStore((s) => s.notifications)
+  const privacy = useSettingsStore((s) => s.privacy)
+  const setInsight = useSettingsStore((s) => s.setInsight)
+  const setNotification = useSettingsStore((s) => s.setNotification)
+  const setPrivacy = useSettingsStore((s) => s.setPrivacy)
 
   return (
     <PageLayout
@@ -26,8 +25,8 @@ export function AdminView() {
               Minimum certainty level for showing insights. Lower values show more exploratory insights.
             </p>
             <Slider
-              value={certaintyThreshold}
-              onChange={setCertaintyThreshold}
+              value={insights.certaintyThreshold}
+              onChange={(v) => setInsight('certaintyThreshold', v)}
               min={0}
               max={100}
               step={5}
@@ -45,19 +44,28 @@ export function AdminView() {
               <Toggle
                 label="Show evidence breakdown"
                 description="Display personal vs population data contribution"
-                checked={true}
+                checked={insights.showEvidenceBreakdown}
+                onToggle={() =>
+                  setInsight('showEvidenceBreakdown', !insights.showEvidenceBreakdown)
+                }
                 size="sm"
               />
               <Toggle
                 label="Show confidence intervals"
                 description="Display uncertainty ranges on predictions"
-                checked={true}
+                checked={insights.showConfidenceIntervals}
+                onToggle={() =>
+                  setInsight('showConfidenceIntervals', !insights.showConfidenceIntervals)
+                }
                 size="sm"
               />
               <Toggle
                 label="Explain causal chains"
                 description="Show how insights connect to outcomes"
-                checked={false}
+                checked={insights.explainCausalChains}
+                onToggle={() =>
+                  setInsight('explainCausalChains', !insights.explainCausalChains)
+                }
                 size="sm"
               />
             </div>
@@ -73,28 +81,32 @@ export function AdminView() {
               label="New insights"
               description="Get notified when new high-certainty insights are discovered"
               checked={notifications.insights}
-              onToggle={() => setNotifications(n => ({ ...n, insights: !n.insights }))}
+              onToggle={() => setNotification('insights', !notifications.insights)}
               size="sm"
             />
             <Toggle
               label="Protocol reminders"
               description="Daily reminders for your active protocols"
               checked={notifications.protocols}
-              onToggle={() => setNotifications(n => ({ ...n, protocols: !n.protocols }))}
+              onToggle={() => setNotification('protocols', !notifications.protocols)}
               size="sm"
             />
             <Toggle
               label="Weekly digest"
               description="Summary of your progress and trends"
               checked={notifications.weeklyDigest}
-              onToggle={() => setNotifications(n => ({ ...n, weeklyDigest: !n.weeklyDigest }))}
+              onToggle={() =>
+                setNotification('weeklyDigest', !notifications.weeklyDigest)
+              }
               size="sm"
             />
             <Toggle
               label="Device sync alerts"
-              description="Notify when device sync fails or data is stale"
+              description="Get notified when a device fails to sync or its data goes stale"
               checked={notifications.deviceAlerts}
-              onToggle={() => setNotifications(n => ({ ...n, deviceAlerts: !n.deviceAlerts }))}
+              onToggle={() =>
+                setNotification('deviceAlerts', !notifications.deviceAlerts)
+              }
               size="sm"
             />
           </div>
@@ -141,13 +153,19 @@ export function AdminView() {
               <Toggle
                 label="Contribute to research"
                 description="Allow anonymized data for health research"
-                checked={false}
+                checked={privacy.contributeToResearch}
+                onToggle={() =>
+                  setPrivacy('contributeToResearch', !privacy.contributeToResearch)
+                }
                 size="sm"
               />
               <Toggle
                 label="Share with coach"
                 description="Allow your coach to view your insights"
-                checked={true}
+                checked={privacy.shareWithCoach}
+                onToggle={() =>
+                  setPrivacy('shareWithCoach', !privacy.shareWithCoach)
+                }
                 size="sm"
               />
             </div>

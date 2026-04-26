@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   ClientConfig,
   DataSource,
@@ -88,7 +89,9 @@ const defaultFilters: ClientFilters = {
 // Store
 // ============================================================================
 
-export const useClientStore = create<ClientState>((set, get) => ({
+export const useClientStore = create<ClientState>()(
+  persist(
+    (set, get) => ({
   // Initial state
   activeClientId: null,
   activeClient: null,
@@ -248,7 +251,25 @@ export const useClientStore = create<ClientState>((set, get) => ({
 
     return insights;
   },
-}));
+    }),
+    {
+      name: 'serif-client-store',
+      storage: createJSONStorage(() => localStorage),
+      // Only persist the user's selection — not derived data, filters,
+      // or transient UI state. Cached summaries + clientConfig are
+      // re-hydrated from getClientById() on rehydrate so they always
+      // reflect the latest data shape.
+      partialize: (state) => ({
+        activeClientId: state.activeClientId,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.activeClientId) {
+          state.activeClient = getClientById(state.activeClientId) || null;
+        }
+      },
+    },
+  ),
+);
 
 // ============================================================================
 // Selector Hooks
