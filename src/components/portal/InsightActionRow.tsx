@@ -171,10 +171,13 @@ export function InsightActionRow({
       aria-expanded={expanded}
       title={`${ACTION_LABEL[edge.action] ?? edge.action} → ${edge.outcome}: d=${dStr}, ${band}`}
     >
-      <div className="flex-1 min-w-0 text-sm font-medium text-slate-800 truncate">
+      <div className="flex-1 min-w-0 text-sm font-medium text-slate-800 flex items-baseline gap-1 overflow-hidden">
+        <span className="truncate">
+          {ACTION_LABEL[edge.action] ?? edge.action}
+        </span>
         <GlossaryTerm
           termId={edge.action}
-          display={ACTION_LABEL[edge.action] ?? edge.action}
+          display=""
         />
       </div>
 

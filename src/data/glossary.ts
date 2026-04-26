@@ -175,6 +175,57 @@ const ENTRIES: Record<string, GlossaryEntry> = {
       'Master regulator of iron absorption + release. Spikes after intense exercise, blocking iron uptake for ~6 hours.',
   },
 
+  // ─── Liver / kidney / other panels ──────────────────────────────
+  alt: {
+    term: 'ALT',
+    fullName: 'Alanine aminotransferase',
+    definition:
+      'Liver enzyme. Elevated values suggest hepatocellular stress (alcohol, NAFLD, intense exercise, viral hepatitis).',
+    typical: '<30 U/L men, <19 U/L women optimal; clinical reference range typically <40',
+  },
+  uric_acid: {
+    term: 'Uric acid',
+    fullName: 'Serum uric acid',
+    definition:
+      'Purine metabolism end-product. Elevated values are associated with gout, metabolic syndrome, and cardiovascular risk.',
+    typical: '<6.0 mg/dL women, <7.0 mg/dL men',
+  },
+  homocysteine: {
+    term: 'Homocysteine',
+    fullName: 'Plasma homocysteine',
+    definition:
+      'Sulfur-containing amino acid. Elevated values suggest B-vitamin (B12, B6, folate) insufficiency and are associated with cardiovascular and cognitive risk.',
+    typical: '<10 μmol/L optimal; >15 elevated',
+  },
+  rdw: {
+    term: 'RDW',
+    fullName: 'Red cell Distribution Width',
+    definition:
+      'Variability in red blood cell size. Elevated values are an early marker of nutritional deficiency (iron, B12, folate) and an independent mortality predictor.',
+    typical: '11.5–14.5% normal; <13% optimal',
+  },
+  nlr: {
+    term: 'NLR',
+    fullName: 'Neutrophil-to-Lymphocyte Ratio',
+    definition:
+      'Ratio of two white-blood-cell types. A simple, sensitive marker of systemic inflammation and physiologic stress.',
+    typical: '1–3 healthy; >3 inflammation; >5 marked stress',
+  },
+  magnesium_rbc: {
+    term: 'Magnesium (RBC)',
+    fullName: 'Red blood cell magnesium',
+    definition:
+      'Magnesium concentration inside red blood cells — a more sensitive measure of tissue magnesium status than serum magnesium, which the body tightly regulates.',
+    typical: '4.2–6.8 mg/dL; >5.5 optimal',
+  },
+  dhea_s: {
+    term: 'DHEA-S',
+    fullName: 'Dehydroepiandrosterone sulfate',
+    definition:
+      'Adrenal androgen precursor. Peaks in the 20s and declines steadily with age; lower values in older adults are associated with reduced vitality and immune function.',
+    typical: 'Wide age + sex range; track personal trend more than absolute value',
+  },
+
   // ─── Hormones / micronutrients ──────────────────────────────────
   testosterone: {
     term: 'Testosterone',

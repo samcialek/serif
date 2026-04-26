@@ -233,7 +233,7 @@ export const ProtocolCard = forwardRef<HTMLDivElement, ProtocolCardProps>(
           )}
 
           {/* Progress (if active) */}
-          {showProgress && status === 'active' && protocol.progress !== undefined && (
+          {showProgress && protocolStatus === 'active' && protocol.progress !== undefined && (
             <div className="mt-4">
               <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                 <span>Progress</span>
