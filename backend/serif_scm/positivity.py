@@ -47,6 +47,11 @@ INSUFFICIENT_RANGE_FRAC = 0.20
 MARGINAL_CV = 0.10
 MARGINAL_RANGE_FRAC = 0.40
 
+BINARY_INSUFFICIENT_MINORITY_FRAC = 0.02
+BINARY_INSUFFICIENT_MINORITY_N = 5
+BINARY_MARGINAL_MINORITY_FRAC = 0.10
+BINARY_MARGINAL_MINORITY_N = 20
+
 # Per-action denominator offsets applied before cv / range_fraction
 # are computed. cv = std / |mean - offset|. Used for shifted-clock
 # units where the measurement zero is far from the window being observed:
@@ -74,6 +79,14 @@ _ACTION_TO_DAILY: dict[str, str] = {
     "bedtime": "bedtime_hr",
     "dietary_protein": "protein_g",
     "dietary_energy": "energy_kcal",
+    "carbohydrate_g": "carbohydrate_g",
+    "fiber_g": "fiber_g",
+    "late_meal_count": "late_meal_count",
+    "post_meal_walks": "post_meal_walks",
+    "bedroom_temp_c": "bedroom_temp_c",
+    "supp_melatonin": "supp_melatonin",
+    "supp_l_theanine": "supp_l_theanine",
+    "supp_zinc": "supp_zinc",
     "training_load": "training_min",
 }
 
@@ -81,6 +94,8 @@ _ACTION_TO_DAILY: dict[str, str] = {
 _BEHAVIOR_COLS: tuple[str, ...] = (
     "run_km", "training_min", "zone2_min", "steps",
     "sleep_hrs", "bedtime_hr", "protein_g", "energy_kcal",
+    "carbohydrate_g", "fiber_g", "late_meal_count", "post_meal_walks",
+    "bedroom_temp_c", "supp_melatonin", "supp_l_theanine", "supp_zinc",
 )
 
 
@@ -142,6 +157,7 @@ def compute_positivity(series: Iterable[float], action: str | None = None) -> di
             "range_fraction": 0.0,
             "n_distinct": 0,
             "mode_fraction": 1.0,
+            "minority_fraction": 0.0,
             "flag": "insufficient",
         }
 
@@ -176,13 +192,31 @@ def compute_positivity(series: Iterable[float], action: str | None = None) -> di
     values, counts = np.unique(rounded, return_counts=True)
     mode_fraction = float(counts.max() / n)
     n_distinct = int(values.size)
+    raw_values, raw_counts = np.unique(arr, return_counts=True)
+    is_binary = (
+        raw_values.size <= 2
+        and all(np.isclose(v, 0.0) or np.isclose(v, 1.0) for v in raw_values)
+    )
+    minority_n = int(raw_counts.min()) if raw_counts.size else 0
+    minority_fraction = float(minority_n / n) if n > 0 else 0.0
 
     # Flag: both cv/range_fraction metrics must trip for the same severity
     # level. AND (not OR) means heavy-tailed series with a narrow centre
     # still pass — the rare high days are real identification. For actions
     # with _DENOMINATOR_OFFSET, cv and rf are already computed against the
     # rescaled denominator, so the same thresholds apply uniformly.
-    if cv < INSUFFICIENT_CV and range_fraction < INSUFFICIENT_RANGE_FRAC:
+    if is_binary and (
+        raw_values.size < 2
+        or minority_n < BINARY_INSUFFICIENT_MINORITY_N
+        or minority_fraction < BINARY_INSUFFICIENT_MINORITY_FRAC
+    ):
+        flag = "insufficient"
+    elif is_binary and (
+        minority_n < BINARY_MARGINAL_MINORITY_N
+        or minority_fraction < BINARY_MARGINAL_MINORITY_FRAC
+    ):
+        flag = "marginal"
+    elif cv < INSUFFICIENT_CV and range_fraction < INSUFFICIENT_RANGE_FRAC:
         flag = "insufficient"
     elif cv < MARGINAL_CV and range_fraction < MARGINAL_RANGE_FRAC:
         flag = "marginal"
@@ -198,6 +232,7 @@ def compute_positivity(series: Iterable[float], action: str | None = None) -> di
         "range_fraction": range_fraction,
         "n_distinct": n_distinct,
         "mode_fraction": mode_fraction,
+        "minority_fraction": minority_fraction,
         "flag": flag,
     }
 
@@ -221,6 +256,7 @@ def compute_action_positivity(
                 "n": 0, "mean": 0.0, "std": 0.0, "cv": 0.0,
                 "range": 0.0, "range_fraction": 0.0,
                 "n_distinct": 0, "mode_fraction": 1.0,
+                "minority_fraction": 0.0,
                 "flag": "ok",
             }
             continue

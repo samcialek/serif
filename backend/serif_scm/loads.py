@@ -429,10 +429,10 @@ def weather_history(
 # Cached lookup of caspian_weather.csv keyed by ISO date string. Lazy
 # loaded; None when the file isn't present (so the synthetic path keeps
 # working in dev environments without the CSV).
-_CASPIAN_WEATHER_CACHE: dict[str, dict[str, float]] | None = None
+_CASPIAN_WEATHER_CACHE: dict[str, dict[str, object]] | None = None
 
 
-def _load_caspian_weather() -> dict[str, dict[str, float]] | None:
+def _load_caspian_weather() -> dict[str, dict[str, object]] | None:
     """Load backend/data/caspian_weather.csv into a date-keyed dict.
     Returns None if the file is missing. Cached across calls."""
     global _CASPIAN_WEATHER_CACHE
@@ -443,16 +443,23 @@ def _load_caspian_weather() -> dict[str, dict[str, float]] | None:
     if not path.exists():
         return None
     df = pd.read_csv(path)
-    out: dict[str, dict[str, float]] = {}
+    out: dict[str, dict[str, object]] = {}
     for _, row in df.iterrows():
         out[str(row["date"])] = {
+            "location_id":   str(row["location_id"]) if "location_id" in row and pd.notna(row["location_id"]) else None,
+            "city":          str(row["city"]) if "city" in row and pd.notna(row["city"]) else None,
+            "country":       str(row["country"]) if "country" in row and pd.notna(row["country"]) else None,
+            "latitude":      float(row["latitude"]) if "latitude" in row and pd.notna(row["latitude"]) else None,
+            "longitude":     float(row["longitude"]) if "longitude" in row and pd.notna(row["longitude"]) else None,
+            "timezone":      str(row["timezone"]) if "timezone" in row and pd.notna(row["timezone"]) else None,
+            "location_confidence": float(row["location_confidence"]) if "location_confidence" in row and pd.notna(row["location_confidence"]) else None,
+            "location_source": str(row["location_source"]) if "location_source" in row and pd.notna(row["location_source"]) else None,
             "temp_c":       float(row["temp_c"]) if pd.notna(row["temp_c"]) else None,
             "humidity_pct": float(row["humidity_pct"]) if pd.notna(row["humidity_pct"]) else None,
             "heat_index_c": float(row["heat_index_c"]) if pd.notna(row["heat_index_c"]) else None,
             "aqi":          float(row["aqi"]) if pd.notna(row["aqi"]) else None,
             "sunshine_h":   float(row["sunshine_h"]) if pd.notna(row["sunshine_h"]) else None,
-            # uv_index isn't in the historical archive; left None and
-            # filled by synthetic in real_weather_for_date below.
+            "uv_index":     float(row["uv_index"]) if "uv_index" in row and pd.notna(row["uv_index"]) else None,
         }
     _CASPIAN_WEATHER_CACHE = out
     return out
@@ -462,9 +469,8 @@ def real_weather_for_date(
     date: "_dt.date | str",
     cohort: str = "cohort_a",
 ) -> dict[str, float] | None:
-    """Real Tel Aviv weather for `date` from caspian_weather.csv. Falls
-    back to synthetic for missing keys (UV always, AQI before
-    2022-07-29). Returns None if the CSV isn't loaded or the date is
+    """Location-aware weather for `date` from caspian_weather.csv. Falls
+    back to the cohort pattern for missing keys. Returns None if the CSV isn't loaded or the date is
     outside its coverage — caller should fall through to weather_for_day.
     """
     import datetime as _dt
@@ -478,7 +484,7 @@ def real_weather_for_date(
     real = cache.get(date_str)
     if real is None:
         return None
-    # Day-of-year for the synthetic fallbacks.
+    # Day-of-year for the cohort fallbacks.
     try:
         d_obj = _dt.date.fromisoformat(date_str)
     except ValueError:
@@ -488,9 +494,31 @@ def real_weather_for_date(
     return {
         "temp_c":       round(float(real["temp_c"]), 1) if real["temp_c"] is not None else synth["temp_c"],
         "humidity_pct": round(float(real["humidity_pct"]), 0) if real["humidity_pct"] is not None else synth["humidity_pct"],
-        "uv_index":     synth["uv_index"],   # historical UV unavailable; synthetic stand-in
+        "uv_index":     round(float(real["uv_index"]), 1) if real.get("uv_index") is not None else synth["uv_index"],
         "heat_index_c": round(float(real["heat_index_c"]), 1) if real["heat_index_c"] is not None else synth["heat_index_c"],
         "aqi":          round(float(real["aqi"]), 0) if real["aqi"] is not None else synth["aqi"],
+    }
+
+
+def real_weather_location_for_date(date: "_dt.date | str") -> dict[str, object] | None:
+    """Location metadata for the same row used by real_weather_for_date."""
+    import datetime as _dt
+    cache = _load_caspian_weather()
+    if cache is None:
+        return None
+    date_str = date.isoformat() if isinstance(date, _dt.date) else str(date)
+    real = cache.get(date_str)
+    if real is None:
+        return None
+    return {
+        "location_id": real.get("location_id"),
+        "city": real.get("city"),
+        "country": real.get("country"),
+        "latitude": real.get("latitude"),
+        "longitude": real.get("longitude"),
+        "timezone": real.get("timezone"),
+        "confidence": real.get("location_confidence"),
+        "source": real.get("location_source"),
     }
 
 

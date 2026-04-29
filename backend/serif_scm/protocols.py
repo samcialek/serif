@@ -39,6 +39,7 @@ from typing import Optional
 
 import pandas as pd
 
+from .reconcile import DESIRABLE_DIRECTION
 from .user_observations import NOMINAL_STEP_DAILY
 
 
@@ -75,6 +76,16 @@ ACTION_UNITS: dict[str, str] = {
     "steps":          "steps/day",
     "training_load":  "TRIMP/day",
     "active_energy":  "kcal/day",
+    "dietary_protein": "g/day",
+    "dietary_energy": "kcal/day",
+    "carbohydrate_g": "g/day",
+    "fiber_g": "g/day",
+    "late_meal_count": "count/day",
+    "post_meal_walks": "walks/day",
+    "bedroom_temp_c": "deg C",
+    "supp_melatonin": "on/off",
+    "supp_l_theanine": "on/off",
+    "supp_zinc": "on/off",
 }
 
 # Short, user-facing label per outcome for the rationale string.
@@ -110,6 +121,15 @@ class Protocol:
     clipped_at_ceiling: bool = False
     # Synthesis target before clipping, present only when clipped_at_ceiling.
     unclipped_value: Optional[float] = None
+    # Optimizer v1 audit terms. These do not choose the protocol yet; they
+    # make the expected benefit, uncertainty drag, and feasibility drag visible
+    # to downstream schedule tooling.
+    optimizer_score: float = 0.0
+    expected_utility: float = 0.0
+    uncertainty_penalty: float = 0.0
+    feasibility_penalty: float = 0.0
+    evidence_quality: float = 0.0
+    objective_key: str = "daily_protocol_v1"
 
 
 # ── Participant feature extraction ────────────────────────────────
@@ -134,6 +154,20 @@ def compute_behavioral_sds(life_df_pid: pd.DataFrame) -> dict[str, float]:
     if {"steps", "training_min"}.issubset(life_df_pid.columns):
         ae = 0.04 * life_df_pid["steps"] + 3.0 * life_df_pid["training_min"]
         out["active_energy"] = float(ae.std())
+    for action, col in (
+        ("dietary_protein", "protein_g"),
+        ("dietary_energy", "energy_kcal"),
+        ("carbohydrate_g", "carbohydrate_g"),
+        ("fiber_g", "fiber_g"),
+        ("late_meal_count", "late_meal_count"),
+        ("post_meal_walks", "post_meal_walks"),
+        ("bedroom_temp_c", "bedroom_temp_c"),
+        ("supp_melatonin", "supp_melatonin"),
+        ("supp_l_theanine", "supp_l_theanine"),
+        ("supp_zinc", "supp_zinc"),
+    ):
+        if col in life_df_pid:
+            out[action] = float(life_df_pid[col].std())
     return out
 
 
@@ -155,6 +189,20 @@ def compute_current_values(life_df_pid: pd.DataFrame, window: int = 30) -> dict[
     if {"steps", "training_min"}.issubset(recent.columns):
         ae = 0.04 * recent["steps"] + 3.0 * recent["training_min"]
         out["active_energy"] = float(ae.mean())
+    for action, col in (
+        ("dietary_protein", "protein_g"),
+        ("dietary_energy", "energy_kcal"),
+        ("carbohydrate_g", "carbohydrate_g"),
+        ("fiber_g", "fiber_g"),
+        ("late_meal_count", "late_meal_count"),
+        ("post_meal_walks", "post_meal_walks"),
+        ("bedroom_temp_c", "bedroom_temp_c"),
+        ("supp_melatonin", "supp_melatonin"),
+        ("supp_l_theanine", "supp_l_theanine"),
+        ("supp_zinc", "supp_zinc"),
+    ):
+        if col in recent:
+            out[action] = float(recent[col].mean())
     return out
 
 
@@ -190,6 +238,26 @@ def _render_description(action: str, current: float, target: float) -> str:
         return f"Target training load ~{target:.0f} TRIMP/day"
     if action == "active_energy":
         return f"Target active energy {target:.0f} kcal/day"
+    if action == "dietary_protein":
+        return f"Target protein {target:.0f} g/day"
+    if action == "dietary_energy":
+        return f"Target energy intake {target:.0f} kcal/day"
+    if action == "carbohydrate_g":
+        return f"Target carbohydrates {target:.0f} g/day"
+    if action == "fiber_g":
+        return f"Target fiber {target:.0f} g/day"
+    if action == "late_meal_count":
+        return f"Limit late meals to {max(target, 0):.1f}/day"
+    if action == "post_meal_walks":
+        return f"Target {max(target, 0):.0f} post-meal walks/day"
+    if action == "bedroom_temp_c":
+        return f"Set bedroom temperature to {target:.1f} deg C"
+    if action == "supp_melatonin":
+        return "Use melatonin protocol tonight" if target >= 0.5 else "Skip melatonin tonight"
+    if action == "supp_l_theanine":
+        return "Use L-theanine protocol tonight" if target >= 0.5 else "Skip L-theanine tonight"
+    if action == "supp_zinc":
+        return "Use zinc protocol today" if target >= 0.5 else "Skip zinc today"
     return f"Target {action} = {target:.2f}"
 
 
@@ -202,6 +270,91 @@ def _render_rationale(outcomes: list[str]) -> str:
     if len(labels) == 2:
         return f"Optimizes {labels[0]} and {labels[1]}"
     return f"Optimizes {', '.join(labels[:-1])}, and {labels[-1]}"
+
+
+OBJECTIVE_WEIGHTS: dict[str, float] = {
+    "hrv_daily": 1.0,
+    "resting_hr": 0.9,
+    "sleep_quality": 1.0,
+    "sleep_efficiency": 0.8,
+    "deep_sleep": 0.8,
+    "cortisol": 0.8,
+    "glucose": 0.8,
+    "apob": 0.9,
+    "hscrp": 0.9,
+}
+
+
+def _benefit_sign(outcome: str) -> float:
+    return -1.0 if DESIRABLE_DIRECTION.get(outcome) == "lower" else 1.0
+
+
+def _finite_float(value: object, default: float = 0.0) -> float:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return default
+    if out != out or out in (float("inf"), float("-inf")):
+        return default
+    return out
+
+
+def _personalization_share(insight: dict) -> float:
+    p = insight.get("personalization") or {}
+    if "member_specific_pct" in p:
+        return max(0.0, min(1.0, _finite_float(p.get("member_specific_pct")) / 100.0))
+    posterior = insight.get("posterior") or {}
+    return max(0.0, min(1.0, _finite_float(posterior.get("contraction"))))
+
+
+def _protocol_utility_terms(
+    action: str,
+    current: float,
+    target: float,
+    supporting: list[dict],
+    clipped_at_ceiling: bool,
+) -> dict[str, float]:
+    step = NOMINAL_STEP_DAILY.get(action)
+    if step is None and supporting:
+        step = _finite_float(supporting[0].get("nominal_step"))
+    if step is None or abs(step) < SIGN_EPS:
+        return {
+            "optimizer_score": 0.0,
+            "expected_utility": 0.0,
+            "uncertainty_penalty": 0.0,
+            "feasibility_penalty": 0.0,
+            "evidence_quality": 0.0,
+        }
+
+    dose_multiplier = (float(target) - float(current)) / float(step)
+    expected = 0.0
+    uncertainty = 0.0
+    evidence = 0.0
+    total_weight = 0.0
+
+    for insight in supporting:
+        outcome = str(insight.get("outcome", ""))
+        posterior = insight.get("posterior") or {}
+        mean = _finite_float(posterior.get("mean"))
+        sd = abs(_finite_float(posterior.get("sd")))
+        weight = OBJECTIVE_WEIGHTS.get(outcome, 0.6)
+        personal = _personalization_share(insight)
+        outcome_change = dose_multiplier * mean
+        expected += outcome_change * _benefit_sign(outcome) * weight * max(0.25, personal)
+        uncertainty += abs(dose_multiplier) * sd * weight * (1.0 - 0.5 * personal)
+        evidence += personal * weight
+        total_weight += weight
+
+    feasibility = 0.15 if clipped_at_ceiling else 0.0
+    uncertainty_penalty = 0.25 * uncertainty
+    score = expected - uncertainty_penalty - feasibility
+    return {
+        "optimizer_score": float(score),
+        "expected_utility": float(expected),
+        "uncertainty_penalty": float(uncertainty_penalty),
+        "feasibility_penalty": float(feasibility),
+        "evidence_quality": float(evidence / total_weight) if total_weight > 0 else 0.0,
+    }
 
 
 # ── Core synthesis ────────────────────────────────────────────────
@@ -276,6 +429,13 @@ def _make_protocol(
     tier = _weakest_tier(supporting)
     weakest_c = min(float(i["posterior"]["contraction"]) for i in supporting)
     horizon = max(HORIZON_DAYS_BY_OUTCOME.get(i["outcome"], 7) for i in supporting)
+    utility = _protocol_utility_terms(
+        action=action,
+        current=float(current),
+        target=float(chosen_target),
+        supporting=supporting,
+        clipped_at_ceiling=clipped,
+    )
     suffix = f"{option_label}_" if option_label not in ("single", "collapsed") else ""
     protocol_id = f"{action}_{suffix}p{pid:04d}"
     return Protocol(
@@ -296,6 +456,11 @@ def _make_protocol(
         rationale=_render_rationale(outcomes),
         clipped_at_ceiling=clipped,
         unclipped_value=unclipped,
+        optimizer_score=utility["optimizer_score"],
+        expected_utility=utility["expected_utility"],
+        uncertainty_penalty=utility["uncertainty_penalty"],
+        feasibility_penalty=utility["feasibility_penalty"],
+        evidence_quality=utility["evidence_quality"],
     )
 
 

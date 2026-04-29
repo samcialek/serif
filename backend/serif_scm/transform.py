@@ -33,6 +33,14 @@ CSV_TO_DOSE_NODE: dict[str, str] = {
     "bedtime_hr":   "bedtime",
     "protein_g":    "dietary_protein",
     "energy_kcal":  "dietary_energy",
+    "carbohydrate_g": "carbohydrate_g",
+    "fiber_g": "fiber_g",
+    "late_meal_count": "late_meal_count",
+    "post_meal_walks": "post_meal_walks",
+    "bedroom_temp_c": "bedroom_temp_c",
+    "supp_melatonin": "supp_melatonin",
+    "supp_l_theanine": "supp_l_theanine",
+    "supp_zinc": "supp_zinc",
 }
 
 # Wearable CSV columns -> SCM node names
@@ -115,7 +123,7 @@ def build_participant_state(
     wearables_df: pd.DataFrame,
     lifestyle_df: pd.DataFrame,
     adherence_df: pd.DataFrame,
-    eval_day: int = 100,
+    eval_day: int | None = None,
 ) -> dict:
     """Build a complete state dict for one participant.
 
@@ -133,8 +141,29 @@ def build_participant_state(
     """
     # ── Blood draws ──
     p_blood = blood_df[blood_df["participant_id"] == pid]
-    day1_row = p_blood[p_blood["draw_day"] == 1].iloc[0]
-    day100_row = p_blood[p_blood["draw_day"] == eval_day].iloc[0]
+    p_life = lifestyle_df[lifestyle_df["participant_id"] == pid].sort_values("day")
+    p_wear = wearables_df[wearables_df["participant_id"] == pid].sort_values("day")
+
+    if eval_day is None:
+        candidates: list[int] = []
+        if len(p_life) > 0 and "day" in p_life:
+            candidates.append(int(p_life["day"].max()))
+        if len(p_wear) > 0 and "day" in p_wear:
+            candidates.append(int(p_wear["day"].max()))
+        if len(p_blood) > 0 and "draw_day" in p_blood:
+            candidates.append(int(p_blood["draw_day"].max()))
+        eval_day = max(candidates) if candidates else 100
+
+    day1 = p_blood[p_blood["draw_day"] == 1]
+    if len(day1) == 0:
+        day1 = p_blood.sort_values("draw_day").iloc[[0]]
+    current_draw = p_blood[p_blood["draw_day"] == eval_day]
+    if len(current_draw) == 0:
+        current_draw = p_blood[p_blood["draw_day"] <= eval_day].sort_values("draw_day").tail(1)
+    if len(current_draw) == 0:
+        current_draw = p_blood.sort_values("draw_day").tail(1)
+    day1_row = day1.iloc[0]
+    day100_row = current_draw.iloc[0]
 
     day1_blood = {col: float(day1_row[col]) for col in BLOOD_NODE_NAMES if col in day1_row.index}
     current_blood = {col: float(day100_row[col]) for col in BLOOD_NODE_NAMES if col in day100_row.index}
@@ -147,15 +176,18 @@ def build_participant_state(
     }
 
     # ── Lifestyle (sparse — drop days with no entry, carry-forward for rolling) ──
-    p_life = lifestyle_df[lifestyle_df["participant_id"] == pid].sort_values("day")
-
     # Build daily behavioral series with carry-forward for missing days
-    behavior_cols = ["run_km", "training_min", "zone2_min", "steps",
-                     "sleep_hrs", "bedtime_hr", "protein_g", "energy_kcal"]
+    behavior_cols = [
+        "run_km", "training_min", "zone2_min", "steps",
+        "sleep_hrs", "bedtime_hr", "protein_g", "energy_kcal",
+        "carbohydrate_g", "fiber_g", "late_meal_count", "post_meal_walks",
+        "bedroom_temp_c", "supp_melatonin", "supp_l_theanine", "supp_zinc",
+    ]
+    available_behavior_cols = [c for c in behavior_cols if c in p_life.columns]
 
     # Initialize with NaN, fill logged days, then forward-fill
     daily_behavior = pd.DataFrame({"day": range(1, eval_day + 1)})
-    daily_behavior = daily_behavior.merge(p_life[["day"] + behavior_cols], on="day", how="left")
+    daily_behavior = daily_behavior.merge(p_life[["day"] + available_behavior_cols], on="day", how="left")
     daily_behavior = daily_behavior.ffill().bfill()
 
     # Compute behavioral aggregates for SCM dose nodes
@@ -177,6 +209,9 @@ def build_participant_state(
         # Active energy ≈ steps × 0.04 + training_min × 3 (kcal/day)
         "active_energy":    float(last_7["steps"].mean() * 0.04 + last_7["training_min"].mean() * 3),
     }
+    for col, node in CSV_TO_DOSE_NODE.items():
+        if col in last_7.columns and node not in behavioral_state:
+            behavioral_state[node] = float(last_7[col].mean())
 
     # Baseline behavioral state (first 30 days) for delta computation
     first_30 = daily_behavior.head(30)
@@ -194,6 +229,9 @@ def build_participant_state(
         "training_load":    float(first_7["training_min"].mean() * 1.78),
         "active_energy":    float(first_7["steps"].mean() * 0.04 + first_7["training_min"].mean() * 3),
     }
+    for col, node in CSV_TO_DOSE_NODE.items():
+        if col in first_7.columns and node not in baseline_behavioral:
+            baseline_behavioral[node] = float(first_7[col].mean())
 
     # ── Derived variables ──
     training_loads = daily_behavior["training_min"].tolist()
@@ -213,7 +251,6 @@ def build_participant_state(
     }
 
     # ── Wearables (drop missing days per decision, use valid days for averages) ──
-    p_wear = wearables_df[wearables_df["participant_id"] == pid].sort_values("day")
     last_7_wear = p_wear[p_wear["day"] > eval_day - 7]
 
     wearable_state = {}
@@ -264,6 +301,7 @@ def build_participant_state(
 
     return {
         **meta,
+        "eval_day":             int(eval_day),
         "day1_blood":           day1_blood,
         "current_blood":        current_blood,
         "behavioral_state":     behavioral_state,

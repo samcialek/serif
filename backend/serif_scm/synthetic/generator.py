@@ -35,6 +35,7 @@ from .config import (
     DOSE_COLUMN_MAP, TARGET_COLUMN_MAP,
     ADHERENCE_DECAY_HALFLIFE_DAYS, ADHERENCE_FLOOR, BEHAVIORAL_ADAPTATION_DAYS,
 )
+from ..rich_member_data import attach_rich_member_data
 
 # ── Edge loading ────────────────────────────────────────────────
 
@@ -643,6 +644,15 @@ def generate(seed: int = SEED, output_dir: str | Path = "./output") -> dict[str,
     wearables_df.to_csv(output_dir / "wearables_daily.csv", index=False)
     lifestyle_df.to_csv(output_dir / "lifestyle_app.csv", index=False)
     adherence_df.to_csv(output_dir / "adherence.csv", index=False)
+
+    print("Attaching rich longitudinal member tables...")
+    rich_frames = attach_rich_member_data(output_dir, seed=seed + 1000)
+    print(
+        "  Sarah M.: "
+        f"{len(rich_frames['lifestyle_app']):,} days, "
+        f"{len(rich_frames['blood_draws']):,} lab draws, "
+        f"{len(rich_frames['meal_events']):,} meal events"
+    )
     print(f"\nSaved to {output_dir.resolve()}")
 
     # ── Summary ──

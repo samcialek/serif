@@ -43,6 +43,14 @@ SOURCE_COL_TO_NODE: dict[str, str] = {
     "travel_load":           "travel_load",
     "dietary_protein_g":     "dietary_protein",
     "dietary_energy_kcal":   "dietary_energy",
+    "carbohydrate_g":        "carbohydrate_g",
+    "fiber_g":               "fiber_g",
+    "late_meal_count":       "late_meal_count",
+    "post_meal_walks":       "post_meal_walks",
+    "bedroom_temp_c":        "bedroom_temp_c",
+    "supp_melatonin":        "supp_melatonin",
+    "supp_l_theanine":       "supp_l_theanine",
+    "supp_zinc":             "supp_zinc",
     "ferritin_smoothed":     "ferritin",
     "omega3_index_derived":  "omega3_index",
     "homocysteine_smoothed": "homocysteine",
@@ -401,6 +409,14 @@ MANIPULABLE_NODES = {
     "active_energy",
     "dietary_protein",
     "dietary_energy",
+    "carbohydrate_g",
+    "fiber_g",
+    "late_meal_count",
+    "post_meal_walks",
+    "bedroom_temp_c",
+    "supp_melatonin",
+    "supp_l_theanine",
+    "supp_zinc",
 }
 
 # Rolling cumulative loads. Treated as "actions" for the marginal-effect probe
@@ -426,6 +442,14 @@ MARGINAL_STEPS: dict[str, float] = {
     "active_energy":    100.0,   # +100 kcal/day
     "dietary_protein":  20.0,    # +20 g/day
     "dietary_energy":   -200.0,  # -200 kcal/day (deficit)
+    "carbohydrate_g":   -25.0,   # -25 g/day
+    "fiber_g":          5.0,     # +5 g/day
+    "late_meal_count":  -1.0,    # -1 late meal/day-or-logged unit
+    "post_meal_walks":  1.0,     # +1 walk/day
+    "bedroom_temp_c":   -1.0,    # 1 C cooler when above target
+    "supp_melatonin":   1.0,     # binary protocol
+    "supp_l_theanine":  1.0,     # binary protocol
+    "supp_zinc":        1.0,     # binary protocol
     # Load probes. Negative steps where the desired direction is a reduction.
     "acwr":             0.2,     # +0.2 acute:chronic ratio (moving up the load curve)
     "sleep_debt":       -3.0,    # -3 hours of 14-day accumulated debt

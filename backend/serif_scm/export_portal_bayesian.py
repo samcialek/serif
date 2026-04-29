@@ -149,6 +149,7 @@ DIRECTION_CONFLICT_DISCOUNT = 0.5
 # is relative (min of current gate and the ceiling) so a weak-contraction
 # insight stays weak rather than being boosted up to the cap.
 MARGINAL_POSITIVITY_GATE_CAP = GATE_RECOMMENDED - 0.01
+ZINC_DEFICIENCY_THRESHOLD_MCG_DL = 70.0
 
 
 # ── Regime-aware gating ──
@@ -296,6 +297,63 @@ def _personalization_summary(post, pathway: str, user_n: int) -> dict:
     }
 
 
+def _apply_zinc_context_gate(row: dict, outcome_baselines: dict[str, float] | None) -> None:
+    """Hold zinc-supplement effects at zero unless current labs show deficiency."""
+    if row.get("action") != "supp_zinc":
+        return
+    zinc_value = None
+    if outcome_baselines:
+        raw = outcome_baselines.get("zinc")
+        try:
+            zinc_value = float(raw) if raw is not None else None
+        except (TypeError, ValueError):
+            zinc_value = None
+    deficient = zinc_value is not None and zinc_value < ZINC_DEFICIENCY_THRESHOLD_MCG_DL
+    row["context_gate"] = {
+        "name": "zinc_deficiency",
+        "status": "active" if deficient else "blocked",
+        "value": zinc_value,
+        "threshold": ZINC_DEFICIENCY_THRESHOLD_MCG_DL,
+    }
+    if deficient:
+        return
+
+    reason = "zinc_status_unobserved" if zinc_value is None else "zinc_status_not_deficient"
+    row["scaled_effect"] = 0.0
+    row["unbounded_scaled_effect"] = 0.0
+    row["dose_multiplier"] = 0.0
+    row["unbounded_dose_multiplier"] = 0.0
+    posterior = row.get("posterior")
+    if isinstance(posterior, dict):
+        posterior["mean"] = 0.0
+        posterior["z_like"] = 0.0
+    gate = row.setdefault("gate", {})
+    gate["score"] = 0.0
+    gate["tier"] = "not_exposed"
+    gate["suppression_reason"] = reason
+    row["supporting_data_description"] = (
+        "Zinc status is not currently deficient; supplementation effect held at zero."
+        if zinc_value is not None
+        else "No current zinc lab available; supplementation effect held at zero."
+    )
+
+
+def _public_provenance_label(provenance: str | None) -> str:
+    """Translate internal provenance into product-facing labels."""
+    if not provenance:
+        return "model_fit"
+    if provenance == "synthetic":
+        return "model_fit"
+    return provenance
+
+
+def _public_provenance_counts(counts: dict[str, int]) -> dict[str, int]:
+    out: dict[str, int] = defaultdict(int)
+    for key, value in counts.items():
+        out[_public_provenance_label(key)] += int(value)
+    return dict(out)
+
+
 LITERATURE_BACKED: set[tuple[str, str]] = {
     # ACWR -> recovery/inflammation: Gabbett 2016, Malone 2017, Hulin 2014
     ("acwr", "hrv_daily"),
@@ -434,7 +492,7 @@ def _row(
         "outcome": outcome,
         "pathway": pathway,
         "evidence_tier": evidence_tier,
-        "prior_provenance": getattr(pop, "provenance", "synthetic"),
+        "prior_provenance": _public_provenance_label(getattr(pop, "provenance", None)),
         "literature_backed": is_literature_backed(action, outcome),
         "horizon_days": horizon,
         "horizon_display": horizon_display(horizon) if horizon > 0 else "",
@@ -490,6 +548,7 @@ def _row(
                 "cv": positivity.get("cv", 0.0),
                 "range_fraction": positivity.get("range_fraction", 0.0),
                 "mode_fraction": positivity.get("mode_fraction", 1.0),
+                "minority_fraction": positivity.get("minority_fraction", 0.0),
                 "n_distinct": positivity.get("n_distinct", 0),
             }
             if positivity is not None else None
@@ -620,6 +679,7 @@ def _export_one(
                  current_value=current_values.get(action),
                  positivity=positivity_map.get(action),
                  regime_activations=regime_activations)
+        _apply_zinc_context_gate(r, outcome_baselines)
         rows.append(r)
         tier_counts[r["gate"]["tier"]] += 1
 
@@ -769,7 +829,8 @@ def main():
     print(f"[bayes] layer 0 added {len(weak_added)} weak-default priors "
           f"(SIGMA_WEAK_FRAC={SIGMA_WEAK_FRAC:.2f})")
     provenance_counts = summarize_by_provenance(priors)
-    print(f"[bayes] prior provenance (__all__): {provenance_counts}")
+    public_provenance_counts = _public_provenance_counts(provenance_counts)
+    print(f"[bayes] prior provenance (__all__): {public_provenance_counts}")
 
     # Derive SUPPORTED_PAIRS from priors. Synthetic fits pass when |mean|
     # exceeds 1e-6; weak defaults pass unconditionally (they carry posterior
@@ -805,7 +866,6 @@ def main():
 
     # Load blood for regime-activation inputs (ferritin, hscrp at eval day).
     blood_df = pd.read_csv(data_dir / "blood_draws.csv")
-    eval_day = 100
 
     # Load wearables for per-outcome baselines (14-day trailing mean).
     wear_df = pd.read_csv(data_dir / "wearables_daily.csv")
@@ -850,6 +910,7 @@ def main():
     # are driving most of the boosts. Helps verify the boost targets realistic
     # regime/action combinations rather than firing indiscriminately.
     regime_boost_counts: dict = defaultdict(int)
+    participant_summaries: list[dict] = []
 
     for i, state in enumerate(participants):
         pid = int(state["pid"])
@@ -857,6 +918,7 @@ def main():
         cohort_id = _rename_cohort(raw_cohort_id)
         age = int(state["age"])
         is_female = bool(state["is_female"])
+        eval_day = int(state.get("eval_day", 100))
 
         life_pid = life_by_pid.get(pid)
         if life_pid is not None and len(life_pid) > 0:
@@ -899,8 +961,9 @@ def main():
             day_row = p_blood.iloc[[-1]] if len(p_blood) > 0 else None
 
         if life_pid is not None and day_row is not None and len(day_row) > 0:
+            load_cols = [c for c in ("training_min", "sleep_hrs") if c in life_pid.columns]
             daily = pd.DataFrame({"day": range(1, eval_day + 1)}).merge(
-                life_pid[["day", "training_min", "sleep_hrs"]], on="day", how="left"
+                life_pid[["day", *load_cols]], on="day", how="left"
             ).ffill().bfill()
             regime_inputs = {
                 "acwr":       compute_acwr(daily["training_min"].tolist(), eval_day - 1),
@@ -950,6 +1013,31 @@ def main():
         (out_dir / f"participant_{pid:04d}.json").write_text(
             json.dumps(record, indent=2, default=float)
         )
+        active_edges = [
+            eff for eff in record["effects_bayesian"]
+            if eff.get("gate", {}).get("tier") in {"recommended", "possible"}
+        ]
+        regime_values = [
+            float(v) for v in (record.get("regime_activations") or {}).values()
+            if isinstance(v, (int, float))
+        ]
+        participant_summaries.append({
+            "pid": pid,
+            "cohort": cohort_id,
+            "exposed_count": int(record["exposed_count"]),
+            "recommended_count": int(record["tier_counts"].get("recommended", 0)),
+            "possible_count": int(record["tier_counts"].get("possible", 0)),
+            "gate_score_sum": round(
+                sum(float(eff.get("gate", {}).get("score", 0.0)) for eff in active_edges),
+                3,
+            ),
+            "regime_activations": {
+                k: round(float(v), 4)
+                for k, v in (record.get("regime_activations") or {}).items()
+                if isinstance(v, (int, float))
+            },
+            "regime_urgency": round(max(regime_values), 4) if regime_values else 0.0,
+        })
 
         for k, v in record["tier_counts"].items():
             global_tier_counts[k] += v
@@ -1178,8 +1266,18 @@ def main():
     else:
         print(f"\n[bayes] no stop-condition warnings fired")
 
+    generated_at = time.strftime("%Y-%m-%dT%H:%M:%S")
+    summary = {
+        "generated_at": generated_at,
+        "n_participants": len(participant_summaries),
+        "participants": participant_summaries,
+    }
+    (out_dir / "participant_summary.json").write_text(
+        json.dumps(summary, indent=2, default=float)
+    )
+
     manifest = {
-        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "generated_at": generated_at,
         "engine_version": "v5-biomarker-widened",
         "n_participants": len(participants),
         "supported_pairs": [list(p) for p in supported_pairs],
@@ -1190,7 +1288,7 @@ def main():
         "evidence_tier_thresholds": EVIDENCE_TIER_THRESHOLDS,
         "per_pathway_tier": {k: dict(v) for k, v in per_pathway_tier.items()},
         "n_priors": len(priors),
-        "prior_provenance_counts": provenance_counts,
+        "prior_provenance_counts": public_provenance_counts,
         "sigma_weak_frac": SIGMA_WEAK_FRAC,
         "tier_counts": global_tier_counts,
         "exposed_total": exposed_total,
