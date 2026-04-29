@@ -7,8 +7,8 @@
  *   2. Sectioned scroll: Thresholds → Contradictions → Outliers →
  *      Sensitivities → Behaviors → Variability → Rare combinations →
  *      Data fingerprints. Each section is a card grid.
- *   3. "Show early signals" toggle in the actions slot — flips weak
- *      Fingerprints back on (off by default).
+ *   3. "Show early signals" toggle in the actions slot when weak
+ *      Fingerprints exist. They stay off by default.
  *
  * Modes:
  *   - rich    (3+ moderate/strong) → full page
@@ -117,6 +117,9 @@ export function FingerprintView() {
     () => (participant ? computeFingerprints(participant) : null),
     [participant],
   )
+  const hasWeakFingerprints = Boolean(
+    bundle?.fingerprints.some((f) => f.strength === 'weak'),
+  )
 
   // Deep-link scroll: when arriving via /fingerprint?outcome=hrv_daily
   // (or similar), scroll to and briefly highlight the first Fingerprint
@@ -142,7 +145,11 @@ export function FingerprintView() {
     }
   }, [focusOutcome, participant])
 
-  const actions = (
+  useEffect(() => {
+    if (!hasWeakFingerprints && showWeak) setShowWeak(false)
+  }, [hasWeakFingerprints, showWeak])
+
+  const actions = hasWeakFingerprints ? (
     <button
       type="button"
       onClick={() => setShowWeak((v) => !v)}
@@ -164,7 +171,7 @@ export function FingerprintView() {
       {showWeak ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
       {showWeak ? 'Hide early signals' : 'Show early signals'}
     </button>
-  )
+  ) : undefined
 
   if (pid == null) {
     return (

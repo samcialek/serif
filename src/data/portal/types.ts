@@ -56,6 +56,23 @@ export interface UserObs {
 export interface GateInfo {
   score: number
   tier: GateTier
+  suppression_reason?: string | null
+}
+
+export interface ContextGate {
+  name: string
+  status: 'active' | 'blocked' | string
+  value: number | null
+  threshold: number
+}
+
+export interface PositivityInfo {
+  n: number
+  cv: number
+  range_fraction: number
+  mode_fraction: number
+  minority_fraction?: number
+  n_distinct: number
 }
 
 export interface PersonalizationEvidence {
@@ -68,13 +85,19 @@ export interface PersonalizationEvidence {
 }
 
 /** Where the prior on this (action, outcome) pair came from in the
- *  backend pipeline. `synthetic` is the legacy wire key for a fitted
+ *  backend pipeline. `model_fit` is the public wire key for a fitted
  *  model-derived DAG path.
  *  `weak_default` = Layer 0 fallback (N(0, 0.25·pop_SD²)) for pairs the
  *  DAG doesn't yet model — surface only with a "From your data" caveat
  *  because there's no causal adjustment set behind the user OLS.
- *  `synthetic+literature` = DAG fit pooled with a published prior. */
-export type PriorProvenance = 'synthetic' | 'weak_default' | 'synthetic+literature'
+ *  `model_fit+literature` = DAG fit pooled with a published prior. */
+export type PriorProvenance =
+  | 'model_fit'
+  | 'weak_default'
+  | 'model_fit+literature'
+  | 'literature'
+  | 'synthetic'
+  | 'synthetic+literature'
 
 export interface InsightBayesian {
   action: string
@@ -105,6 +128,9 @@ export interface InsightBayesian {
   cohort_prior: CohortPrior | null
   user_obs: UserObs | null
   gate: GateInfo
+  context_gate?: ContextGate
+  positivity_flag?: 'ok' | 'marginal' | 'insufficient' | string
+  positivity?: PositivityInfo | null
 }
 
 export interface Protocol {

@@ -4,6 +4,8 @@
  * product framing.
  */
 
+import type { IdentityLabelId } from './labelDictionary'
+
 export type FingerprintType =
   | 'outlier'
   | 'threshold'
@@ -14,6 +16,11 @@ export type FingerprintType =
   | 'behavior'
   | 'identity_label'
   | 'data_gap'
+
+export type NonIdentityFingerprintType = Exclude<
+  FingerprintType,
+  'identity_label'
+>
 
 export type FingerprintComparison =
   | 'self_history'
@@ -94,10 +101,9 @@ export type FingerprintEvidence =
     }
   | { kind: 'note'; body: string }
 
-export interface Fingerprint {
+interface FingerprintBase {
   /** Stable id — used as anchor target for hero label clicks. */
   id: string
-  type: FingerprintType
   /** Headline. For identity_label entries this is the controlled
    *  dictionary phrase; for everything else, a short claim title. */
   label: string
@@ -122,10 +128,23 @@ export interface Fingerprint {
     edges?: Array<{ action: string; outcome: string }>
     data_streams?: string[]
   }
-  /** identity_label entries point at the supporting Fingerprint ids
-   *  that justify the label. Hero pill click scrolls + highlights. */
-  supports?: string[]
 }
+
+export type Fingerprint =
+  | (FingerprintBase & {
+      type: 'identity_label'
+      /** Stable dictionary id. The display label must match
+       *  labelDictionary.ts for this id. Tests enforce that contract. */
+      identity_label_id: IdentityLabelId
+      /** Supporting Fingerprint ids that justify the identity label.
+       *  Hero pill click scrolls + highlights the first support. */
+      supports: string[]
+    })
+  | (FingerprintBase & {
+      type: NonIdentityFingerprintType
+      identity_label_id?: never
+      supports?: never
+    })
 
 /** Output of a per-member compute pass — the View consumes this. */
 export interface FingerprintBundle {

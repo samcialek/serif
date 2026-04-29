@@ -6,6 +6,7 @@ export { CoachLandingView } from './CoachLandingView'
 export { ProtocolsView } from './ProtocolsView'
 export { CoachView } from './CoachView'
 export { ApiView } from './ApiView'
+export { EdgeMapView } from './EdgeMapView'
 export { AdminView } from './AdminView'
 export { ClientsView } from './ClientsView'
 export { UserDetailView } from './UserDetailView'
@@ -21,3 +22,5 @@ export { BaselineView } from './BaselineView'
 export { ExplorationView } from './ExplorationView'
 // Fingerprint — distinctive pattern profile per member.
 export { FingerprintView } from './FingerprintView'
+// Agency - decision layer over the causal graph.
+export { AgencyView } from './AgencyView'

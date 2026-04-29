@@ -37,7 +37,13 @@ const ACTION_INCREMENT: Record<string, number> = {
   resistance_training_minutes: 30, // min/week
   dietary_protein: 5,       // g/day
   dietary_energy: 100,      // kcal/day
+  carbohydrate_g: 10,       // g/day
+  fiber_g: 5,               // g/day
+  late_meal_count: 1,       // late meals/week
+  post_meal_walks: 1,       // walks/day
   active_energy: 100,       // kcal/day
+  cycle_luteal_phase: 1,
+  luteal_symptom_score: 1,
   supp_omega3: 1,
   supp_magnesium: 1,
   supp_vitamin_d: 1,
@@ -339,6 +345,17 @@ export function formatActionValue(value: number, action: string): string {
       return `${rounded.toFixed(1)} deg C`
     case 'dietary_protein':
       return `${rounded.toFixed(0)} g/day`
+    case 'carbohydrate_g':
+    case 'fiber_g':
+      return `${rounded.toFixed(0)} g/day`
+    case 'late_meal_count':
+      return `${rounded.toFixed(0)} late meals/week`
+    case 'post_meal_walks':
+      return `${rounded.toFixed(0)} walks/day`
+    case 'cycle_luteal_phase':
+      return rounded >= 0.5 ? 'luteal' : 'not luteal'
+    case 'luteal_symptom_score':
+      return `${rounded.toFixed(0)}/10`
     case 'dietary_energy':
     case 'active_energy':
       return `${rounded.toFixed(0)} kcal/day`
@@ -380,7 +397,13 @@ function actionPhrase(action: string): string {
     resistance_training_minutes: 'resistance training',
     dietary_protein: 'protein',
     dietary_energy: 'dietary energy',
+    carbohydrate_g: 'carbohydrates',
+    fiber_g: 'fiber',
+    late_meal_count: 'late meals',
+    post_meal_walks: 'post-meal walks',
     active_energy: 'active energy',
+    cycle_luteal_phase: 'luteal phase',
+    luteal_symptom_score: 'luteal symptoms',
     supp_omega3: 'omega-3',
     supp_magnesium: 'magnesium',
     supp_vitamin_d: 'vitamin D',
@@ -497,6 +520,41 @@ export function formatRecommendedAction(
     }
     const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
     return `${verb} protein to ${target.toFixed(0)} g/day`
+  }
+
+  if (action === 'carbohydrate_g' || action === 'fiber_g') {
+    const label = actionPhrase(action)
+    if (noCurrent) {
+      return raise
+        ? `Add ~${rounded.toFixed(0)} g/day of ${label}`
+        : `Reduce ${label} by ~${rounded.toFixed(0)} g/day`
+    }
+    const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
+    return `${verb} ${label} to ${target.toFixed(0)} g/day`
+  }
+
+  if (action === 'late_meal_count') {
+    if (noCurrent) {
+      return raise
+        ? `Add ~${rounded.toFixed(0)} late meals/week`
+        : `Reduce late meals by ~${rounded.toFixed(0)}/week`
+    }
+    const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
+    return `${verb} late meals to ${target.toFixed(0)}/week`
+  }
+
+  if (action === 'post_meal_walks') {
+    if (noCurrent) {
+      return raise
+        ? `Add ~${rounded.toFixed(0)} post-meal walks/day`
+        : `Reduce post-meal walks by ~${rounded.toFixed(0)}/day`
+    }
+    const target = roundForAction(Math.max(0, applyDelta(currentValue as number)), action)
+    return `${verb} post-meal walks to ${target.toFixed(0)}/day`
+  }
+
+  if (action === 'cycle_luteal_phase' || action === 'luteal_symptom_score') {
+    return `Adjust for ${actionPhrase(action)}`
   }
 
   if (action === 'dietary_energy' || action === 'active_energy') {

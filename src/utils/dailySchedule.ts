@@ -96,6 +96,11 @@ const WEEKLY_CADENCE: Record<string, number> = {
   steps: 7,
   dietary_protein: 7,
   dietary_energy: 7,
+  carbohydrate_g: 7,
+  fiber_g: 7,
+  late_meal_count: 7,
+  post_meal_walks: 7,
+  bedroom_temp_c: 7,
   bedtime: 7,
   sleep_duration: 7,
 }
@@ -107,6 +112,11 @@ const ACTION_SLOT: Record<
 > = {
   dietary_protein: { time: '07:00', slot: 'morning', icon: '🥚', title: 'Morning protein' },
   dietary_energy: { time: '12:30', slot: 'afternoon', icon: '🍽️', title: 'Midday meal' },
+  carbohydrate_g: { time: '12:30', slot: 'afternoon', icon: '🍽️', title: 'Carbohydrate target' },
+  fiber_g: { time: '12:30', slot: 'afternoon', icon: '🥬', title: 'Fiber target' },
+  late_meal_count: { time: '18:30', slot: 'evening', icon: '🕡', title: 'Meal cutoff' },
+  post_meal_walks: { time: '13:15', slot: 'afternoon', icon: '🚶', title: 'Post-meal walks' },
+  bedroom_temp_c: { time: '21:00', slot: 'evening', icon: '🌡️', title: 'Bedroom cooling' },
   active_energy: { time: '07:30', slot: 'morning', icon: '🚶', title: 'Morning movement' },
   steps: { time: '12:00', slot: 'afternoon', icon: '👟', title: 'Walk breaks' },
   running_volume: { time: '16:30', slot: 'afternoon', icon: '🏃', title: 'Training run' },

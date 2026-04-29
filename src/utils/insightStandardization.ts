@@ -20,6 +20,7 @@
 
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import { inferShape, slopeOfShape } from '@/utils/insightShape'
+import { isContextSuppressed } from '@/utils/edgeSuppression'
 
 /** Cohort-marginal outcome SD (units below). Mirrored from
  * backend/serif_scm/synthetic/config.py BIOMARKER_PRIORS + WEARABLE_PRIORS.
@@ -99,6 +100,12 @@ const FALLBACK_ACTION_SD: Record<string, number> = {
   training_volume: 0.5, // hours/day
   dietary_protein: 30, // g/day
   dietary_energy: 400, // kcal/day
+  carbohydrate_g: 40, // g/day
+  fiber_g: 8, // g/day
+  late_meal_count: 1.2, // late meals/week
+  post_meal_walks: 1, // walks/day
+  cycle_luteal_phase: 0.5,
+  luteal_symptom_score: 2,
   acwr: 0.2,
   sleep_debt: 2,
   travel_load: 0.5,
@@ -147,6 +154,7 @@ export function slopeAtBaseline(
   edge: InsightBayesian,
   participant: ParticipantPortal,
 ): number {
+  if (isContextSuppressed(edge)) return 0
   const x0 = participant.current_values?.[edge.action]
   if (x0 == null) return slopePerNativeUnit(edge)
   const shape = inferShape(edge)
@@ -164,6 +172,7 @@ export function cohensD(
   edge: InsightBayesian,
   participant: ParticipantPortal,
 ): number {
+  if (isContextSuppressed(edge)) return 0
   const slope = slopeAtBaseline(edge, participant)
   const sda = actionSD(edge.action, participant)
   const sdo = outcomeSD(edge.outcome)
@@ -218,6 +227,7 @@ export function cohensDSD(
   edge: InsightBayesian,
   participant: ParticipantPortal,
 ): number {
+  if (isContextSuppressed(edge)) return 0
   const step = edge.nominal_step || 1
   if (Math.abs(step) < 1e-12) return 0
   const sdo = outcomeSD(edge.outcome)
@@ -253,6 +263,7 @@ export const EFFECT_BAND_LABEL: Record<EffectBand, string> = {
  * Native units, signed. Used for the "+30 min sleep ⇒ +4 min deep
  * sleep" supporting line. */
 export function predictedNativeEffectAtStep(edge: InsightBayesian): number {
+  if (isContextSuppressed(edge)) return 0
   return edge.posterior.mean
 }
 
@@ -280,5 +291,6 @@ export function beneficialSign(outcome: string): number {
 
 /** True when the edge moves the outcome in the user-beneficial direction. */
 export function isBeneficial(edge: InsightBayesian): boolean {
+  if (isContextSuppressed(edge)) return false
   return Math.sign(edge.posterior.mean) === beneficialSign(edge.outcome)
 }

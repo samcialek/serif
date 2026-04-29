@@ -25,6 +25,7 @@ import { useMemo } from 'react'
 import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 import { isBeneficial } from '@/utils/insightStandardization'
 import { ACTION_DOMAIN, evaluateShape, inferShape } from '@/utils/insightShape'
+import { isContextSuppressed } from '@/utils/edgeSuppression'
 
 interface Props {
   edge: InsightBayesian
@@ -116,8 +117,13 @@ export function DoseResponseChart({
   }, [edge, participant, width, height, padX, padY])
 
   const beneficial = isBeneficial(edge)
-  const curveStroke = beneficial ? '#10b981' : '#f43f5e'
-  const curveFill = beneficial ? 'rgba(16,185,129,0.14)' : 'rgba(244,63,94,0.14)'
+  const suppressed = isContextSuppressed(edge)
+  const curveStroke = suppressed ? '#94a3b8' : beneficial ? '#10b981' : '#f43f5e'
+  const curveFill = suppressed
+    ? 'rgba(148,163,184,0.10)'
+    : beneficial
+      ? 'rgba(16,185,129,0.14)'
+      : 'rgba(244,63,94,0.14)'
 
   // Arrow marker def — for the tangent line ends.
   return (

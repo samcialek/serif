@@ -1,5 +1,7 @@
 import type { Persona, Insight, DailyMetrics, LabResult, Protocol, DailyPlan } from '@/types'
 
+const BASE_URL = import.meta.env?.BASE_URL ?? '/'
+
 // ──────────────────────────────────────────────────────────────
 // CASPIAN R. — Demo Persona (anonymized)
 // Synthetic endurance-athlete archetype: iron deficiency, high VO2peak, multi-year GPS data
@@ -11,7 +13,7 @@ export const caspianPersona: Persona = {
   name: 'Caspian R.',
   // v2 = background-stripped PNG. Query string busts the browser cache so
   // this replaces any previously-cached CaspianR.jpeg without a hard reload.
-  avatar: `${import.meta.env.BASE_URL}CaspianR.png?v=2`,
+  avatar: `${BASE_URL}CaspianR.png?v=2`,
   persona: 'Triathlete optimizing iron status & endurance performance',
   age: 38,
   archetype: 'Endurance Athlete with Iron-Limited Performance',

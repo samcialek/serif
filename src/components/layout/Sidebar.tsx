@@ -9,6 +9,7 @@ import {
   ListChecks,
   Users,
   Code,
+  Workflow,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
   TrendingUp,
   Network,
   Fingerprint as FingerprintIcon,
+  GitBranch,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -50,6 +52,7 @@ const navItems: NavItem[] = [
       { to: '/integration', icon: Link2, label: 'Devices' },
       { to: '/insights', icon: Lightbulb, label: 'Insights' },
       { to: '/fingerprint', icon: FingerprintIcon, label: 'Fingerprint' },
+      { to: '/agency', icon: GitBranch, label: 'Agency' },
       { to: '/exploration', icon: Compass, label: 'Exploration' },
       { to: '/baseline', icon: TrendingUp, label: 'Baseline' },
       { to: '/twin', icon: Network, label: 'Twin' },
@@ -57,6 +60,7 @@ const navItems: NavItem[] = [
     ],
   },
   { to: '/api', icon: Code, label: 'API' },
+  { to: '/edge-map', icon: Workflow, label: 'Edge Map' },
   { to: '/admin', icon: Settings, label: 'Settings' },
 ]
 

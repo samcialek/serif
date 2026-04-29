@@ -34,7 +34,7 @@ export interface IdentityLabelSpec {
     | 'data_quality'
 }
 
-export const IDENTITY_LABELS: IdentityLabelSpec[] = [
+export const IDENTITY_LABELS = [
   // ─── Aerobic / endurance system ──
   {
     id: 'iron_limited_endurance',
@@ -80,6 +80,13 @@ export const IDENTITY_LABELS: IdentityLabelSpec[] = [
       'Bedtime, wake time, or training load shift meaningfully between weekdays and weekends.',
     category: 'rhythm',
   },
+  {
+    id: 'social_jet_lag_pattern',
+    label: 'Social-jet-lag pattern',
+    description:
+      'Weekday and weekend sleep timing diverge enough to create a recurring Monday recovery cost.',
+    category: 'rhythm',
+  },
 
   // ─── Sleep ──
   {
@@ -108,6 +115,13 @@ export const IDENTITY_LABELS: IdentityLabelSpec[] = [
     label: 'Heat-sensitive sleeper',
     description:
       'Bedroom or ambient heat above a personal threshold is a strong predictor of fragmented sleep.',
+    category: 'sleep',
+  },
+  {
+    id: 'caffeine_sensitive_recovery',
+    label: 'Caffeine-sensitive recovery',
+    description:
+      'Caffeine timing has a steeper-than-typical cost to sleep depth, recovery, or autonomic markers.',
     category: 'sleep',
   },
 
@@ -157,6 +171,41 @@ export const IDENTITY_LABELS: IdentityLabelSpec[] = [
     category: 'metabolic',
   },
   {
+    id: 'pressure_loaded_glucose_drift',
+    label: 'Pressure-loaded glucose drift',
+    description:
+      'Glucose is drifting upward while sleep debt, stress, or recovery load are also elevated.',
+    category: 'metabolic',
+  },
+  {
+    id: 'high_responder_metabolic',
+    label: 'High-responder metabolic system',
+    description:
+      'Glucose, weight, or lipid markers respond quickly and noticeably to nutrition and timing changes.',
+    category: 'metabolic',
+  },
+  {
+    id: 'eating_window_responder',
+    label: 'Eating-window responder',
+    description:
+      'Meal timing and eating-window compression produce a cleaner metabolic signal than most other levers.',
+    category: 'metabolic',
+  },
+  {
+    id: 'glucose_sensitive_alcohol',
+    label: 'Glucose-sensitive to alcohol',
+    description:
+      'Alcohol produces a repeatable next-day glucose cost that is large enough to plan around.',
+    category: 'metabolic',
+  },
+  {
+    id: 'cycle_aware_metabolic_responder',
+    label: 'Cycle-aware metabolic responder',
+    description:
+      'Cycle phase acts as a recurring moderator on glucose, sleep, or recovery response.',
+    category: 'metabolic',
+  },
+  {
     id: 'insulin_resistant_athletic',
     label: 'Athletic but insulin-resistant',
     description:
@@ -184,6 +233,27 @@ export const IDENTITY_LABELS: IdentityLabelSpec[] = [
     label: 'Fresh but under-slept',
     description:
       'Training stress balance is positive — bodies look unloaded — but sleep debt is rising. Recovery quality is masked by recent low load.',
+    category: 'recovery',
+  },
+  {
+    id: 'weekday_stress_autonomic_load',
+    label: 'Weekday-stress autonomic load',
+    description:
+      'Autonomic markers degrade during workweek exposure and recover when the weekday stressor lifts.',
+    category: 'recovery',
+  },
+  {
+    id: 'inflammation_managed_athlete',
+    label: 'Inflammation-managed athlete',
+    description:
+      'Inflammation markers have improved enough that the constraint has moved from inflammatory load to another system.',
+    category: 'recovery',
+  },
+  {
+    id: 'slow_autonomic_recovery',
+    label: 'Slow autonomic recovery (48-hour window)',
+    description:
+      'Hard sessions require roughly two days before HRV or resting heart rate returns to baseline.',
     category: 'recovery',
   },
 
@@ -216,10 +286,18 @@ export const IDENTITY_LABELS: IdentityLabelSpec[] = [
       'Personalization is in early days — most edges still lean on cohort and literature priors. Repeat measurement (especially labs) would unlock the most.',
     category: 'data_quality',
   },
-]
+] as const satisfies readonly IdentityLabelSpec[]
 
-const BY_ID = new Map(IDENTITY_LABELS.map((l) => [l.id, l]))
+const BY_ID: ReadonlyMap<string, IdentityLabelSpec> = new Map(
+  IDENTITY_LABELS.map((l) => [l.id, l]),
+)
+
+export type IdentityLabelId = (typeof IDENTITY_LABELS)[number]['id']
 
 export function getIdentityLabel(id: string): IdentityLabelSpec | undefined {
   return BY_ID.get(id)
+}
+
+export function isIdentityLabelId(id: string): id is IdentityLabelId {
+  return BY_ID.has(id)
 }

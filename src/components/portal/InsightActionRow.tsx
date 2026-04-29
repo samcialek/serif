@@ -46,6 +46,12 @@ const ACTION_LABEL: Record<string, string> = {
   training_volume: 'Training volume',
   dietary_protein: 'Dietary protein',
   dietary_energy: 'Dietary energy',
+  carbohydrate_g: 'Carbohydrates',
+  fiber_g: 'Fiber',
+  late_meal_count: 'Late meals',
+  post_meal_walks: 'Post-meal walks',
+  cycle_luteal_phase: 'Luteal phase',
+  luteal_symptom_score: 'Luteal symptoms',
   acwr: 'ACWR',
   sleep_debt: 'Sleep debt',
   travel_load: 'Travel load',
@@ -75,7 +81,7 @@ const ACTION_NATIVE_UNIT_PER_STEP: Record<string, string> = {
   alcohol_units: 'drinks',
   alcohol_timing: 'h',
   running_volume: 'km',
-  steps: '1k steps',
+  steps: 'steps',
   resistance_training_minutes: 'min/wk',
   training_load: 'TRIMP',
   active_energy: 'kcal',
@@ -83,6 +89,12 @@ const ACTION_NATIVE_UNIT_PER_STEP: Record<string, string> = {
   training_volume: 'h',
   dietary_protein: 'g',
   dietary_energy: 'kcal',
+  carbohydrate_g: 'g',
+  fiber_g: 'g',
+  late_meal_count: 'late meal',
+  post_meal_walks: 'walk',
+  cycle_luteal_phase: 'phase',
+  luteal_symptom_score: 'pts',
   acwr: 'ratio',
   sleep_debt: 'h',
   travel_load: 'score',
@@ -154,9 +166,8 @@ export function InsightActionRow({
   const contraction = edge.posterior.contraction ?? 0
   const dStr = `${d >= 0 ? '+' : ''}${d.toFixed(2)}σ`
   const native = predictedNativeEffectAtStep(effectiveEdge)
-  const actionUnit = ACTION_NATIVE_UNIT_PER_STEP[edge.action] ?? ''
   const outcomeUnit = OUTCOME_NATIVE_UNIT[edge.outcome] ?? ''
-  const stepLabel = actionUnit ? `+1 ${actionUnit}` : '+1 step'
+  const stepLabel = interventionStepLabel(edge)
   const nativeStr = `${native >= 0 ? '+' : ''}${formatNative(native)}${outcomeUnit ? ' ' + outcomeUnit : ''} per ${stepLabel}`
   const horizon = horizonLabel(edge.horizon_days)
 
@@ -237,6 +248,47 @@ function formatNative(v: number): string {
   if (abs >= 10) return v.toFixed(1)
   if (abs >= 1) return v.toFixed(2)
   return v.toFixed(3)
+}
+
+function interventionStepLabel(edge: InsightBayesian): string {
+  const unit = ACTION_NATIVE_UNIT_PER_STEP[edge.action] ?? 'step'
+  const step = edge.nominal_step || 1
+  const absStep = Math.abs(step)
+  if (unit === 'on/off' && absStep === 1) {
+    return step < 0 ? 'turning off' : 'turning on'
+  }
+  const magnitude = formatStepMagnitude(absStep, unit)
+  if (edge.action === 'bedtime') {
+    return step < 0 ? `${magnitude} h earlier` : `${magnitude} h later`
+  }
+  if (step < 0) {
+    return `${magnitude} fewer ${unit}${pluralSuffix(absStep, unit)}`
+  }
+  return `+${magnitude} ${unit}${pluralSuffix(absStep, unit)}`
+}
+
+function formatStepMagnitude(value: number, unit: string): string {
+  if (unit === 'steps' && value >= 1000) {
+    return `${formatCompact(value / 1000)}k`
+  }
+  return formatCompact(value)
+}
+
+function formatCompact(value: number): string {
+  if (Number.isInteger(value)) return value.toFixed(0)
+  if (Math.abs(value) >= 10) return trimTrailingZero(value.toFixed(1))
+  if (Math.abs(value) >= 1) return trimTrailingZero(value.toFixed(1))
+  return trimTrailingZero(value.toFixed(2))
+}
+
+function trimTrailingZero(value: string): string {
+  return value.replace(/\.0$/, '')
+}
+
+function pluralSuffix(value: number, unit: string): string {
+  if (Math.abs(value - 1) < 1e-9) return ''
+  if (unit === 'late meal' || unit === 'walk' || unit === 'step') return 's'
+  return ''
 }
 
 /** Compact human label for the edge's horizon. Conveys timescale so

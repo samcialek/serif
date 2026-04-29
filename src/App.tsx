@@ -5,6 +5,7 @@ import {
   ProtocolsView,
   CoachView,
   ApiView,
+  EdgeMapView,
   AdminView,
   ClientsView,
   UserDetailView,
@@ -18,6 +19,7 @@ import {
   BaselineView,
   ExplorationView,
   FingerprintView,
+  AgencyView,
 } from '@/views'
 import { Navigate } from 'react-router-dom'
 
@@ -39,6 +41,7 @@ function App() {
           <Route path="/portal" element={<Navigate to="/insights" replace />} />
           <Route path="/baseline" element={<BaselineView />} />
           <Route path="/fingerprint" element={<FingerprintView />} />
+          <Route path="/agency" element={<AgencyView />} />
 
           {/* Twin — painterly is the canonical version. */}
           <Route path="/twin" element={<TwinView />} />
@@ -76,6 +79,7 @@ function App() {
           <Route path="/members" element={<CoachView />} />
           <Route path="/coach" element={<Navigate to="/members" replace />} />
           <Route path="/api" element={<ApiView />} />
+          <Route path="/edge-map" element={<EdgeMapView />} />
           <Route path="/admin" element={<AdminView />} />
           <Route path="/style-demo" element={<StyleDemoView />} />
           <Route path="/curve-demo" element={<CurveStyleDemoView />} />

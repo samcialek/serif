@@ -156,8 +156,14 @@ export function createParticipantLoader(
 
   async function parseJson(url: string, res: FetchResponse, label: string): Promise<unknown> {
     const text = await res.text()
+    // Python's `json.dump` emits non-standard `NaN` / `Infinity` for
+    // missing or unbounded values. Sanitize before JSON.parse rather
+    // than re-export every payload through `allow_nan=False`.
+    const sanitized = text
+      .replace(/:\s*NaN\b/g, ': null')
+      .replace(/:\s*-?Infinity\b/g, ': null')
     try {
-      return JSON.parse(text)
+      return JSON.parse(sanitized)
     } catch (e) {
       throw new MalformedJsonError(`${label} at ${url}: ${(e as Error).message}`)
     }

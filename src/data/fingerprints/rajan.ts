@@ -14,6 +14,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_pressure_glucose_drift',
     type: 'identity_label',
+    identity_label_id: 'pressure_loaded_glucose_drift',
     label: 'Pressure-loaded glucose drift',
     claim:
       'Adherence is high and aerobic capacity is intact, but accumulated sleep debt and weekday work stress are co-rising with a quietly upward fasting-glucose trajectory. The system is being asked to perform faster than it can recover.',
@@ -34,6 +35,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_late_workout_sensitive',
     type: 'identity_label',
+    identity_label_id: 'late_workout_sensitive',
     label: 'Late-workout-sensitive sleeper',
     claim:
       'Sessions ending after 8 PM consistently degrade the next night\'s sleep architecture — REM is hit harder than deep sleep, and sleep latency stretches.',
@@ -53,6 +55,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_work_stress_autonomic',
     type: 'identity_label',
+    identity_label_id: 'weekday_stress_autonomic_load',
     label: 'Weekday-stress autonomic load',
     claim:
       'HRV is meaningfully lower on weekdays than weekends — a clean physiological fingerprint that work stress is taxing the autonomic system, not just the calendar.',

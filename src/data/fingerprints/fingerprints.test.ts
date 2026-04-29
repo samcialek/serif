@@ -21,6 +21,7 @@ import {
   getFingerprintsForOutcome,
   hasFingerprintsForOutcome,
 } from './reverseIndex'
+import { getIdentityLabel } from './labelDictionary'
 
 let failures = 0
 
@@ -132,6 +133,61 @@ check(
   danglingSupports.length === 0,
   danglingSupports.join(', '),
 )
+
+console.log('\n[testIdentityLabelsUseDictionary]')
+for (const expected of [
+  { pid: 1, name: 'Caspian' },
+  { pid: 2, name: 'Rajan' },
+  { pid: 3, name: 'Sarah' },
+  { pid: 4, name: 'Marcus' },
+  { pid: 5, name: 'Emma' },
+]) {
+  const bundle = computeFingerprints(makeSyntheticParticipant(expected.pid))
+  const identityLabels = bundle.fingerprints.filter(
+    (f) => f.type === 'identity_label',
+  )
+  check(
+    `${expected.name} has >=1 identity_label`,
+    identityLabels.length >= 1,
+    `got ${identityLabels.length}`,
+  )
+
+  const dictionaryMismatches: string[] = []
+  for (const label of identityLabels) {
+    const spec = getIdentityLabel(label.identity_label_id)
+    if (!spec) {
+      dictionaryMismatches.push(`${label.id}: missing ${label.identity_label_id}`)
+    } else if (spec.label !== label.label) {
+      dictionaryMismatches.push(
+        `${label.id}: ${label.identity_label_id} renders "${label.label}", expected "${spec.label}"`,
+      )
+    }
+  }
+  check(
+    `${expected.name} identity labels come from dictionary`,
+    dictionaryMismatches.length === 0,
+    dictionaryMismatches.join(', '),
+  )
+
+  const supportIds = new Set(
+    bundle.fingerprints
+      .filter((f) => f.type !== 'identity_label')
+      .map((f) => f.id),
+  )
+  const danglingSupportsForBundle: string[] = []
+  for (const label of identityLabels) {
+    for (const supportId of label.supports) {
+      if (!supportIds.has(supportId)) {
+        danglingSupportsForBundle.push(`${label.id}->${supportId}`)
+      }
+    }
+  }
+  check(
+    `${expected.name} identity_label.supports point at real cards`,
+    danglingSupportsForBundle.length === 0,
+    danglingSupportsForBundle.join(', '),
+  )
+}
 
 console.log('\n[testGenericDetectorOnPseudonym]')
 const pseudonym = makeSyntheticParticipant(42) // not in CURATED_BUNDLES

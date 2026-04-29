@@ -57,7 +57,7 @@ export const LOAD_ICONS: Record<LoadKey, LoadIconSpec> = {
   },
   sri_7d: {
     icon: Repeat,
-    label: 'Regularity',
+    label: 'Sleep regularity',
     symbol: 'SRI',
     tooltip: 'Sleep Regularity Index — how stable your bedtime has been',
   },

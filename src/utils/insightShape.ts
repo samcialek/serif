@@ -26,6 +26,7 @@ import type { SyntheticShape } from '@/data/scm/syntheticEdges'
 import { PHASE_1_EDGES } from '@/data/scm/syntheticEdges'
 import { PHASE_2_EDGES } from '@/data/scm/syntheticEdgesV2'
 import type { InsightBayesian } from '@/data/portal/types'
+import { isContextSuppressed } from '@/utils/edgeSuppression'
 
 /** Extended shape type used by the Insights v2 curves. Adds
  * smooth_inverted_u on top of the engine's SyntheticShape union.
@@ -66,6 +67,12 @@ export const ACTION_DOMAIN: Record<string, { min: number; max: number }> = {
   resistance_training_minutes: { min: 0, max: 180 },
   dietary_protein: { min: 30, max: 250 },
   dietary_energy: { min: 1500, max: 4000 },
+  carbohydrate_g: { min: 50, max: 300 },
+  fiber_g: { min: 5, max: 50 },
+  late_meal_count: { min: 0, max: 7 },
+  post_meal_walks: { min: 0, max: 4 },
+  cycle_luteal_phase: { min: 0, max: 1 },
+  luteal_symptom_score: { min: 0, max: 10 },
   supp_omega3: { min: 0, max: 1 },
   supp_magnesium: { min: 0, max: 1 },
   supp_vitamin_d: { min: 0, max: 1 },
@@ -162,6 +169,10 @@ function lookupExplicitShape(
  * engine's posterior.mean × domain span — big-picture magnitude
  * honest, shape coarse. */
 export function inferShape(edge: InsightBayesian): InferredShape {
+  if (isContextSuppressed(edge)) {
+    return { kind: 'linear', slope: 0 }
+  }
+
   const cacheKey = `${edge.action}::${edge.outcome}`
   const cached = SHAPE_CACHE.get(cacheKey)
   if (cached) return cached

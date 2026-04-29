@@ -155,6 +155,11 @@ export const LOAD_RELEVANCE_BY_ACTION: Record<string, LoadKey[]> = {
   running_volume: ['acwr', 'tsb', 'training_monotony'],
   dietary_protein: [],
   dietary_energy: [],
+  carbohydrate_g: [],
+  fiber_g: [],
+  late_meal_count: ['sleep_debt_14d'],
+  post_meal_walks: [],
+  bedroom_temp_c: ['sleep_debt_14d', 'sri_7d'],
 }
 
 const LOAD_LABELS: Record<LoadKey, string> = {
@@ -281,7 +286,11 @@ export const CONFOUNDERS_BY_OUTCOME: Record<string, string[]> = {
   sleep_duration: ['season', 'is_weekend', 'temp_c'],
   sleep_quality: ['location', 'travel_load', 'temp_c', 'humidity_pct'],
   hrv_daily: ['travel_load', 'heat_index'],
+  sleep_efficiency: ['location', 'travel_load', 'temp_c', 'humidity_pct'],
   resting_hr: ['travel_load', 'heat_index'],
+  glucose: ['season', 'is_weekend', 'temp_c', 'cycle_luteal_phase', 'late_meal_count'],
+  insulin: ['season', 'cycle_luteal_phase', 'late_meal_count'],
+  triglycerides: ['season', 'dietary_energy', 'carbohydrate_g'],
   bedtime: ['is_weekend'],
   omega3_index: ['season'],
 }
@@ -297,6 +306,11 @@ const CONFOUNDER_LABELS: Record<string, string> = {
   humidity_pct: 'Humidity',
   uv_index: 'UV index',
   aqi: 'Air quality',
+  cycle_luteal_phase: 'Cycle phase',
+  luteal_symptom_score: 'Luteal symptoms',
+  late_meal_count: 'Late meals',
+  dietary_energy: 'Energy intake',
+  carbohydrate_g: 'Carbohydrates',
 }
 
 function seasonForDate(date: Date): string {
@@ -324,6 +338,22 @@ function confounderValue(
     // travel_load isn't in the engine's load summary (LOAD_COLUMNS doesn't
     // include it) — it's a BART confounder only. Show without a value.
     return undefined
+  }
+  const cv = participant.current_values ?? {}
+  if (key === 'cycle_luteal_phase' && cv.cycle_luteal_phase != null) {
+    return cv.cycle_luteal_phase >= 0.5 ? 'luteal' : 'not luteal'
+  }
+  if (key === 'luteal_symptom_score' && cv.luteal_symptom_score != null) {
+    return `${cv.luteal_symptom_score.toFixed(1)}/10`
+  }
+  if (key === 'late_meal_count' && cv.late_meal_count != null) {
+    return `${cv.late_meal_count.toFixed(0)}/week`
+  }
+  if (key === 'dietary_energy' && cv.dietary_energy != null) {
+    return `${Math.round(cv.dietary_energy)} kcal`
+  }
+  if (key === 'carbohydrate_g' && cv.carbohydrate_g != null) {
+    return `${Math.round(cv.carbohydrate_g)}g`
   }
   // Weather confounders — resolve from participant.weather_today.
   const wt = participant.weather_today

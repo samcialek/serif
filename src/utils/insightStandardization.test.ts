@@ -14,7 +14,12 @@
  * HRV in raw native-unit deltas).
  */
 
-import { optimizationScore } from './insightStandardization'
+import {
+  cohensD,
+  optimizationScore,
+  predictedNativeEffectAtStep,
+} from './insightStandardization'
+import type { InsightBayesian, ParticipantPortal } from '@/data/portal/types'
 
 let failures = 0
 
@@ -120,7 +125,68 @@ assert(
   `HRV+3 (${trialA}) ranks above cortisol+3 (${trialB})`,
 )
 
-// ─── Summary ─────────────────────────────────────────────────────
+// Context-suppressed edges
+
+console.log('\ncontext gates - display zeroing:')
+
+const blockedZincEdge = {
+  action: 'supp_zinc',
+  outcome: 'sleep_quality',
+  nominal_step: 1,
+  dose_multiplier: 0,
+  dose_multiplier_raw: 0,
+  direction_conflict: false,
+  scaled_effect: 0,
+  posterior: {
+    mean: 3,
+    variance: 1,
+    sd: 1,
+    contraction: 0.9,
+    prior_mean: 3,
+    prior_variance: 1,
+    source: 'pop+user',
+    lam_js: 0,
+    n_cohort: 0,
+    z_like: 3,
+  },
+  cohort_prior: null,
+  user_obs: null,
+  gate: {
+    score: 0,
+    tier: 'not_exposed',
+    suppression_reason: 'zinc_status_not_deficient',
+  },
+  context_gate: {
+    name: 'zinc_deficiency',
+    status: 'blocked',
+    value: 90,
+    threshold: 70,
+  },
+} satisfies InsightBayesian
+
+const testParticipant = {
+  pid: 3,
+  cohort: 'cohort_b',
+  age: 41,
+  is_female: true,
+  effects_bayesian: [],
+  tier_counts: { recommended: 0, possible: 0, not_exposed: 0 },
+  exposed_count: 0,
+  protocols: [],
+  current_values: { supp_zinc: 0 },
+  behavioral_sds: { supp_zinc: 0.5 },
+} satisfies ParticipantPortal
+
+assert(
+  predictedNativeEffectAtStep(blockedZincEdge) === 0,
+  'context-blocked native effect renders as 0',
+)
+assert(
+  cohensD(blockedZincEdge, testParticipant) === 0,
+  'context-blocked standardized effect renders as 0',
+)
+
+// Summary
 
 if (failures === 0) {
   console.log('\nAll insightStandardization regression tests passed.')

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 // Types
 // ────────────────────────────────────────────────────────────
 
-interface DataStream {
+export interface DataStream {
   id: string
   label: string
   sublabel: string
@@ -191,18 +191,30 @@ const BOTTOM_PAD = 28
 const BAR_HEIGHT = 16
 const MAX_DENSITY = 15
 
-export function DataCadenceChart() {
+export interface DataCadenceChartProps {
+  streams?: DataStream[]
+  timelineStartDate?: string
+  timelineEndDate?: string
+}
+
+export function DataCadenceChart({
+  streams = ORON_STREAMS,
+  timelineStartDate = '2015-02-01',
+  timelineEndDate = '2026-03-01',
+}: DataCadenceChartProps = {}) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
 
   const layout = useMemo(() => {
-    const timelineStart = new Date('2015-02-01').getTime()
-    const timelineEnd = new Date('2026-03-01').getTime()
-    const totalRows = ORON_STREAMS.length
+    const timelineStart = new Date(timelineStartDate).getTime()
+    const timelineEnd = new Date(timelineEndDate).getTime()
+    const totalRows = streams.length
     const chartHeight = TOP_PAD + totalRows * (ROW_HEIGHT + ROW_GAP) + BOTTOM_PAD
 
     // Year gridlines
     const years: { year: number; x: number }[] = []
-    for (let y = 2016; y <= 2026; y++) {
+    const firstYear = new Date(timelineStartDate).getFullYear() + 1
+    const lastYear = new Date(timelineEndDate).getFullYear()
+    for (let y = firstYear; y <= lastYear; y++) {
       years.push({
         year: y,
         x: dateToX(`${y}-01-01`, timelineStart, timelineEnd, 1),
@@ -214,7 +226,7 @@ export function DataCadenceChart() {
     const todayX = dateToX(today, timelineStart, timelineEnd, 1)
 
     return { timelineStart, timelineEnd, chartHeight, years, todayX }
-  }, [])
+  }, [streams.length, timelineEndDate, timelineStartDate])
 
   const { timelineStart, timelineEnd, chartHeight, years, todayX } = layout
 
@@ -275,7 +287,7 @@ export function DataCadenceChart() {
         </text>
 
         {/* Data stream rows */}
-        {ORON_STREAMS.map((stream, i) => {
+        {streams.map((stream, i) => {
           const y = TOP_PAD + i * (ROW_HEIGHT + ROW_GAP)
           const barY = y + (ROW_HEIGHT - BAR_HEIGHT) / 2
           const chartW = 900 - LABEL_WIDTH - RIGHT_PAD

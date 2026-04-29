@@ -15,6 +15,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_baseline_forming',
     type: 'identity_label',
+    identity_label_id: 'baseline_still_forming',
     label: 'Baseline still forming',
     claim:
       'Twelve days of wearable data and no bloodwork — most relationships in Emma\'s data are still leaning on cohort and literature priors. Personalization will sharpen quickly as more data arrives.',
@@ -34,6 +35,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_social_jet_lag',
     type: 'identity_label',
+    identity_label_id: 'social_jet_lag_pattern',
     label: 'Social-jet-lag pattern',
     claim:
       'Weekend wake time runs ~2.5 hours later than weekday wake — equivalent to flying two time zones every Monday morning. The weekday/weekend gap is structural, not occasional.',

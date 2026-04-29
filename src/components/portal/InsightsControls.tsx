@@ -40,16 +40,15 @@ export interface InsightControlsState {
    * is_weekend, heat_index, etc.) with today's values — so the user
    * sees what else is shaping the outcome beyond their own actions. */
   showEnvironmental: boolean
-  /** When true, layer-0 weak-default prior edges are included. Off by
-   *  default since these are the un-tightened "we'd expect a small
-   *  effect" priors that fill the Cartesian grid; turning them on
-   *  shows the full causal coverage. Defaults to ON now per the
-   *  "show every edge by default" mandate. */
+  /** When true, layer-0 weak-default prior edges are included. These
+   *  are the un-tightened "we'd expect a small effect" priors that fill
+   *  the Cartesian grid; turning them on shows the full causal coverage. */
   includeWeakDefault: boolean
   /** When true, edges where the participant has no exposure (the
    *  action node hasn't varied enough to identify the link) are still
    *  shown. They surface as "tested but null" / "no signal yet" rather
-   *  than being silently dropped. */
+   *  than being silently dropped. Off by default so context-blocked
+   *  rows do not crowd active recommendations. */
   includeNotExposed: boolean
 }
 
@@ -60,10 +59,10 @@ const DEFAULT_STATE: InsightControlsState = {
   personalOnly: false,
   showEnvironmental: false,
   includeWeakDefault: true,
-  includeNotExposed: true,
+  includeNotExposed: false,
 }
 
-const STORAGE_KEY = 'serif.insightsV2.controls.v1'
+const STORAGE_KEY = 'serif.insightsV2.controls.v2'
 
 function readFromStorage(): InsightControlsState {
   if (typeof window === 'undefined') return DEFAULT_STATE
@@ -81,10 +80,8 @@ function readFromStorage(): InsightControlsState {
       hideTrivial: parsed.hideTrivial === true,
       personalOnly: parsed.personalOnly === true,
       showEnvironmental: parsed.showEnvironmental === true,
-      // Default to true — the user explicitly wants the full set visible
-      // unless they opt out.
       includeWeakDefault: parsed.includeWeakDefault !== false,
-      includeNotExposed: parsed.includeNotExposed !== false,
+      includeNotExposed: parsed.includeNotExposed === true,
     }
   } catch {
     return DEFAULT_STATE

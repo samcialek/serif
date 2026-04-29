@@ -35,6 +35,7 @@ function sourceHas(edge: InsightBayesian, tokens: string[]): boolean {
 function hasLiteratureSignal(edge: InsightBayesian): boolean {
   return (
     edge.literature_backed === true ||
+    edge.prior_provenance === 'model_fit+literature' ||
     edge.prior_provenance === 'synthetic+literature' ||
     sourceHas(edge, ['literature', 'rct', 'meta'])
   )
@@ -87,6 +88,7 @@ export function posteriorKindForEdge(edge: InsightBayesian): EdgePosteriorKind {
 
   if (
     edge.prior_provenance === 'synthetic' ||
+    edge.prior_provenance === 'model_fit' ||
     edge.evidence_tier === 'cohort_level' ||
     sourceHas(edge, ['cohort', 'fitted', 'engine', 'computed', 'derived'])
   ) {

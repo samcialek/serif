@@ -1,9 +1,11 @@
 import type { Persona, Insight, DailyMetrics, LabResult, Protocol, DailyPlan } from '@/types'
 
+const BASE_URL = import.meta.env?.BASE_URL ?? '/'
+
 export const sarahPersona: Persona = {
   id: 'sarah',
   name: 'Sarah M.',
-  avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
+  avatar: `${BASE_URL}assets/avatars/sarah.png?v=1`,
   age: 41,
   archetype: 'The Metabolic Optimizer',
   narrative: 'Metabolic optimizer with dense glucose, cycle, food, sleep, environment, and episodic lab history',

@@ -83,6 +83,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_iron_limited',
     type: 'identity_label',
+    identity_label_id: 'iron_limited_endurance',
     label: 'Iron-limited endurance system',
     claim:
       'High aerobic identity, lots of long-horizon training data, strong lipid and inflammation profile — but oxygen transport sits at the constraint edge. Performance ceiling is currently set by iron availability, not aerobic capacity or motivation.',
@@ -109,6 +110,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_rhythm_stable',
     type: 'identity_label',
+    identity_label_id: 'rhythm_stable_load_variable',
     label: 'Rhythm-stable, load-variable',
     claim:
       'Sleep timing and bedtime live inside a tight personal envelope, while training volume, running volume, and steps swing meaningfully day-to-day. The circadian system is one of the most reliable channels in the data set.',
@@ -128,6 +130,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_travel_fragile',
     type: 'identity_label',
+    identity_label_id: 'travel_fragile_sleeper',
     label: 'Travel-fragile sleeper',
     claim:
       'Sleep efficiency and deep sleep degrade noticeably when travel load crosses ~0.6. Below that, travel barely registers; above it, sleep architecture compresses for 3-5 days.',

@@ -70,7 +70,7 @@ export const coachMembers: CoachMember[] = [
     id: 'member-sarah',
     personaId: 'sarah',
     name: 'Sarah M.',
-    avatar: '/assets/avatars/sarah.jpg',
+    avatar: '/assets/avatars/sarah.png?v=1',
     focus: 'Metabolic health',
     daysOfData: 124,
     insightCount: 41,

@@ -82,6 +82,13 @@ const ACTION_LABEL: Record<string, { label: string; unit: string; isClock?: bool
   active_energy: { label: 'Active energy', unit: 'kcal/day' },
   dietary_protein: { label: 'Dietary protein', unit: 'g/day' },
   dietary_energy: { label: 'Dietary energy', unit: 'kcal/day' },
+  carbohydrate_g: { label: 'Carbohydrates', unit: 'g/day' },
+  fiber_g: { label: 'Fiber', unit: 'g/day' },
+  late_meal_count: { label: 'Late meals', unit: '/week' },
+  post_meal_walks: { label: 'Post-meal walks', unit: '/day' },
+  bedroom_temp_c: { label: 'Bedroom temperature', unit: 'deg C' },
+  cycle_luteal_phase: { label: 'Luteal phase', unit: '' },
+  luteal_symptom_score: { label: 'Luteal symptoms', unit: '/10' },
   bedtime: { label: 'Bedtime', unit: '', isClock: true },
 }
 

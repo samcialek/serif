@@ -15,6 +15,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_inflammation_managed',
     type: 'identity_label',
+    identity_label_id: 'inflammation_managed_athlete',
     label: 'Inflammation-managed athlete',
     claim:
       'hsCRP has trended down across the data window — the zero-alcohol + cool-sleep + early-cutoff stack is working. Inflammation is no longer the constraint it was; the residual issues live elsewhere now.',
@@ -35,6 +36,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_slow_recovery_window',
     type: 'identity_label',
+    identity_label_id: 'slow_autonomic_recovery',
     label: 'Slow autonomic recovery (48-hour window)',
     claim:
       'HRV takes ~48 hours to return to baseline after hard sessions, but he\'s currently stacking sessions every 36 hours. The protocol is fighting his recovery clock.',
@@ -54,6 +56,7 @@ const FINGERPRINTS: Fingerprint[] = [
   {
     id: 'id_caffeine_sensitive',
     type: 'identity_label',
+    identity_label_id: 'caffeine_sensitive_recovery',
     label: 'Caffeine-sensitive recovery',
     claim:
       'Cutoff at noon — 4-5 hours earlier than the cohort median. He metabolizes caffeine slowly and the deep-sleep cost of any afternoon caffeine is steep.',

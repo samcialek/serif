@@ -21,6 +21,7 @@ import {
   type EffectBand,
 } from '@/utils/insightStandardization'
 import { ACTION_DOMAIN, evaluateShape, inferShape } from '@/utils/insightShape'
+import { isContextSuppressed } from '@/utils/edgeSuppression'
 
 interface Props {
   edge: InsightBayesian
@@ -108,13 +109,19 @@ export function MiniDoseResponse({
   }, [edge, participant, width, height])
 
   const beneficial = isBeneficial(edge)
+  const suppressed = isContextSuppressed(edge)
   const stroke =
-    band === 'trivial'
+    suppressed || band === 'trivial'
       ? '#94a3b8' // slate-400
       : beneficial
         ? '#10b981' // emerald-500
         : '#f43f5e' // rose-500
-  const tint = beneficial ? 'rgba(16,185,129,0.10)' : 'rgba(244,63,94,0.10)'
+  const tint =
+    suppressed || band === 'trivial'
+      ? 'rgba(148,163,184,0.08)'
+      : beneficial
+        ? 'rgba(16,185,129,0.10)'
+        : 'rgba(244,63,94,0.10)'
 
   return (
     <svg
